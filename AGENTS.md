@@ -38,7 +38,12 @@ mise -C ~/dotfiles run test    # script harness against mktemp sandboxes
 mise -C ~/dotfiles verify      # the above, plus live machine-state checks
 ```
 
-`lint` and `test` are host-independent (this is what CI runs). `verify` layers
+`lint` and `test` are host-independent (this is what CI runs). CI runs them on
+Linux (GNU coreutils); local `mise run test` runs on macOS (BSD coreutils). When
+a script or test shells out to `stat`/`date`/`sed`/etc., use the GNU form first
+with a BSD fallback (`stat -c '%a' … 2>/dev/null || stat -f '%Lp' …`), never the
+reverse - BSD `stat -f` exits 0 on Linux and silently masks the fallback.
+`verify` layers
 on the live-machine checks, which need a converged macOS host: `mise doctor`
 (installation health, run first so later status output is trustworthy),
 bootstrap/dotfiles status (tools, symlinks, and macOS defaults drift),
