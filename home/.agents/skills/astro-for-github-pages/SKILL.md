@@ -21,12 +21,9 @@ export default defineConfig({
 });
 ```
 
-The `site` + `base` pair depends on where Pages serves the site:
-
-| Host / kind | `site` | `base` |
-|---|---|---|
-| github.com project site | `https://<owner>.github.io` | `/<repo>/` |
-| Enterprise project site | `https://pages.<enterprise-domain>` | `/<owner>/<repo>/` |
+The `site` + `base` pair is just the Pages `html_url` from Phase 3 split into
+Astro's two keys: origin (scheme + host) -> `site`, path -> `base`. Phase 3 owns
+the host/owner-type rules for what that path is; don't re-derive them here.
 
 Then route **every** internal link and asset through the base:
 
@@ -86,17 +83,13 @@ If docs contain ` ```mermaid ` fences:
 | Build-time pre-render (Puppeteer / Playwright) | Pulls in a headless browser (~150MB) and adds deploy fragility |
 | Mermaid → ASCII (`mermaid-ascii`, `beautiful-mermaid`) | Browser-free, but mangle subgraphs and HTML labels; unusable for non-trivial diagrams |
 
-## 4. Scope build/deploy tasks to a repo-local runner
+## 4. Repo-local runner tasks (Astro-specific)
 
-The site's `dev` / `build` / `preview` / `deploy` tasks are **project** tasks - they only make sense inside the checkout. Do NOT register them in a global or user task config, or they pollute the global namespace and appear (broken) from unrelated directories. Put them in a **repo-local** runner config.
-
-Worked example with mise - a repo-root `mise.toml`:
+Scope tasks repo-locally - the platform skill's Phase 4 covers why and owns the
+generic `site:deploy` task. Astro adds `dev` / `build` / `preview`, all run from
+the `site/` dir:
 
 ```toml
-#:schema https://mise.jdx.dev/schema/mise.json
-# Repo-local site tasks. {{config_root}} here is the repo root, so tasks address
-# the tree directly - no path-resolution boilerplate. Needs `mise trust` once.
-
 [tasks."site:dev"]
 dir = "{{config_root}}/site"
 run = "npm install && npm run sync-docs && npm run dev"
@@ -108,14 +101,12 @@ run = "npm install && npm run build"
 [tasks."site:preview"]      # build + serve the REAL dist/ - faithful pre-deploy check
 dir = "{{config_root}}/site"
 run = "npm install && npm run build && npm run preview"
-
-[tasks."site:deploy"]
-run = "{{config_root}}/scripts/deploy-site.sh"   # the Phase 4 script you generate into the site repo
 ```
 
-The same principle holds for `just` / `make` / npm scripts: keep them repo-scoped. If the repo-local config needs trusting (mise does), have the setup or install path trust it - otherwise a fresh clone's tasks error as untrusted.
-
-`site:preview` (build, then serve `dist/`) is the faithful local check: it matches what deploys, unlike `dev`, which uses on-the-fly transforms.
+`site:preview` (build, then serve `dist/`) is the faithful local check: it
+matches what deploys, unlike `dev`, which uses on-the-fly transforms. If the
+runner config needs trusting (mise does), have install trust it - otherwise a
+fresh clone's tasks error as untrusted.
 
 ## Sequence for a new Astro site
 

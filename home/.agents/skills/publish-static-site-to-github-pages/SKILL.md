@@ -7,7 +7,7 @@ description: Publish a prebuilt static site (any generator, or hand-written HTML
 
 A capability-probing playbook. GitHub Pages behaves very differently across github.com and Enterprise Server instances, and across repo policies. **Do not assume** - probe the target, record what you find, then choose a strategy that matches. Every branch below is driven by a fact you can discover with `gh`.
 
-This skill is generator-agnostic: it takes a directory of built static files (`dist/`, `_site/`, `public/`, hand-written HTML) and gets it served. It ships a canonical deploy script (`scripts/deploy-site.sh`) that implements the robust branch strategy end to end. For an Astro-specific companion (base-path wiring, docs sync, diagrams), see the `astro-for-github-pages` skill, which depends on this one. To render Markdown to HTML with no generator, see the pandoc appendix at the end.
+This skill is generator-agnostic: it takes a directory of built static files (`dist/`, `_site/`, `public/`, hand-written HTML) and gets it served. It ships a canonical deploy script (`scripts/deploy-site.sh`) that implements the robust branch strategy end to end. For an Astro-specific companion (base-path wiring, docs sync, diagrams), see the `astro-for-github-pages` skill, which depends on this one. For a no-framework site (Markdown via pandoc + one template, or hand-written HTML), see the `hand-html-for-github-pages` skill, which also depends on this one.
 
 ## Phase 1 - Probe the environment
 
@@ -145,7 +145,20 @@ What the script does, and why each step exists (these are the parts that bite if
    not fail (the branch is already correct; a re-request will catch up).
 
 Wire it to a task in whatever runner the repo uses (mise / just / make / npm), scoped
-**repo-locally** so it only resolves inside the checkout (see the astro skill for the mise example).
+**repo-locally** so it only resolves inside the checkout - a `deploy` task registered
+in a global/user config pollutes the namespace and appears (broken) from unrelated
+directories. With mise, a repo-root `mise.toml`:
+
+```toml
+#:schema https://mise.jdx.dev/schema/mise.json
+# Repo-local. {{config_root}} is the repo root, so the task addresses the tree
+# directly - no path boilerplate. Needs `mise trust` once (have install do it).
+
+[tasks."site:deploy"]
+run = "SITE_BUILD_DIR=dist {{config_root}}/scripts/deploy-site.sh"
+```
+
+A generator skill adds its own `build` / `preview` tasks alongside this (see the astro skill).
 
 ## Phase 5 - Verify
 
@@ -170,26 +183,3 @@ For a private site you **cannot** verify served content from the CLI. Use instea
 
 The script's reconcile poll already confirms the served build matches your push; branch builds can
 still take a minute to propagate.
-
-## Appendix - Rendering Markdown with pandoc (no generator)
-
-For a docs site that is just Markdown plus the odd hand-written HTML page, pandoc through one
-template is the lightest generator (no Node, no build step). Traps worth encoding:
-
-- **Titles: use `-V title=...`, not `-M title=...`.** pandoc parses a `-M` value as YAML, so a
-  title containing `": "` becomes a map and the `$title$` slot renders **empty**. `-V` sets the
-  template variable as a literal string. Derive the title from the first `# ` heading.
-- **Keep hyphens hyphens: read as `gfm`, not `markdown+smart`.** Smart typography rewrites `--`
-  and `---` into en/em dashes, which you usually do not want (and which a plain-hyphen house style
-  forbids). `--from gfm` leaves them alone and still handles tables and fenced code.
-- **Copy already-standalone HTML as-is** (e.g. a slide deck); only run Markdown through the template.
-- **Preserve the source directory layout under the output** so relative cross-links resolve; only
-  then does a base-path bug or a broken link surface (a single page hides both).
-
-A minimal converter:
-
-```bash
-title=$(grep -m1 '^# ' "$src" | sed 's/^#* *//')   # first H1; BSD-safe (no \+)
-pandoc "$src" --from gfm --to html5 --template tmpl.html --standalone \
-  --syntax-highlighting=tango -V title="$title" -V base="$BASE" -o "$out"
-```
