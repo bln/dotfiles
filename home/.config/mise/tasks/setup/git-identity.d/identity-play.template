@@ -1,0 +1,6 @@
+# ~/.config/git/identity-play - github.com identity.
+# NOT tracked in the dotfiles repo. Included by config.local.
+
+[user]
+	name  = {{PLAY_NAME}}
+	email = {{PLAY_EMAIL}}

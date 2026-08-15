@@ -1,0 +1,63 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+# Repo-local mise tasks for this checkout.
+
+[tasks.verify]
+description = "verify declared machine state"
+run = [
+  # doctor first: verify trusts mise's own status output, so fail fast if the
+  # installation itself is unhealthy (deactivated, shims off PATH, config
+  # unparseable) rather than reporting confusing downstream drift.
+  "mise doctor",
+  "mise bootstrap status --missing",
+  "mise dotfiles status --missing",
+  'env PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH" brew bundle check --no-upgrade',
+  "mise run lint",
+  "mise run test",
+  "mise run check:vscode-symlink",
+  "mise run check:git-identity",
+  "echo 'OK: dotfiles verification passed.'",
+]
+
+# check:git-identity and check:vscode-symlink are file tasks under
+# .mise/tasks/check/. They guard real failures (blocked commits, divorced VSCode
+# settings), so they live as scripts with test seams (HOME; VSCODE_SETTINGS_*)
+# that tests/run.sh exercises against sandboxes - not inline TOML.
+
+[tasks.lint]
+description = "syntax-check and shellcheck every shell script in the repo"
+dir = "{{ config_root }}"
+shell = "bash -c"
+run = '''
+{% raw %}
+set -euo pipefail
+# Collect shell scripts (bash 3.2 safe - no mapfile). Top-level *.sh and
+# scripts/*.sh match by extension; mise file-tasks (home/.config/mise/tasks and
+# repo-local .mise/tasks) have no extension, so match them by shebang. Excludes
+# .d/ template dirs (JSON/gitconfig, not shell).
+scripts=()
+while IFS= read -r f; do
+  scripts+=("$f")
+done < <(
+  {
+    find . -type f -name '*.sh' -not -path './.git/*'
+    find ./home/.config/mise/tasks ./.mise/tasks -type f -not -path '*/*.d/*' \
+      -exec sh -c 'head -1 "$1" | grep -q "^#!.*sh" ' _ {} \; -print
+  } | sort -u
+)
+[ "${#scripts[@]}" -gt 0 ] || { echo "no shell scripts found" >&2; exit 1; }
+echo "==> bash -n (syntax) on ${#scripts[@]} scripts"
+bash -n "${scripts[@]}"
+if command -v shellcheck >/dev/null 2>&1; then
+  echo "==> shellcheck"
+  shellcheck "${scripts[@]}"
+else
+  echo "WARNING: shellcheck not installed; skipped (CI enforces it)" >&2
+fi
+echo "OK: lint passed."
+{% endraw %}
+'''
+
+[tasks.test]
+description = "run the shell script test harness against mktemp sandboxes"
+dir = "{{ config_root }}"
+run = "bash tests/run.sh"

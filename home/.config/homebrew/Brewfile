@@ -1,0 +1,109 @@
+cask_args appdir: "~/Applications"
+
+# Homebrew owns formulae, casks, MAS apps, and VSCode extensions.
+# mise [tools] owns only version-resolved tools such as node and uv.
+# Applied by the mise [tasks.bootstrap] task (brew bundle).
+
+# ── formulae ──────────────────────────────────────────────────────────────────
+# System & Package Management (Must precede dependent entries)
+brew "git"       # Keep git up to date (not a mise registry tool)
+brew "mas"       # Mac App Store CLI (must precede mas entries below)
+
+# Core CLI Utilities & Enhancements
+brew "bat"
+brew "eza"
+brew "fd"
+brew "fzf"
+brew "jq"
+brew "ripgrep"
+brew "tldr"
+brew "tokei"
+brew "zoxide"
+
+# Shell Customization & Plugins
+brew "starship"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+
+# Development, Code Intelligence & Agents
+brew "gh"
+brew "gitui"
+brew "graphviz"
+brew "mole"
+brew "neovim"
+brew "pi-coding-agent"
+brew "shellcheck"
+
+# Research, Documents & Presentations
+brew "marp-cli"
+brew "pandoc"
+brew "typst"
+
+# ── casks ─────────────────────────────────────────────────────────────────────
+# Casks stay on Homebrew so they install into ~/Applications (mise's brew-cask
+# backend hardcodes /Applications).
+
+# AI & AI-Assisted Editors
+cask "chatgpt"
+cask "claude-code"
+cask "codex"
+
+# Development & Workspace Terminals
+cask "ghostty"
+cask "visual-studio-code"
+
+# Fonts
+cask "font-jetbrains-mono"            # Primary font (no ligatures)
+cask "font-jetbrains-mono-nerd-font"  # Primary nerd font
+
+# System Utilities & System Productivity
+cask "alfred"                         # Launcher
+cask "coconutbattery"                 # Battery status
+cask "keka"                           # File archiver
+cask "shottr"                         # Screenshot tool
+
+# Research, Writing & Productivity
+cask "bloom"
+cask "smoothcsv"                      # CSV editor
+cask "typora"                         # Markdown editor
+
+# Media Players
+cask "iina"                           # Media player
+
+# ── vscode extensions ─────────────────────────────────────────────────────────
+# No mise-native path for VSCode extensions, so they live here.
+
+# Language Tools & Compilers
+vscode "golang.go"
+vscode "ms-python.debugpy"
+vscode "ms-python.python"
+vscode "ms-python.vscode-pylance"
+vscode "ms-python.vscode-python-envs"
+vscode "ms-vscode.makefile-tools"
+
+# AI Tools & Agents
+vscode "anthropic.claude-code"
+vscode "openai.chatgpt"
+
+# Editor Enhancements & Navigation
+vscode "hverlin.mise-vscode"
+vscode "vscodevim.vim"
+
+# Document & Presentation Authoring
+vscode "marp-team.marp-vscode"
+vscode "mechatroner.rainbow-csv"
+vscode "tombi-toml.tombi"
+vscode "typora.typora-open-in-typora"
+
+# UI Themes & Aesthetics
+vscode "github.github-vscode-theme"
+vscode "pkief.material-icon-theme"
+vscode "zhuangtongfa.material-theme"
+
+# ── mas (Mac App Store) ───────────────────────────────────────────────────────
+mas "1Blocker",              id: 1365531024
+mas "FiveNotes 3",           id: 6466815474
+mas "Markdown Preview",      id: 6739955340
+mas "Noir",                  id: 1592917505
+mas "Obsidian Web Clipper",  id: 6720708363
+mas "StopTheMadness Pro",    id: 6471380298

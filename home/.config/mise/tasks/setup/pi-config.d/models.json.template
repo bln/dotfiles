@@ -1,0 +1,52 @@
+{
+  "providers": {
+    "hai-proxy": {
+      "baseUrl": "http://localhost:6655/anthropic",
+      "apiKey": "{{PI_PROXY_API_KEY}}",
+      "api": "anthropic-messages",
+      "compat": {
+        "supportsEagerToolInputStreaming": false
+      },
+      "models": [
+        {
+          "id": "anthropic--claude-4.6-sonnet",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 64000
+        },
+        {
+          "id": "anthropic--claude-4.8-opus",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 128000
+        }
+      ]
+    },
+    "hai-proxy-codex": {
+      "baseUrl": "http://localhost:6655/openai/v1",
+      "apiKey": "{{PI_PROXY_API_KEY}}",
+      "api": "openai-responses",
+      "models": [
+        {
+          "id": "gpt-5.5",
+          "name": "GPT-5.5 Pro (Reasoning)",
+          "reasoning": true,
+          "contextWindow": 272000,
+          "maxTokens": 1000000,
+          "input": ["text", "image"],
+          "capabilities": {
+            "supportsXhigh": true
+          }
+        }
+      ]
+    }
+  }
+}

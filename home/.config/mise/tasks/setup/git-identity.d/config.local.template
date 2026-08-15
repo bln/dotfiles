@@ -1,0 +1,13 @@
+# ~/.config/git/config.local - machine-local git identity.
+# NOT tracked in the dotfiles repo. Included by ~/.config/git/config.
+
+[user]
+	name  = {{WORK_NAME}}
+	email = {{WORK_EMAIL}}
+
+[includeIf "hasconfig:remote.*.url:https://github.com/**"]
+	path = ~/.config/git/identity-play
+[includeIf "hasconfig:remote.*.url:ssh://git@github.com/**"]
+	path = ~/.config/git/identity-play
+[includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
+	path = ~/.config/git/identity-play

@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#MISE description="create machine-local git identity files"
+#MISE interactive=true
+set -euo pipefail
+
+config="$HOME/.config/git/config.local"
+play="$HOME/.config/git/identity-play"
+task_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+template_dir="$task_dir/git-identity.d"
+config_template="$template_dir/config.local.template"
+play_template="$template_dir/identity-play.template"
+
+if [ -f "$config" ]; then
+  # shellcheck disable=SC2088 # literal path shown to the user, not a path to expand
+  echo "~/.config/git/config.local already exists - delete it and ~/.config/git/identity-play to replace it."
+  exit 0
+fi
+
+prompt_required() {
+  label="$1"
+  printf '%s' "$label" >&2
+  IFS= read -r value
+  if [ -z "$value" ]; then
+    echo "ERROR: ${label%: } is required" >&2
+    exit 2
+  fi
+  printf '%s\n' "$value"
+}
+
+prompt_email() {
+  label="$1"
+  value="$(prompt_required "$label")"
+  case "$value" in
+    *@*.*) printf '%s\n' "$value" ;;
+    *) echo "ERROR: ${label%: } must look like an email address" >&2; exit 2 ;;
+  esac
+}
+
+render_template() {
+  local template="$1"
+  local output="$2"
+  local content marker
+
+  [ -f "$template" ] || { echo "ERROR: template not found: $template" >&2; exit 2; }
+
+  content="$(<"$template")"
+  marker="{{WORK_NAME}}"
+  content="${content//$marker/$work_name}"
+  marker="{{WORK_EMAIL}}"
+  content="${content//$marker/$work_email}"
+  marker="{{PLAY_NAME}}"
+  content="${content//$marker/$play_name}"
+  marker="{{PLAY_EMAIL}}"
+  content="${content//$marker/$play_email}"
+
+  if [[ "$content" == *"{{"* ]]; then
+    echo "ERROR: unfilled placeholder in template: $template" >&2
+    exit 2
+  fi
+
+  printf '%s\n' "$content" > "$output"
+}
+
+work_name="$(prompt_required 'Work git name:  ')"
+work_email="$(prompt_email 'Work git email: ')"
+play_name="$(prompt_required 'Play (github.com) git name:  ')"
+play_email="$(prompt_email 'Play (github.com) git email: ')"
+
+mkdir -p "$HOME/.config/git"
+render_template "$config_template" "$config"
+render_template "$play_template" "$play"
+
+echo
+echo "Created ~/.config/git/config.local"
+echo "  work:  $work_name <$work_email>"
+echo "Created ~/.config/git/identity-play"
+echo "  play:  $play_name <$play_email>"

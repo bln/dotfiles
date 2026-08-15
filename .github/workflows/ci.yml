@@ -1,0 +1,43 @@
+name: ci
+
+# Lint and test the repo's shell scripts. This is the CI-appropriate subset of
+# `mise run verify`: it deliberately skips the machine-state checks (bootstrap
+# status, dotfiles status, brew bundle check) that only make sense on a
+# converged macOS host, and runs only the host-independent gates. It is the
+# same lint+test a contributor runs locally via `mise run lint` / `mise run
+# test`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint (bash -n + shellcheck)
+        run: |
+          # Mirror the mise `lint` task without requiring mise on the runner.
+          mapfile -t scripts < <(
+            {
+              find . -type f -name '*.sh' -not -path './.git/*'
+              find ./home/.config/mise/tasks -type f -not -path '*/*.d/*' \
+                -exec sh -c 'head -1 "$1" | grep -q "^#!.*sh"' _ {} \; -print
+            } | sort -u
+          )
+          printf '%s\n' "${scripts[@]}"
+          bash -n "${scripts[@]}"
+          shellcheck "${scripts[@]}"
+
+      - name: Test (script harness)
+        run: bash tests/run.sh

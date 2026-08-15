@@ -1,0 +1,115 @@
+[user]
+	# name and email are machine-local - set them in ~/.config/git/config.local (not in the repo).
+	# useConfigOnly means git will error rather than guess your identity in any repo
+	# that does not have a local user config, so you can't accidentally commit as the
+	# wrong person even if the local config is missing.
+	useConfigOnly = true
+
+[include]
+	# Machine-local identity (name, email, any work/personal overrides).
+	# Create ~/.config/git/config.local - it is not tracked in the dotfiles repo.
+	path = ~/.config/git/config.local
+
+[core]
+	editor = nvim
+	# no excludesFile needed: git reads ~/.config/git/ignore (XDG) natively
+	autocrlf = input
+	whitespace = -indent-with-non-tab,trailing-space,cr-at-eol
+	# macOS: HFS+ mangles Unicode filenames - this fixes it
+	precomposeunicode = true
+	# macOS updates ctime on reads; don't use it as a proxy for modifications
+	trustctime = false
+
+[credential]
+	helper = osxkeychain
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	default = current
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+	prunetags = true
+
+[rebase]
+	autoStash = true
+	autoSquash = true
+	updateRefs = true
+
+[merge]
+	conflictstyle = zdiff3
+	ff = only
+
+[diff]
+	algorithm = histogram
+	colorMoved = default
+	colorMovedWS = allow-indentation-change
+	renames = copies
+
+[commit]
+	verbose = true
+
+[branch]
+	sort = -committerdate
+
+[tag]
+	sort = -version:refname
+
+[status]
+	showUntrackedFiles = all
+
+[log]
+	date = iso
+
+[rerere]
+	enabled = true
+	autoupdate = true
+
+[help]
+	autocorrect = prompt
+
+[alias]
+	# status / inspection
+	s      = status -sb
+	l      = log --oneline --graph --decorate --all
+	ll     = log --oneline --graph --decorate -20
+	lg     = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	show-files = diff-tree --no-commit-id --name-only -r
+
+	# branching
+	b      = branch -vv
+	co     = checkout
+	cob    = checkout -b
+	sw     = switch
+	swc    = switch -c
+
+	# staging / committing
+	a      = add -p
+	aa     = add -A
+	c      = commit
+	ca     = commit --amend
+	can    = commit --amend --no-edit
+
+	# syncing
+	f      = fetch --all
+	pu     = push -u origin HEAD
+	fpush  = push --force-with-lease --force-if-includes
+
+	# stash
+	ss     = stash push -u -m
+	sp     = stash pop
+
+	# cleanup
+	gone   = "!git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads | awk '$2 == \"[gone]\" {print $1}' | grep . | xargs git branch -D"
+	trim   = "!git fetch --prune && git gone"
+
+	# utilities
+	root   = rev-parse --show-toplevel
+	whoami = "!git config user.name && git config user.email"
+	aliases = "!git config --get-regexp '^alias\\.' | sed 's/alias\\.//'"

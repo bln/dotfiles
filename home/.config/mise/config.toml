@@ -1,0 +1,143 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+# Single source of truth for tools, packages, dotfiles, and macOS setup.
+
+min_version = "2026.7.4"
+
+[tools]
+node = "lts"
+uv = "latest"
+
+[settings]
+lockfile = true
+dotfiles.root = "~/dotfiles/home"
+dotfiles.default_mode = "symlink"
+python.uv_venv_auto = "create|source"
+
+[env]
+HOMEBREW_BUNDLE_FILE = "{{env.HOME}}/.config/homebrew/Brewfile"
+HOMEBREW_CASK_OPTS = "--appdir={{env.HOME}}/Applications"
+HOMEBREW_NO_ANALYTICS = "1"
+HOMEBREW_NO_AUTO_UPDATE = "1"
+_.path = [
+  "{{env.HOME}}/.local/bin",
+  # Homebrew, so tasks can call brew/mas without an inline PATH prefix. Harmless
+  # if absent (a bare first run adds it before brew exists); the bootstrap task's
+  # `command -v brew` guard covers the not-yet-installed case.
+  "/opt/homebrew/bin",
+  "/opt/homebrew/sbin",
+]
+
+[bootstrap.macos.dock]
+tilesize = 48
+autohide = true
+show_recents = false
+mru_spaces = false
+
+[bootstrap.macos.finder]
+show_pathbar = true
+show_status_bar = true
+preferred_view_style = "list"
+show_extensions_warning = false
+
+[bootstrap.macos.keyboard]
+key_repeat = 2
+initial_key_repeat = 15
+press_and_hold = false
+
+[bootstrap.macos.trackpad]
+tap_to_click = true
+
+[bootstrap.macos.defaults]
+"NSGlobalDomain" = { AppleInterfaceStyleSwitchesAutomatically = true, NSTableViewDefaultSizeMode = 3 }
+"com.apple.finder" = { FXDefaultSearchScope = "SCcf", _FXSortFoldersFirst = true }
+"com.apple.desktopservices" = { DSDontWriteNetworkStores = true, DSDontWriteUSBStores = true }
+"com.apple.dock" = { "autohide-delay" = 0.0, "autohide-time-modifier" = 0.2 }
+"com.apple.spaces" = { "spans-displays" = false }
+"com.apple.TextEdit" = { RichText = 0, PlainTextEncoding = 4, PlainTextEncodingForWrite = 4 }
+"com.apple.ActivityMonitor" = { OpenMainWindow = true, ShowCategory = 0, SortColumn = "CPUUsage" }
+
+[bootstrap.hooks]
+post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+[dotfiles]
+"~/.zshenv" = {}
+"~/.config/zsh/.zshrc" = {}
+"~/.config/zsh/.zprofile" = {}
+"~/.config/git/config" = {}
+"~/.config/git/ignore" = {}
+"~/.config/homebrew/Brewfile" = {}
+"~/.config/starship.toml" = {}
+"~/.config/npm/npmrc" = {}
+"~/.config/uv/uv.toml" = {}
+"~/.config/ghostty" = {}
+"~/.config/nvim" = {}
+
+"~/.claude/CLAUDE.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
+"~/.claude/skills" = { source = "~/dotfiles/home/.agents/skills" }
+"~/.pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
+"~/.pi/agent/extensions/friendly-footer.ts" = {}
+"~/.codex/AGENTS.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
+"~/.agents/skills" = { source = "~/dotfiles/home/.agents/skills" }
+
+"~/.config/mise/config.toml" = {}
+"~/.config/mise/mise.lock" = {}
+"~/.config/mise/tasks" = {}
+"~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json" }
+
+[tasks.bootstrap]
+description = "install Homebrew, Brewfile deps, and a global uv-managed Python"
+run = [
+  'command -v brew >/dev/null || [ -x /opt/homebrew/bin/brew ] || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+  # Explicit PATH prefix here only: on a bare first run brew was just installed
+  # this invocation and isn't yet on the shell's resolved _.path. Later tasks
+  # (update) rely on _.path and omit it.
+  'env PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH" brew bundle',
+  "uv python install --default --preview-features python-install-default",
+]
+
+[tasks.update]
+description = "upgrade tools, Homebrew layers, reapply dotfiles, then audit"
+interactive = true
+# --dry-run previews the upgrade steps (brew/mise/uv honor the flag). The final
+# `mise run audit` is read-only, so it runs for real even under --dry-run -
+# mise propagates the flag rather than skipping steps, and audit is safe to run.
+run = [
+  "mise self-update --yes || curl -fsSL https://mise.run | sh",
+  "mise upgrade",
+  "mise lock",
+  "brew upgrade",
+  "brew upgrade --cask",
+  "mas upgrade",
+  "brew bundle",
+  "uv python upgrade",
+  "mise dotfiles apply",
+  "mise run audit",
+]
+
+# Global entry point so you can audit the dotfiles from any directory. The real
+# checks live in the repo-local mise.toml `verify` task (they need the repo cwd
+# for lint/test); this delegates via -C, the same trick `update` uses. Gives one
+# place to `update` and `audit` without switching into the repo.
+[tasks.audit]
+description = "audit the dotfiles machine state from anywhere (delegates to the repo's verify)"
+run = 'mise -C "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}" verify'
+
+[tasks.reset-claude]
+description = "Clear all Claude Code project sessions"
+run = "claude project purge --all"
+
+# reset-codex is a file task: home/.config/mise/tasks/reset-codex. Its keep-list
+# guards auth/config from deletion (data-loss risk), so it lives as a real script
+# that tests/run.sh exercises against a CODEX_HOME sandbox.
+
+[tasks.reset-pi]
+description = "Clear all Pi coding-agent sessions"
+run = "rm -rf \"$HOME/.pi/agent/sessions\""
+
+[tasks.reset-all]
+description = "Clear all Claude Code, Codex, and Pi sessions"
+depends = [
+  "reset-claude",
+  "reset-codex",
+  "reset-pi",
+]

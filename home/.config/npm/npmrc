@@ -1,0 +1,10 @@
+# npm user config, relocated out of $HOME to XDG (via NPM_CONFIG_USERCONFIG in
+# ~/.zshenv) and tracked in the dotfiles repo so it survives a rebuild.
+
+# Supply-chain guard: refuse package versions published in the last 2 days,
+# which dodges freshly-published malicious releases. May block installing a
+# legitimately just-released version until it ages past the window.
+min-release-age=2
+
+# Allow lifecycle/install scripts only for these packages (default is deny).
+allow-scripts=@google/genai,protobufjs

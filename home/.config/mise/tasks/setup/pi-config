@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#MISE description="instantiate pi agent config (models.json, settings.json) from templates"
+#MISE interactive=true
+set -euo pipefail
+
+# Output location. Overridable for tests (point at a sandbox); the no-override
+# default keeps production behavior unchanged.
+agent_dir="${PI_AGENT_DIR:-$HOME/.pi/agent}"
+
+task_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+template_dir="$task_dir/pi-config.d"
+models_template="$template_dir/models.json.template"
+settings_template="$template_dir/settings.json.template"
+models_out="$agent_dir/models.json"
+settings_out="$agent_dir/settings.json"
+
+force=0
+for arg in "$@"; do
+  case "$arg" in
+    --force) force=1 ;;
+    -h | --help)
+      echo "usage: mise run setup:pi-config [--force]" >&2
+      echo "  Renders pi config from templates into $agent_dir." >&2
+      echo "  Secret: set PI_PROXY_API_KEY, or you will be prompted." >&2
+      echo "  --force overwrites existing files (default: skip existing)." >&2
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown argument: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# Whether a given output would be written this run (missing, or --force).
+will_write() {
+  local output="$1"
+  [ ! -f "$output" ] || [ "$force" -eq 1 ]
+}
+
+# Secret comes from the environment when set, otherwise an interactive prompt.
+# It is never echoed and never written to a tracked file. Only ask for it if the
+# file that actually needs it (models.json) will be written this run.
+api_key="${PI_PROXY_API_KEY:-}"
+if will_write "$models_out" && [ -z "$api_key" ]; then
+  printf 'pi proxy API key: ' >&2
+  IFS= read -rs api_key || true
+  printf '\n' >&2
+fi
+
+render() {
+  local template="$1" output="$2"
+
+  [ -f "$template" ] || {
+    echo "ERROR: template not found: $template" >&2
+    exit 2
+  }
+
+  if ! will_write "$output"; then
+    echo "skip: $output already exists (pass --force to overwrite)" >&2
+    return 0
+  fi
+
+  local content
+  content="$(<"$template")"
+
+  if [[ "$content" == *'{{PI_PROXY_API_KEY}}'* ]]; then
+    [ -n "$api_key" ] || {
+      echo "ERROR: PI_PROXY_API_KEY is required to render $output" >&2
+      exit 2
+    }
+    content="${content//'{{PI_PROXY_API_KEY}}'/$api_key}"
+  fi
+
+  if [[ "$content" == *'{{'* ]]; then
+    echo "ERROR: unfilled placeholder in template: $template" >&2
+    exit 2
+  fi
+
+  mkdir -p "$(dirname "$output")"
+  printf '%s\n' "$content" >"$output"
+  chmod 600 "$output"
+  echo "wrote: $output" >&2
+}
+
+render "$models_template" "$models_out"
+render "$settings_template" "$settings_out"

@@ -1,0 +1,42 @@
+# ── repo artifacts ────────────────────────────────────────────────────────────
+FINDINGS.md
+backup/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── editors ───────────────────────────────────────────────────────────────────
+# Vim
+*.swp
+*.swo
+*~
+# JetBrains
+.idea/
+# VS Code
+.vscode/
+
+# ── common build / runtime artifacts ──────────────────────────────────────────
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+
+# ── secrets / local overrides ─────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# machine-local files - never commit
+home/.config/git/config.local
+home/mise.local.toml
+
+# PKM app state (repo opened as Obsidian/Octarine vault)
+.obsidian/
+.octarine/

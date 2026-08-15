@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="flag when VSCode has replaced its symlinked settings.json with a real file"
+set -euo pipefail
+
+# Seams: live/repo paths are overridable so tests can point them at a sandbox;
+# the no-override defaults keep production behavior unchanged.
+live="${VSCODE_SETTINGS_LIVE:-$HOME/Library/Application Support/Code/User/settings.json}"
+repo="${VSCODE_SETTINGS_REPO:-$HOME/dotfiles/home/.config/vscode/settings.json}"
+
+# VSCode saves settings by atomic replace, which on some releases orphans a
+# symlink - swapping our repo-tracked link for a divorced regular file. mise
+# dotfiles status flags it generically; this names it and gives the one fix.
+if [ ! -e "$live" ]; then
+  echo "WARNING: $live is missing - run 'mise dotfiles apply' to restore the symlink." >&2
+elif [ ! -L "$live" ]; then
+  echo "ERROR: VSCode replaced the settings.json symlink with a regular file." >&2
+  echo "  Your live settings are now divorced from the repo copy." >&2
+  echo "  Reconcile, then: cp \"$live\" \"$repo\" && mise dotfiles apply" >&2
+  exit 1
+elif [ ! "$live" -ef "$repo" ]; then
+  echo "ERROR: $live is a symlink but does not point at the repo copy." >&2
+  echo "  Fix: mise dotfiles apply" >&2
+  exit 1
+else
+  echo "OK: VSCode settings.json symlink intact."
+fi

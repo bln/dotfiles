@@ -1,0 +1,11 @@
+# uv user-level configuration.
+# Tracked in the dotfiles repo and symlinked to ~/.config/uv/uv.toml by mise.
+
+# Supply-chain guard: refuse packages published in the last 2 days.
+# P2D is an ISO 8601 duration (2 days). Mirrors the npm min-release-age=2 guard.
+# Override per-project in pyproject.toml or a project-local uv.toml
+# ([tool.uv] exclude-newer = ...) when a legitimately just-released version is needed.
+exclude-newer = "P2D"
+
+[pip]
+exclude-newer = "P2D"
