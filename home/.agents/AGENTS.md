@@ -24,6 +24,10 @@ When instructions conflict:
 - Never run irreversible commands (force-push, reset --hard, history rewrites,
   rm -rf, DB drops) or commit or push without my explicit approval - propose
   the command first.
+- Approval is per action, not a session-wide grant: one approved push does not
+  authorize the next. `git push` especially triggers CI and spends finite
+  runner minutes, so never push on your own initiative - not even for trivial
+  doc/test fixes. Batch changes locally and let me decide when to push.
 - Do not create, edit, or delete skill files without my explicit approval;
   propose them instead.
 
