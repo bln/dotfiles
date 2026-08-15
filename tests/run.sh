@@ -100,7 +100,9 @@ echo "== pi-config =="
     *"{{"*) bad "no placeholder remains" "found {{ in models.json" ;;
     *)      ok "no placeholder remains" ;;
   esac
-  mode="$(stat -f '%Lp' "$agent/models.json" 2>/dev/null || stat -c '%a' "$agent/models.json")"
+  # GNU stat first (Linux/CI), fall back to BSD stat (macOS). BSD `stat -f`
+  # means --file-system and exits 0, so trying it first would mask the fallback.
+  mode="$(stat -c '%a' "$agent/models.json" 2>/dev/null || stat -f '%Lp' "$agent/models.json")"
   assert_eq "models.json is chmod 600" "600" "$mode"
 }
 
