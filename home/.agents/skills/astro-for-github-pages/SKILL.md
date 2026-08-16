@@ -1,6 +1,6 @@
 ---
 name: astro-for-github-pages
-description: Build an Astro site that publishes cleanly to GitHub Pages (github.com or Enterprise), including base-path wiring, rendering source-of-truth markdown without forking it, diagrams via CDN, and scoping build/deploy tasks to a repo-local runner. Depends on the `publish-static-site-to-github-pages` skill for the platform-level probing and deploy. Use when the site's generator is Astro.
+description: Build an Astro site that publishes cleanly to GitHub Pages (github.com or Enterprise). Builds on publish-static-site-to-github-pages. Use when the site's generator is Astro.
 ---
 
 # Astro for GitHub Pages

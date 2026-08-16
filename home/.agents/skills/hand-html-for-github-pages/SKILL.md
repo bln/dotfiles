@@ -1,6 +1,6 @@
 ---
 name: hand-html-for-github-pages
-description: Publish a no-framework site to GitHub Pages - Markdown rendered through one hand-authored HTML template with pandoc, plus any already-standalone HTML pages. Covers the single-template pattern, threading the Pages base path so one build serves both offline (relative) and Pages (root-relative), avoiding link rewriting by preserving repo layout, and Mermaid via a pinned CDN. Depends on the `publish-static-site-to-github-pages` skill for host probing and deploy. Use when the site has no framework/generator (pandoc + template or hand-written HTML), not Astro/Hugo/Vite.
+description: Publish a no-framework GitHub Pages site: Markdown rendered through one hand-authored HTML template with pandoc, plus standalone HTML pages. Builds on publish-static-site-to-github-pages. Use when the site has no generator (not Astro/Hugo/Vite).
 ---
 
 # Hand-authored HTML for GitHub Pages

@@ -1,6 +1,6 @@
 ---
 name: publish-static-site-to-github-pages
-description: Publish a prebuilt static site (any generator, or hand-written HTML) to GitHub Pages, on github.com OR a GitHub Enterprise Server. Probes the target for its actual capabilities with `gh api` (Actions availability, Pages source, owner type, visibility) and picks a deploy strategy from the findings instead of assuming one. Ships a canonical `scripts/deploy-site.sh` that force-pushes a gh-pages branch, derives the base path from the live Pages URL, and reconciles the served build against the pushed tip (the Enterprise auto-build trigger is unreliable). Use when a repo needs a published website and you must not hardcode assumptions about the host or its policies.
+description: Publish a prebuilt static site (any generator or hand-written HTML) to GitHub Pages on github.com or Enterprise Server. Probes the host with gh for its real capabilities and picks a deploy strategy instead of assuming one. Use when a repo needs a published website and the host/policies aren't known upfront.
 ---
 
 # Publish a static site to GitHub Pages
