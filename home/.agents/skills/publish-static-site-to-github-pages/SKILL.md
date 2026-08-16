@@ -16,6 +16,11 @@ Run these first and write the answers down. They determine everything after.
 ```bash
 R="<owner>/<repo>"          # e.g. octocat/site  or  bln/dotfiles
 
+# gh defaults to the active github.com account. If the remote is an Enterprise host
+# (or this machine has several gh accounts), point gh at the remote's host first, or
+# every `gh api` below 404s against github.com. Honor an existing GH_HOST.
+export GH_HOST="${GH_HOST:-$(git remote get-url origin | sed -E 's#^[a-z]+://##; s#^[^@]*@##; s#[:/].*$##')}"
+
 # 1. Which host + are you authenticated?
 gh auth status
 
@@ -128,9 +133,12 @@ SITE_BUILD_DIR=dist SITE_BUILD_CMD='npm run build' bash scripts/deploy-site.sh
 
 What the script does, and why each step exists (these are the parts that bite if you skip them):
 
-1. **Portable owner/repo parsing.** It normalises both URL forms (`https://host/owner/repo.git`
+1. **Portable owner/repo parsing, and gh host routing.** It normalises both URL forms (`https://host/owner/repo.git`
    and `git@host:owner/repo.git`) to `owner/repo` before `basename`/`dirname`. Do **not** use a
    `sed` with non-greedy `+?` - BSD sed (macOS) rejects it and silently yields an empty repo.
+   From the same URL it derives the host and exports `GH_HOST` (honoring an override), so `gh api`
+   targets the remote's host: gh defaults to the active github.com account, and on an Enterprise
+   remote or a multi-account machine that makes every `gh api` call 404 otherwise.
 2. **Base path from the live Pages URL, guarded.** It reads `.html_url` from `gh api .../pages`
    and takes its path as the base (ground truth). A `case http*://*` guard means a 404 error
    **body** can never pollute the base path. Only before Pages exists does it fall back to a

@@ -11,6 +11,8 @@
 #   - EXPLICITLY request a Pages build and then RECONCILE (poll until the served build
 #     matches the pushed tip) - the push auto-trigger is intermittent on Enterprise and
 #     silently serves a stale build otherwise;
+#   - route gh at the remote's host (GH_HOST) so an Enterprise remote, or a machine with
+#     multiple gh accounts, does not 404 against the default github.com account;
 #   - portable owner/repo parsing (no BSD-sed non-greedy operators).
 #
 # Everything is overridable via env so it is testable against a sandbox bare repo
@@ -45,6 +47,11 @@ repo="$(basename "$ownerrepo" .git)"
 owner="$(basename "$(dirname "$ownerrepo")")"
 pages_repo="${SITE_PAGES_REPO-$owner/$repo}"
 host="$(printf '%s' "$push_url" | sed -E 's#^[a-z]+://##; s#^[^@]*@##; s#[:/].*$##')"
+
+# Route gh at the remote's host. gh defaults to the active github.com account, so on an
+# Enterprise remote (or a machine with several gh accounts) every gh api below 404s
+# unless it targets this remote's host. Honor an explicit GH_HOST override.
+export GH_HOST="${GH_HOST:-$host}"
 
 have_gh() { [ -n "$pages_repo" ] && command -v gh >/dev/null 2>&1; }
 
