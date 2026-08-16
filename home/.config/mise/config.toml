@@ -105,6 +105,10 @@ run = [
   "mise self-update --yes || curl -fsSL https://mise.run | sh",
   "mise upgrade",
   "mise lock",
+  # HOMEBREW_NO_AUTO_UPDATE=1 (see [env]) suppresses the implicit refresh that
+  # brew upgrade/bundle would otherwise run, so refresh the formula database
+  # explicitly here - otherwise upgrades only ever see stale local metadata.
+  "brew update",
   "brew upgrade",
   "brew upgrade --cask",
   "mas upgrade",
