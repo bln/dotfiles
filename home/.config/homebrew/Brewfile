@@ -10,13 +10,13 @@ brew "git"       # Keep git up to date (not a mise registry tool)
 brew "mas"       # Mac App Store CLI (must precede mas entries below)
 
 # Core CLI Utilities & Enhancements
+brew "wget"
 brew "bat"
 brew "eza"
 brew "fd"
 brew "fzf"
 brew "jq"
 brew "ripgrep"
-brew "tldr"
 brew "tokei"
 brew "zoxide"
 
@@ -33,6 +33,7 @@ brew "mole"
 brew "neovim"
 brew "pi-coding-agent"
 brew "shellcheck"
+brew "rtk"
 
 # Research, Documents & Presentations
 brew "marp-cli"
@@ -44,7 +45,6 @@ brew "typst"
 # backend hardcodes /Applications).
 
 # AI & AI-Assisted Editors
-cask "chatgpt"
 cask "claude-code"
 cask "codex"
 

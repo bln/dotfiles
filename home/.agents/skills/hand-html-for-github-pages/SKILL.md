@@ -1,6 +1,6 @@
 ---
 name: hand-html-for-github-pages
-description: Publish a no-framework GitHub Pages site: Markdown rendered through one hand-authored HTML template with pandoc, plus standalone HTML pages. Builds on publish-static-site-to-github-pages. Use when the site has no generator (not Astro/Hugo/Vite).
+description: Publish a no-framework GitHub Pages site. Use when the site has no generator (not Astro/Hugo/Vite).
 ---
 
 # Hand-authored HTML for GitHub Pages

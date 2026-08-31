@@ -16,6 +16,10 @@ export LANG=en_US.UTF-8
 # (no LC_ALL: it overrides every locale category and would stomp a user's
 #  regional prefs for dates/numbers/currency. LANG is the sane default.)
 
+# ── coding agents ───────────────────────────────────────────────────────────────
+export ENABLE_PROMPT_CACHING_1H=1
+export PI_CACHE_RETENTION=long
+
 # ── history ───────────────────────────────────────────────────────────────────
 mkdir -p "$XDG_CACHE_HOME/zsh"
 HISTFILE="$XDG_CACHE_HOME/zsh/history"

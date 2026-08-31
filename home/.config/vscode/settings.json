@@ -40,8 +40,13 @@
   "workbench.tree.indent": 16,
   "workbench.sideBar.location": "right",
   "workbench.editorAssociations": {
-    "*.md": "vscode.markdown.editor"
+    "*.md": "vscode.markdown.preview.editor",
+    "*.html": "workbench.editor.browser"
   },
+  // ── window & security ──────────────────────────────────────────────────────
+  "markdown.preview.doubleClickToSwitchToEditor": true,
+  "markdown.preview.scrollEditorWithPreview": true,
+  "markdown.preview.scrollPreviewWithEditor": true,
   // ── window & security ──────────────────────────────────────────────────────
   "window.titleBarStyle": "custom",
   "security.workspace.trust.enabled": false,
@@ -115,5 +120,6 @@
   // ── telemetry & updates ────────────────────────────────────────────────────
   "telemetry.telemetryLevel": "off",
   "extensions.autoCheckUpdates": false,
-  "makefile.configureOnOpen": false
+  "makefile.configureOnOpen": false,
+  "python.languageServer": "Default"
 }
