@@ -65,6 +65,4 @@ task. After work, report only outcome, verification result, and blockers. Show
 diffs or changed lines, not whole files, unless I ask. No em dashes - use a
 hyphen. Conventional Commits.
 
-~/.claude/RTK.md
 
-~/.codex/RTK.md

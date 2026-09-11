@@ -10,10 +10,8 @@ brew "git"       # Keep git up to date (not a mise registry tool)
 brew "mas"       # Mac App Store CLI (must precede mas entries below)
 
 # Core CLI Utilities & Enhancements
-brew "wget"
 brew "bat"
 brew "eza"
-brew "fd"
 brew "fzf"
 brew "jq"
 brew "ripgrep"
@@ -28,15 +26,12 @@ brew "zsh-syntax-highlighting"
 # Development, Code Intelligence & Agents
 brew "gh"
 brew "gitui"
-brew "graphviz"
 brew "mole"
 brew "neovim"
 brew "pi-coding-agent"
 brew "shellcheck"
-brew "rtk"
 
 # Research, Documents & Presentations
-brew "marp-cli"
 brew "pandoc"
 brew "typst"
 
@@ -57,10 +52,8 @@ cask "font-jetbrains-mono"            # Primary font (no ligatures)
 cask "font-jetbrains-mono-nerd-font"  # Primary nerd font
 
 # System Utilities & System Productivity
-cask "alfred"                         # Launcher
 cask "coconutbattery"                 # Battery status
 cask "keka"                           # File archiver
-cask "shottr"                         # Screenshot tool
 
 # Research, Writing & Productivity
 cask "bloom"
@@ -87,10 +80,8 @@ vscode "openai.chatgpt"
 
 # Editor Enhancements & Navigation
 vscode "hverlin.mise-vscode"
-vscode "vscodevim.vim"
 
 # Document & Presentation Authoring
-vscode "marp-team.marp-vscode"
 vscode "mechatroner.rainbow-csv"
 vscode "tombi-toml.tombi"
 vscode "typora.typora-open-in-typora"
@@ -102,7 +93,6 @@ vscode "zhuangtongfa.material-theme"
 
 # ── mas (Mac App Store) ───────────────────────────────────────────────────────
 mas "1Blocker",              id: 1365531024
-mas "FiveNotes 3",           id: 6466815474
 mas "Markdown Preview",      id: 6739955340
 mas "Noir",                  id: 1592917505
 mas "Obsidian Web Clipper",  id: 6720708363
