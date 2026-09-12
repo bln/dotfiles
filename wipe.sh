@@ -67,87 +67,31 @@ else
   warn "mise not found; skipping dotfiles unapply"
 fi
 
-bold "== 3/4: remove Brewfile-managed Homebrew and Mac App Store state =="
-if command -v brew >/dev/null 2>&1; then
-  if [ -f "$BREWFILE" ]; then
-    vscode_extensions=()
-    while IFS= read -r extension; do
-      [ -n "$extension" ] && vscode_extensions+=("$extension")
-    done < <(brew bundle list --file "$BREWFILE" --vscode 2>/dev/null || true)
-    if [ "${#vscode_extensions[@]}" -gt 0 ]; then
-      if command -v code >/dev/null 2>&1; then
-        for extension in "${vscode_extensions[@]}"; do
-          if [ "$DRY_RUN" = true ]; then
-            printf 'DRY RUN: code --uninstall-extension %q\n' "$extension"
-          else
-            code --uninstall-extension "$extension" || true
-          fi
-        done
-      else
-        warn "code not found; skipping VSCode extension cleanup"
-      fi
-    fi
-
-    # Mac App Store apps. brew bundle list --mas prints names, but `mas
-    # uninstall` needs numeric IDs, so read them straight from the Brewfile's
-    # `mas "...", id: NNNN` lines. Uninstalling MAS apps needs root (mas moves
-    # the bundle to the Trash via sudo).
-    mas_ids=()
-    while IFS= read -r mas_id; do
-      [ -n "$mas_id" ] && mas_ids+=("$mas_id")
-    done < <(sed -nE 's/^[[:space:]]*mas[[:space:]].*id:[[:space:]]*([0-9]+).*/\1/p' "$BREWFILE")
-    if [ "${#mas_ids[@]}" -gt 0 ]; then
-      if command -v mas >/dev/null 2>&1; then
-        for mas_id in "${mas_ids[@]}"; do
-          if [ "$DRY_RUN" = true ]; then
-            printf 'DRY RUN: sudo mas uninstall %q\n' "$mas_id"
-          else
-            sudo mas uninstall "$mas_id" || warn "mas uninstall $mas_id failed (already gone?)"
-          fi
-        done
-      else
-        warn "mas not found; skipping Mac App Store app cleanup"
-      fi
-    fi
-
-    casks=()
-    while IFS= read -r cask; do
-      [ -n "$cask" ] && casks+=("$cask")
-    done < <(brew bundle list --file "$BREWFILE" --cask 2>/dev/null || true)
-    if [ "${#casks[@]}" -gt 0 ]; then
-      if [ "$DRY_RUN" = true ]; then
-        printf 'DRY RUN: brew uninstall --cask --force'
-        printf ' %q' "${casks[@]}"
-        printf '\n'
-      else
-        brew uninstall --cask --force "${casks[@]}"
-      fi
-    fi
-
-    formulae=()
-    while IFS= read -r formula; do
-      [ -n "$formula" ] && formulae+=("$formula")
-    done < <(brew bundle list --file "$BREWFILE" --formula 2>/dev/null || true)
-    if [ "${#formulae[@]}" -gt 0 ]; then
-      if [ "$DRY_RUN" = true ]; then
-        printf 'DRY RUN: brew uninstall --formula --force'
-        printf ' %q' "${formulae[@]}"
-        printf '\n'
-      else
-        brew uninstall --formula --force "${formulae[@]}" 2>/dev/null || true
-      fi
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-      echo "DRY RUN: brew autoremove"
-    else
-      brew autoremove || true
-    fi
+bold "== 3/4: remove mise packages and residual VS Code extensions =="
+if command -v mise >/dev/null 2>&1; then
+  if [ "$DRY_RUN" = true ]; then
+    mise bootstrap packages unapply --dry-run --yes || true
   else
-    warn "$BREWFILE not found; skipping Homebrew cleanup"
+    mise bootstrap packages unapply --yes || true
   fi
 else
-  warn "brew not found; skipping Homebrew cleanup"
+  warn "mise not found; skipping native package cleanup"
+fi
+
+if command -v brew >/dev/null 2>&1 && [ -f "$BREWFILE" ]; then
+  extensions=()
+  while IFS= read -r extension; do
+    [ -n "$extension" ] && extensions+=("$extension")
+  done < <(brew bundle list --file "$BREWFILE" --vscode 2>/dev/null || true)
+  for extension in "${extensions[@]}"; do
+    if [ "$DRY_RUN" = true ]; then
+      printf 'DRY RUN: code --uninstall-extension %q\n' "$extension"
+    elif command -v code >/dev/null 2>&1; then
+      code --uninstall-extension "$extension" || true
+    fi
+  done
+else
+  warn "brew or residual Brewfile not found; skipping VS Code extension cleanup"
 fi
 
 bold "== 4/4: remove mise tools, mise, and uv state =="

@@ -22,8 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Install shellcheck and mise
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          curl https://mise.run | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Lint (bash -n + shellcheck)
         run: |
@@ -38,6 +42,11 @@ jobs:
           printf '%s\n' "${scripts[@]}"
           bash -n "${scripts[@]}"
           shellcheck "${scripts[@]}"
+
+      - name: Validate mise configuration
+        run: |
+          mise trust home/.config/mise/config.toml
+          MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise config ls >/dev/null
 
       - name: Test (script harness)
         run: bash tests/run.sh

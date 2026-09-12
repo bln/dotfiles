@@ -215,5 +215,43 @@ echo "== check:vscode-symlink =="
 }
 
 echo
+echo "== mise consolidation =="
+if python3 - "$REPO" <<'PYTEST'
+import re, sys, tomllib
+from pathlib import Path
+root = Path(sys.argv[1])
+with (root / "home/.config/mise/config.toml").open("rb") as fh:
+    cfg = tomllib.load(fh)
+assert cfg["min_version"] == "2026.9.5"
+expected_brew = {"git","mas","bat","eza","fzf","jq","ripgrep","tokio","zoxide","starship","zsh-autosuggestions","zsh-syntax-highlighting","gh","gitui","mole","neovim","pi-coding-agent","shellcheck","pandoc","typst"}
+expected_casks = {"claude-code","codex","ghostty","visual-studio-code","font-jetbrains-mono","font-jetbrains-mono-nerd-font","coconutbattery","keka","bloom","smoothcsv","typora","iina"}
+expected_mas = {"1365531024","6739955340","1592917505","6720708363","6471380298"}
+packages = cfg["bootstrap"]["packages"]
+assert {k.removeprefix("brew:") for k in packages if k.startswith("brew:")} == expected_brew
+assert {k.removeprefix("brew-cask:") for k in packages if k.startswith("brew-cask:")} == expected_casks
+assert {k.removeprefix("mas:") for k in packages if k.startswith("mas:")} == expected_mas
+assert all(v.get("os") == "macos" for k,v in packages.items() if k.startswith(("brew-cask:","mas:")))
+expected_env = {"EDITOR","VISUAL","PAGER","LANG","ENABLE_PROMPT_CACHING_1H","PI_CACHE_RETENTION","NPM_CONFIG_USERCONFIG","_"}
+assert set(cfg["env"]) == expected_env
+expected_aliases = {"..","...","....","c","q","path","reload","zshrc","vim","cp","mv","rm","mkdir","ls","ll","la","tree","cat"}
+assert set(cfg["shell_alias"]) == expected_aliases
+brewfile = (root / "home/.config/homebrew/Brewfile").read_text()
+assert re.search(r"^vscode ", brewfile, re.M)
+assert not re.search(r"^(brew|cask|mas|tap|cask_args)\b", brewfile, re.M)
+zshrc = (root / "home/.config/zsh/.zshrc").read_text()
+for name in expected_aliases:
+    assert not re.search(rf"^alias {re.escape(name)}=", zshrc, re.M), name
+for name in expected_env - {"_"}:
+    assert not re.search(rf"^export {re.escape(name)}=", zshrc, re.M), name
+for required in ("mise activate zsh", "mkcd()", "serve()", "compinit", "starship init zsh", "zoxide init zsh", "fzf --zsh"):
+    assert required in zshrc, required
+PYTEST
+then
+  ok "mise config, package sets, env, aliases, Brewfile, and zsh ownership"
+else
+  bad "mise consolidation" "declarative ownership regression"
+fi
+
+echo
 echo "== summary: $pass passed, $fail failed =="
 [ "$fail" -eq 0 ]

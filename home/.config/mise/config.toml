@@ -1,7 +1,7 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
-min_version = "2026.7.4"
+min_version = "2026.9.5"
 
 [tools]
 node = "lts"
@@ -14,18 +14,83 @@ dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
 
 [env]
-HOMEBREW_BUNDLE_FILE = "{{env.HOME}}/.config/homebrew/Brewfile"
-HOMEBREW_CASK_OPTS = "--appdir={{env.HOME}}/Applications"
-HOMEBREW_NO_ANALYTICS = "1"
-HOMEBREW_NO_AUTO_UPDATE = "1"
+# User environment formerly split across .zshrc/.zshenv.
+EDITOR = "nvim"
+VISUAL = "nvim"
+PAGER = "less -FRX"
+LANG = "en_US.UTF-8"
+ENABLE_PROMPT_CACHING_1H = "1"
+PI_CACHE_RETENTION = "long"
+NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
 _.path = [
   "{{env.HOME}}/.local/bin",
-  # Homebrew, so tasks can call brew/mas without an inline PATH prefix. Harmless
-  # if absent (a bare first run adds it before brew exists); the bootstrap task's
-  # `command -v brew` guard covers the not-yet-installed case.
   "/opt/homebrew/bin",
   "/opt/homebrew/sbin",
 ]
+
+# Interactive aliases. These require `mise activate zsh`; tasks/CI should use mise tasks.
+[shell_alias]
+".." = "cd .."
+"..." = "cd ../.."
+"...." = "cd ../../.."
+c = "clear"
+q = "exit"
+path = '''printf '%s\n' "${PATH//:/\n}"'''
+reload = "exec zsh"
+zshrc = '''nvim "$ZDOTDIR/.zshrc"'''
+vim = "nvim"
+cp = "cp -i"
+mv = "mv -i"
+rm = "rm -i"
+mkdir = "mkdir -p"
+ls = "eza --icons=auto"
+ll = "eza -lh --icons=auto --git"
+la = "eza -lah --icons=auto --git"
+tree = "eza --tree --icons=auto"
+cat = "bat --style=plain"
+
+# Shared host packages. `latest` means present; upgrades are explicit with
+# `mise bootstrap packages upgrade`.
+[bootstrap.packages]
+"brew:git" = "latest"
+"brew:mas" = "latest"
+"brew:bat" = "latest"
+"brew:eza" = "latest"
+"brew:fzf" = "latest"
+"brew:jq" = "latest"
+"brew:ripgrep" = "latest"
+"brew:tokio" = "latest"
+"brew:zoxide" = "latest"
+"brew:starship" = "latest"
+"brew:zsh-autosuggestions" = "latest"
+"brew:zsh-syntax-highlighting" = "latest"
+"brew:gh" = "latest"
+"brew:gitui" = "latest"
+"brew:mole" = "latest"
+"brew:neovim" = "latest"
+"brew:pi-coding-agent" = "latest"
+"brew:shellcheck" = "latest"
+"brew:pandoc" = "latest"
+"brew:typst" = "latest"
+
+"brew-cask:claude-code" = { os = "macos" }
+"brew-cask:codex" = { os = "macos" }
+"brew-cask:ghostty" = { os = "macos" }
+"brew-cask:visual-studio-code" = { os = "macos" }
+"brew-cask:font-jetbrains-mono" = { os = "macos" }
+"brew-cask:font-jetbrains-mono-nerd-font" = { os = "macos" }
+"brew-cask:coconutbattery" = { os = "macos" }
+"brew-cask:keka" = { os = "macos" }
+"brew-cask:bloom" = { os = "macos" }
+"brew-cask:smoothcsv" = { os = "macos" }
+"brew-cask:typora" = { os = "macos" }
+"brew-cask:iina" = { os = "macos" }
+
+"mas:1365531024" = { os = "macos" } # 1Blocker
+"mas:6739955340" = { os = "macos" } # Markdown Preview
+"mas:1592917505" = { os = "macos" } # Noir
+"mas:6720708363" = { os = "macos" } # Obsidian Web Clipper
+"mas:6471380298" = { os = "macos" } # StopTheMadness Pro
 
 [bootstrap.macos.dock]
 tilesize = 48
@@ -85,34 +150,22 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json" }
 
 [tasks.bootstrap]
-description = "install Homebrew, Brewfile deps, and a global uv-managed Python"
+description = "finish bootstrap after native packages, dotfiles, and tools are applied"
 run = [
-  'command -v brew >/dev/null || [ -x /opt/homebrew/bin/brew ] || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
-  # Explicit PATH prefix here only: on a bare first run brew was just installed
-  # this invocation and isn't yet on the shell's resolved _.path. Later tasks
-  # (update) rely on _.path and omit it.
-  'env PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH" brew bundle',
+  # The residual Brewfile intentionally owns only VS Code extensions.
+  'command -v brew >/dev/null && brew bundle --file "{{env.XDG_CONFIG_HOME}}/homebrew/Brewfile" || true',
   "uv python install --default --preview-features python-install-default",
 ]
 
 [tasks.update]
-description = "upgrade tools, Homebrew layers, reapply dotfiles, then audit"
+description = "upgrade mise tools and native packages, reapply dotfiles, then audit"
 interactive = true
-# --dry-run previews the upgrade steps (brew/mise/uv honor the flag). The final
-# `mise run audit` is read-only, so it runs for real even under --dry-run -
-# mise propagates the flag rather than skipping steps, and audit is safe to run.
 run = [
   "mise self-update --yes || curl -fsSL https://mise.run | sh",
   "mise upgrade",
   "mise lock",
-  # HOMEBREW_NO_AUTO_UPDATE=1 (see [env]) suppresses the implicit refresh that
-  # brew upgrade/bundle would otherwise run, so refresh the formula database
-  # explicitly here - otherwise upgrades only ever see stale local metadata.
-  "brew update",
-  "brew upgrade",
-  "brew upgrade --cask",
-  "mas upgrade",
-  "brew bundle",
+  "mise bootstrap packages upgrade",
+  'command -v brew >/dev/null && brew bundle --file "{{env.XDG_CONFIG_HOME}}/homebrew/Brewfile" || true',
   "uv python upgrade",
   "mise dotfiles apply",
   "mise run audit",

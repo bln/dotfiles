@@ -77,12 +77,30 @@ mise reset-all                 # clear Claude Code, Codex, and Pi agent sessions
 
 `mise audit` and `mise update` are global - they work from any directory, so you
 never have to switch into the repo. Both delegate the actual checks to the
-repo-local `verify` task (`doctor`, bootstrap/dotfiles drift, `brew bundle
-check`, lint, test, and the `check:*` guards), which needs a converged macOS
+repo-local `verify` task (`doctor`, bootstrap/dotfiles/native-package drift, residual `brew bundle check`, lint, test, and the `check:*` guards), which needs a converged macOS
 host; `update` runs `audit`'s checks as its final step. `lint` and `test` are
 host-independent and are what CI runs. Session-reset tasks (`reset-claude`,
 `reset-codex`, `reset-pi`, `reset-all`) clear agent session state while
 preserving configuration.
+
+## Package and shell ownership
+
+The global mise config is the source of truth for command-line formulae, macOS
+casks, fonts, Mac App Store applications, shared environment variables, and
+interactive aliases. The residual Brewfile intentionally contains only VS Code
+extensions. `.zshrc` contains only Zsh-specific startup behavior such as
+completion, prompt, key bindings, plugins, and argument-aware functions.
+
+Preview package and full-machine changes before applying them:
+
+```bash
+mise bootstrap packages status
+mise bootstrap packages apply --dry-run
+mise bootstrap --dry-run
+```
+
+Native `brew-cask:` resources use canonical application destinations and do not
+preserve the previous Brew Bundle `~/Applications` cask option.
 
 ## Layout
 
@@ -103,7 +121,7 @@ dotfiles/
     ├── .pi/                # pi agent extensions
     └── .config/
         ├── mise/           # config.toml (source of truth), lock, tasks/
-        ├── homebrew/Brewfile
+        ├── homebrew/Brewfile # VS Code extensions only
         ├── git/            # config + global ignore (identity is machine-local)
         ├── zsh/            # .zshrc, .zprofile
         ├── nvim/
@@ -124,7 +142,9 @@ machine.
 | mise tools | `home/.config/mise/config.toml` `[tools]` | `mise install` |
 | dotfiles | `home/` plus the `[dotfiles]` table | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
-| Homebrew, MAS, VSCode | `home/.config/homebrew/Brewfile` | `brew bundle` |
+| formulae, casks, fonts, MAS apps | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
+| VS Code extensions | `home/.config/homebrew/Brewfile` | `brew bundle --file ~/.config/homebrew/Brewfile` |
+| environment and aliases | `[env]` and `[shell_alias]` in the global mise config | `mise activate zsh` |
 | git identity | machine-local prompt (untracked) | `mise run setup:git-identity` |
 | pi agent config | `home/.config/mise/tasks/setup/pi-config.d/*.template` | `mise run setup:pi-config` |
 
@@ -144,7 +164,7 @@ To tear the machine back down:
 ```
 
 It reverses install in order: remove machine-local identity, unapply dotfiles,
-uninstall Brewfile-managed formulae/casks/VSCode-extensions/Mac-App-Store-apps
+unapply mise-managed formulae/casks/fonts/Mac-App-Store-apps and uninstall residual Brewfile-managed VS Code extensions
 (the last needs `sudo`), uninstall mise-managed tools, then implode mise last.
 
 It is **not** a full inverse: it does not revert the macOS system defaults (dock,

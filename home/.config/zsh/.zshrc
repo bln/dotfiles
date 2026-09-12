@@ -1,24 +1,7 @@
 # mise: activate tools + shims for interactive shells (PATH is set in .zshenv)
 command -v mise &>/dev/null && eval "$(mise activate zsh)"
 
-# Keep Homebrew available without letting it shadow mise-managed tools or shims.
-path=(${path:#/opt/homebrew/bin})
-path=(${path:#/opt/homebrew/sbin})
-[[ -d /opt/homebrew/bin ]] && path+=(/opt/homebrew/bin)
-[[ -d /opt/homebrew/sbin ]] && path+=(/opt/homebrew/sbin)
-typeset -gU path PATH
 
-# ── environment ───────────────────────────────────────────────────────────────
-export EDITOR=nvim
-export VISUAL=nvim
-export PAGER="less -FRX"
-export LANG=en_US.UTF-8
-# (no LC_ALL: it overrides every locale category and would stomp a user's
-#  regional prefs for dates/numbers/currency. LANG is the sane default.)
-
-# ── coding agents ───────────────────────────────────────────────────────────────
-export ENABLE_PROMPT_CACHING_1H=1
-export PI_CACHE_RETENTION=long
 
 # ── history ───────────────────────────────────────────────────────────────────
 mkdir -p "$XDG_CACHE_HOME/zsh"
@@ -104,34 +87,10 @@ bindkey '^[[H' beginning-of-line          # Home
 bindkey '^[[F' end-of-line                # End
 bindkey '^[[3~' delete-char               # Delete key
 
-# ── navigation ────────────────────────────────────────────────────────────────
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-
 # ── zoxide (smart cd replacement) ─────────────────────────────────────────────
 if command -v zoxide &>/dev/null; then
   eval "$(zoxide init zsh)"
   alias cd='z'
-fi
-
-# ── listing (eza enhancement) ────────────────────────────────────────────────
-if command -v eza &>/dev/null; then
-  alias ls='eza --icons=auto'
-  alias ll='eza -lh --icons=auto --git'
-  alias la='eza -lah --icons=auto --git'
-  alias tree='eza --tree --icons=auto'
-else
-  alias ls='ls -G'
-  alias ll='ls -lhG'
-  alias la='ls -lahG'
-fi
-
-# ── bat (colored cat & pager) ────────────────────────────────────────────────
-if command -v bat &>/dev/null; then
-  alias cat='bat --style=plain'
-  export BAT_THEME="TwoDark"
-  export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 fi
 
 # ── fzf (fuzzy finder) ────────────────────────────────────────────────────────
@@ -151,22 +110,6 @@ fi
 
 # ── ripgrep ───────────────────────────────────────────────────────────────────
 [[ -f "$HOME/.ripgreprc" ]] && export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
-
-# ── safer defaults ────────────────────────────────────────────────────────────
-alias cp='cp -i'
-alias mv='mv -i'
-alias rm='rm -i'
-alias mkdir='mkdir -p'
-
-# ── convenience ───────────────────────────────────────────────────────────────
-alias c='clear'
-alias q='exit'
-
-# ── misc ──────────────────────────────────────────────────────────────────────
-alias path='echo $PATH | tr ":" "\n"'
-alias reload='exec zsh'
-alias zshrc='nvim "$ZDOTDIR/.zshrc"'
-alias vim='nvim'
 
 # ── functions ─────────────────────────────────────────────────────────────────
 mkcd() { mkdir -p "$1" && cd "$1"; }

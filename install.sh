@@ -5,8 +5,8 @@ set -euo pipefail
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
 die() { printf "ERROR: %s\n" "$1" >&2; exit 1; }
 
-# install has no --dry-run: its work is a one-shot converge (mise bootstrap +
-# brew bundle + uv python + git identity). Reject unknown args rather than
+# install has no --dry-run: its work is a one-shot converge (mise bootstrap + native packages + residual VS Code extensions +
+# uv python + git identity). Reject unknown args rather than
 # silently ignore them, and point at the preview path.
 while [ "$#" -gt 0 ]; do
   case "$1" in
