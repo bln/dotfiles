@@ -56,8 +56,7 @@ echo "  - declared VS Code extensions"
 echo "  - mise-managed tools, runtimes, mise itself, and uv cache state"
 echo
 echo "Does NOT revert macOS system defaults (dock/finder/keyboard) written at"
-echo "install - defaults write records no prior value, so there is nothing to"
-echo "restore. Also leaves Homebrew itself installed."
+echo "install - defaults write records no prior value, so there is nothing to restore"
 echo
 if [ "$DRY_RUN" != true ]; then
   read -r -p "Proceed with wipe? [type 'yes' to proceed]: " ans
@@ -88,22 +87,9 @@ else
   skipped=$((skipped + 1))
 fi
 
-bold "== 3/4: remove mise packages and declared VS Code extensions =="
-if command -v mise >/dev/null 2>&1; then
-  if [ "$DRY_RUN" = true ]; then
-    if ! mise bootstrap packages unapply --dry-run --yes 2>&1; then
-      warn "packages unapply reported failures (some packages may remain)"
-    fi
-  else
-    if ! mise bootstrap packages unapply --yes 2>&1; then
-      warn "packages unapply reported failures (some packages may remain)"
-    fi
-  fi
-else
-  warn "mise not found; skipping native package cleanup"
-  skipped=$((skipped + 1))
-fi
-
+bold "== 3/4: remove VS Code extensions and Homebrew =="
+# VS Code extensions must go first: 'code' is a brew cask and will be gone
+# once Homebrew is uninstalled.
 extensions_manifest="$REPO/home/.config/vscode/extensions.txt"
 if command -v code >/dev/null 2>&1 && [ -f "$extensions_manifest" ]; then
   while IFS= read -r line; do
@@ -118,6 +104,21 @@ if command -v code >/dev/null 2>&1 && [ -f "$extensions_manifest" ]; then
   done < "$extensions_manifest"
 else
   warn "code not found or extensions manifest missing; skipping VS Code extension cleanup"
+  skipped=$((skipped + 1))
+fi
+
+# Homebrew's own uninstall script removes all formulae, casks, and the brew
+# binary in the correct dependency order.
+if command -v brew >/dev/null 2>&1; then
+  if [ "$DRY_RUN" = true ]; then
+    echo "DRY RUN: would uninstall all Homebrew packages and Homebrew itself"
+  else
+    NONINTERACTIVE=1 /bin/bash -c \
+      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" \
+      -- --force || warn "Homebrew uninstall reported failures; some packages may remain"
+  fi
+else
+  warn "brew not found; skipping Homebrew removal"
   skipped=$((skipped + 1))
 fi
 
@@ -145,7 +146,12 @@ done
 echo
 bold "== WIPE COMPLETE =="
 echo "  $removed items removed, $skipped items skipped/warned"
-echo "Next: open a fresh terminal and run:"
-echo "  $REPO/install.sh"
-echo "  exec zsh -l"
-echo "  mise -C $REPO verify"
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "Next: run the wipe if dry-run previewed expected behavior:"
+  else
+    echo "Next: open a fresh terminal and run:"
+    echo "  $REPO/install.sh"
+    echo "  exec zsh -l"
+    echo "  mise -C $REPO verify"
+  fi
