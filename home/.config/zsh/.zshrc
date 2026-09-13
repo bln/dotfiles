@@ -29,9 +29,18 @@ mkdir -p "$_zcompdir"
 _gen_completion() {  # $1=binary  $2=file  $3+=args to emit zsh completion
   local bin=$1 out=$2; shift 2
   command -v "$bin" &>/dev/null || return
-  # regenerate only if missing or the binary is newer than the cached file
-  if [[ ! -f $out || $(command -v "$bin") -nt $out ]]; then
-    "$bin" "$@" >| "$out" 2>/dev/null || rm -f "$out"
+  # Regenerate when: output missing OR version string has changed since last run.
+  # Version files live alongside the completion file (e.g. _bat.version).
+  local ver_file="${out}.version"
+  local cur_ver
+  cur_ver="$("$bin" --version 2>/dev/null | head -1)" || return
+  if [[ ! -s $out || ! -f $ver_file || "$(<"$ver_file")" != "$cur_ver" ]]; then
+    local tmp="${out}.tmp.$$"
+    if "$bin" "$@" >"$tmp" 2>/dev/null; then
+      mv -f "$tmp" "$out"
+      printf '%s\n' "$cur_ver" >"$ver_file"
+    fi
+    rm -f "$tmp"
   fi
 }
 _gen_completion bat      "$_zcompdir/_bat"      --completion zsh

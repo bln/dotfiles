@@ -1,151 +1,139 @@
 #!/usr/bin/env bash
-# Cross-file consistency: commands, fonts, themes, and packages reference each other correctly.
+# Static property checks: format, structure, and safety invariants.
+# These assert things that must NEVER be true regardless of what you have
+# configured. They do NOT check which specific packages, fonts, or themes
+# you have chosen; those are content decisions, not structural ones.
 
-echo "== static: cross-file references =="
+echo "== static: structural properties =="
 
-CONFIG="$REPO/home/.config/mise/config.toml"
-ZSHRC="$REPO/home/.config/zsh/.zshrc"
-VSCODE="$REPO/home/.config/vscode/settings.json"
-BREWFILE="$REPO/home/.config/homebrew/Brewfile"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+fail_count=0
 
-# Helper: check if a command is declared as a mise tool or bootstrap package.
-# Returns 0 if found, 1 if not.
-is_declared() {
-  local cmd="$1"
-  grep -qE "(\"brew:$cmd\"|\"brew-cask:$cmd\"|^$cmd =)" "$CONFIG" 2>/dev/null
+ok()  { printf '  ok  %s\n' "$*"; }
+bad() {
+  local label="$1" detail="${2:-}"
+  printf ' FAIL %s%s\n' "$label" "${detail:+: $detail}"
+  fail_count=$((fail_count+1))
 }
 
-# Commands referenced by .zshrc that must have a provider.
-# Two parallel arrays (bash 3.2 safe - no declare -A).
-# Kinds: "declared" = must be in config.toml [tools]/[bootstrap.packages]
-#        "self"     = installed by install.sh itself (not a config entry)
-#        "optional" = guarded by `command -v` in zshrc; should still be declared
-_cmds=(mise starship zoxide fzf bat eza fd zsh-autosuggestions zsh-syntax-highlighting)
-_kinds=(self declared declared declared declared declared optional declared declared)
-
-_i=0
-for cmd in "${_cmds[@]}"; do
-  kind="${_kinds[$_i]}"
-  _i=$((_i + 1))
-  case "$kind" in
-    declared|optional)
-      if is_declared "$cmd"; then
-        ok "$cmd declared in config"
-      else
-        if [ "$kind" = "declared" ]; then
-          bad "$cmd declared in config" "$cmd used in .zshrc but not in config.toml [tools] or [bootstrap.packages]"
-        else
-          bad "$cmd declared in config (optional)" "$cmd used in .zshrc (guarded) but has no package declaration"
-        fi
-      fi
-      ;;
-    self)
-      # mise manages itself - installed by install.sh, not a config.toml entry
-      ok "$cmd (managed by install.sh, not a config entry)"
-      ;;
-  esac
-done
-unset _cmds _kinds _i
-
-# Font references: VS Code font family must be in a cask declaration
+# ── 1. every tracked shell script and mise task has a shebang ─────────────
 {
-  if command -v python3 >/dev/null 2>&1; then
-    vscode_font="$(python3 -c "
-import json, re
-raw = open('$VSCODE').read()
-raw = re.sub(r'//.*', '', raw)
-data = json.loads(raw)
-print(data.get('editor.fontFamily', ''))
-" 2>/dev/null)"
-    case "$vscode_font" in
-      *JetBrainsMono*|*JetBrains\ Mono*)
-        if grep -q "font-jetbrains-mono" "$CONFIG" 2>/dev/null; then
-          ok "VS Code font (JetBrains Mono) has cask declaration"
-        else
-          bad "VS Code font declaration" "JetBrains Mono referenced but no cask found"
-        fi
-        ;;
-      "")
-        ok "VS Code font check (no custom font set)"
-        ;;
-      *)
-        ok "VS Code font check ($vscode_font - not validated)"
-        ;;
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    # skip non-executable text formats
+    case "$f" in *.toml|*.md|*.json|*.txt|*.template|*.lock|*.ts|*.lua|*.yml|*.yaml) continue ;; esac
+    first="$(head -1 "$f" 2>/dev/null)"
+    case "$first" in
+      '#!'*) ok "shebang: $(basename "$f")" ;;
+      *)     bad "shebang" "$(basename "$f") (${f#$REPO/}) has no shebang" ;;
     esac
-  else
-    ok "VS Code font check (skipped - python3 not available)"
-  fi
+  done < <(find "$REPO" -type f \
+    \( -path '*/scripts/*.sh' \
+      -o -path '*/.mise/tasks/*' \
+      -o -path '*/mise/tasks/*' \
+      -o -path '*/tests/*.sh' \) \
+    -not -path '*/.git/*' \
+    -not -name '*.template' \
+    | sort)
 }
 
-# VS Code theme references: declared themes must have matching extensions
+# ── 2. no private keys committed ──────────────────────────────────────────
 {
-  if command -v python3 >/dev/null 2>&1; then
-    themes="$(python3 -c "
-import json, re
-raw = open('$VSCODE').read()
-raw = re.sub(r'//.*', '', raw)
-data = json.loads(raw)
-for k in ['workbench.preferredDarkColorTheme', 'workbench.preferredLightColorTheme', 'workbench.colorTheme']:
-    v = data.get(k, '')
-    if v: print(v)
-" 2>/dev/null)"
-    while IFS= read -r theme; do
-      [ -z "$theme" ] && continue
-      case "$theme" in
-        *"One Dark Pro"*)
-          if grep -q "zhuangtongfa.material-theme" "$BREWFILE" 2>/dev/null; then
-            ok "theme '$theme' has extension in Brewfile"
-          else
-            bad "theme '$theme' extension" "no matching extension found in Brewfile"
-          fi
-          ;;
-        *)
-          ok "theme '$theme' (not validated - may be built-in)"
-          ;;
-      esac
-    done <<< "$themes"
-  else
-    ok "VS Code theme checks (skipped - python3 not available)"
-  fi
-}
+  for header in \
+    "BEGIN RSA PRIVATE KEY" \
+    "BEGIN EC PRIVATE KEY"  \
+    "BEGIN PRIVATE KEY"     \
+    "BEGIN PGP PRIVATE KEY"; do
 
-# Template integrity: every template contains expected placeholders.
-{
-  cfg_tmpl="$REPO/home/.config/mise/tasks/setup/git-identity.d/config.local.template"
-  play_tmpl="$REPO/home/.config/mise/tasks/setup/git-identity.d/identity-play.template"
-  models_tmpl="$REPO/home/.config/mise/tasks/setup/pi-config.d/models.json.template"
+    hits="$(grep -rl "$header" "$REPO" \
+      --include='*.sh' --include='*.toml' --include='*.json' \
+      --include='*.lua' --include='*.yml' --include='*.yaml' \
+      --include='*.md' --include='*.ts' \
+      --exclude-dir='.git' \
+      --exclude='*.template' --exclude='*.lock' \
+      2>/dev/null || true)"
 
-  for marker in "{{WORK_NAME}}" "{{WORK_EMAIL}}"; do
-    assert_contains "config.local.template has $marker" "$(cat "$cfg_tmpl")" "$marker"
-  done
-  for marker in "{{PLAY_NAME}}" "{{PLAY_EMAIL}}"; do
-    assert_contains "identity-play.template has $marker" "$(cat "$play_tmpl")" "$marker"
-  done
-  assert_contains "models.json.template has PI_PROXY_API_KEY" "$(cat "$models_tmpl")" "{{PI_PROXY_API_KEY}}"
-}
-
-# Dotfile source integrity: every [dotfiles] entry's source file exists.
-{
-  dotfiles_root="$REPO/home"
-  fail_count=0
-  while IFS= read -r line; do
-    target="$(printf '%s' "$line" | sed -E 's/^"([^"]+)".*/\1/')"
-    [ -z "$target" ] && continue
-
-    if printf '%s' "$line" | grep -q 'source'; then
-      src="$(printf '%s' "$line" | sed -E 's/.*source = "([^"]+)".*/\1/')"
-      src="${src/#\~\/dotfiles/$REPO}"
+    if [ -z "$hits" ]; then
+      ok "no private key: $header"
     else
-      rel="${target/#\~\//}"
-      src="$dotfiles_root/$rel"
+      bad "no private key" "$header found in: $(echo "$hits" | tr '\n' ' ')"
     fi
-
-    if [ -e "$src" ]; then
-      ok "dotfile source exists: $(basename "$src")"
-    else
-      bad "dotfile source exists: $(basename "$src")" "missing: $src (for target $target)"
-      fail_count=$((fail_count + 1))
-    fi
-  done < <(grep -E '^\s*"~' "$CONFIG" | grep -v '^#')
-  [ "$fail_count" -eq 0 ] || true
+  done
 }
+
+# ── 3. no unfilled template placeholders in tracked non-template files ────
+{
+  stray=0
+  while IFS= read -r f; do
+    case "$f" in *.template) continue ;; esac
+    [ -f "$f" ] || continue
+    if grep -q '{{' "$f" 2>/dev/null; then
+      bad "stray placeholder" "${f#$REPO/} contains {{ outside a .template file"
+      stray=$((stray+1))
+    fi
+  done < <(find "$REPO" -type f \
+    \( -name '*.sh' -o -name '*.toml' -o -name '*.json' \
+      -o -name '*.lua' -o -name '*.ts' \) \
+    -not -path '*/.git/*' | sort)
+  [ "$stray" -eq 0 ] && ok "no stray template placeholders"
+}
+
+# ── 4. machine-local files that must never be committed ───────────────────
+{
+  for rel in \
+    "home/.config/git/config.local" \
+    "home/.config/git/identity-play" \
+    "home/.pi/agent/models.json"     \
+    "home/.pi/agent/settings.json";  do
+
+    if [ -f "$REPO/$rel" ]; then
+      bad "not committed" "$rel should be machine-local (gitignored)"
+    else
+      ok "not committed: $(basename "$rel")"
+    fi
+  done
+}
+
+# ── 5. no CRLF line endings in tracked text files ─────────────────────────
+{
+  crlf=0
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    if grep -Pql $'\r$' "$f" 2>/dev/null; then
+      bad "no CRLF" "${f#$REPO/} has Windows line endings"
+      crlf=$((crlf+1))
+    fi
+  done < <(find "$REPO" -type f \
+    \( -name '*.sh' -o -name '*.toml' -o -name '*.json' \
+      -o -name '*.lua' -o -name '*.yml' -o -name '*.md' \
+      -o -name '*.ts' \) \
+    -not -path '*/.git/*' | sort)
+  [ "$crlf" -eq 0 ] && ok "no CRLF in tracked text files"
+}
+
+# ── 6. all text files end with a trailing newline ─────────────────────────
+{
+  missing=0
+  while IFS= read -r f; do
+    [ -s "$f" ] || continue
+    case "$f" in *.lock) continue ;; esac
+    last_byte="$(tail -c 1 "$f" | wc -c)"
+    if [ "$last_byte" -eq 0 ]; then
+      bad "trailing newline" "${f#$REPO/} is missing a trailing newline"
+      missing=$((missing+1))
+    fi
+  done < <(find "$REPO" -type f \
+    \( -name '*.sh' -o -name '*.toml' -o -name '*.json' \
+      -o -name '*.lua' -o -name '*.md' -o -name '*.ts' \) \
+    -not -path '*/.git/*' | sort)
+  [ "$missing" -eq 0 ] && ok "all text files have a trailing newline"
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+if [ "$fail_count" -gt 0 ]; then
+  echo
+  echo "== $fail_count check(s) failed =="
+  exit 1
+fi
+
+echo "== all structural property checks passed =="

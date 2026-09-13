@@ -85,7 +85,9 @@ play_email="$(prompt_email 'Play (github.com) git email: ')"
 
 mkdir -p "$HOME/.config/git"
 render_template "$config_template" "$config"
+chmod 600 "$config"
 render_template "$play_template" "$play"
+chmod 600 "$play"
 
 echo
 echo "Created ~/.config/git/config.local"
