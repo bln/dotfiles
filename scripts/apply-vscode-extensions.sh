@@ -42,13 +42,13 @@ while IFS= read -r line; do
   line="${line%%#*}"           # strip comments
   line="${line// /}"           # strip whitespace
   [ -n "$line" ] || continue
-  declared+=("${line,,}")     # lowercase
+  declared+=("$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')")
 done < "$MANIFEST"
 
 # Load installed extensions (lowercase)
 installed=()
 while IFS= read -r ext; do
-  [ -n "$ext" ] && installed+=("${ext,,}")
+  [ -n "$ext" ] && installed+=("$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')")
 done < <(code --list-extensions 2>/dev/null || true)
 
 # Install missing
