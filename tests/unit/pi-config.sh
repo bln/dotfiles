@@ -3,7 +3,7 @@
 
 echo "== pi-config =="
 
-PI_CONFIG="$REPO/home/.config/mise/tasks/setup/pi-config"
+PI_CONFIG="$REPO/tasks/setup/pi-config"
 
 # Happy path: secret from env, templates render into $PI_AGENT_DIR, mode 600,
 # and the key is substituted (no placeholder left behind).

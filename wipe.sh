@@ -3,7 +3,6 @@
 set -euo pipefail
 
 REPO="${DOTFILES_DIR:-$HOME/dotfiles}"
-BREWFILE="$REPO/home/.config/homebrew/Brewfile"
 DRY_RUN=false
 
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
@@ -51,9 +50,9 @@ done
 
 bold "== This will PERMANENTLY remove: =="
 echo "  - machine-local git identity files"
-echo "  - mise-managed dotfile symlinks when mise is available"
-echo "  - Brewfile-managed Homebrew formulae, casks, and VSCode extensions"
-echo "  - Brewfile-managed Mac App Store apps (needs sudo)"
+echo "  - mise-managed dotfile symlinks"
+echo "  - mise-managed packages (formulae, casks, and Mac App Store apps)"
+echo "  - declared VS Code extensions"
 echo "  - mise-managed tools, runtimes, mise itself, and uv cache state"
 echo
 echo "Does NOT revert macOS system defaults (dock/finder/keyboard) written at"
@@ -89,7 +88,7 @@ else
   skipped=$((skipped + 1))
 fi
 
-bold "== 3/4: remove mise packages and residual VS Code extensions =="
+bold "== 3/4: remove mise packages and declared VS Code extensions =="
 if command -v mise >/dev/null 2>&1; then
   if [ "$DRY_RUN" = true ]; then
     if ! mise bootstrap packages unapply --dry-run --yes 2>&1; then
@@ -105,25 +104,20 @@ else
   skipped=$((skipped + 1))
 fi
 
-if command -v brew >/dev/null 2>&1 && [ -f "$BREWFILE" ]; then
-  extensions=()
-  while IFS= read -r extension; do
-    [ -n "$extension" ] && extensions+=("$extension")
-  done < <(brew bundle list --file "$BREWFILE" --vscode 2>/dev/null || true)
-  if command -v code >/dev/null 2>&1; then
-    for extension in "${extensions[@]}"; do
-      if [ "$DRY_RUN" = true ]; then
-        printf 'DRY RUN: code --uninstall-extension %q\n' "$extension"
-      else
-        code --uninstall-extension "$extension" || true
-      fi
-    done
-  else
-    warn "code not found; skipping VS Code extension cleanup"
-    skipped=$((skipped + 1))
-  fi
+extensions_manifest="$REPO/home/.config/vscode/extensions.txt"
+if command -v code >/dev/null 2>&1 && [ -f "$extensions_manifest" ]; then
+  while IFS= read -r line; do
+    line="${line%%#*}"     # strip comments
+    line="${line// /}"    # strip spaces
+    [ -n "$line" ] || continue
+    if [ "$DRY_RUN" = true ]; then
+      printf 'DRY RUN: code --uninstall-extension %s\n' "$line"
+    else
+      code --uninstall-extension "$line" 2>/dev/null || true
+    fi
+  done < "$extensions_manifest"
 else
-  warn "brew or residual Brewfile not found; skipping VS Code extension cleanup"
+  warn "code not found or extensions manifest missing; skipping VS Code extension cleanup"
   skipped=$((skipped + 1))
 fi
 

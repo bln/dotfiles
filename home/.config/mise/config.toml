@@ -49,6 +49,8 @@ ll = "eza -lh --icons=auto --git"
 la = "eza -lah --icons=auto --git"
 tree = "eza --tree --icons=auto"
 cat = "bat --style=plain"
+# Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
+dot    = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
 
 # Shared host packages. `latest` means present; upgrades are explicit with
 # `mise bootstrap packages upgrade`.
@@ -132,7 +134,6 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/.config/zsh/.zprofile" = {}
 "~/.config/git/config" = {}
 "~/.config/git/ignore" = {}
-"~/.config/homebrew/Brewfile" = {}
 "~/.config/starship.toml" = {}
 "~/.config/npm/npmrc" = {}
 "~/.config/uv/uv.toml" = {}
@@ -149,80 +150,4 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
-"~/.config/mise/tasks" = {}
 "~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json" }
-
-[tasks.bootstrap]
-description = "finish bootstrap after native packages, dotfiles, and tools are applied"
-run = [
-  # VS Code extensions managed via plain manifest + script (replaces Brewfile).
-  'bash "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}/scripts/apply-vscode-extensions.sh"',
-  "uv python install --default --preview-features python-install-default",
-]
-
-# ── update sub-tasks ───────────────────────────────────────────────────────────
-# Split so partial failures don't block unrelated upgrades, and individual
-# components can be updated independently (e.g., `mise run update:tools`).
-
-[tasks."update:mise"]
-description = "update mise itself"
-run = "mise self-update --yes"
-
-[tasks."update:tools"]
-description = "upgrade mise-managed tools and regenerate lockfile"
-run = ["mise upgrade", "mise lock"]
-
-[tasks."update:packages"]
-description = "upgrade native host packages and VS Code extensions"
-run = [
-  "mise bootstrap packages upgrade",
-  'bash "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}/scripts/apply-vscode-extensions.sh"',
-]
-
-[tasks."update:python"]
-description = "upgrade uv-managed Python"
-run = "uv python upgrade"
-
-[tasks."update:dotfiles"]
-description = "reapply dotfile symlinks"
-run = "mise dotfiles apply"
-
-[tasks.update]
-description = "upgrade everything, reapply dotfiles, then audit"
-interactive = true
-depends = [
-  "update:mise",
-  "update:tools",
-  "update:packages",
-  "update:python",
-  "update:dotfiles",
-]
-run = "mise run audit"
-
-# Global entry point so you can audit the dotfiles from any directory. The real
-# checks live in the repo-local mise.toml `verify` task (they need the repo cwd
-# for lint/test); this delegates via -C, the same trick `update` uses. Gives one
-# place to `update` and `audit` without switching into the repo.
-[tasks.audit]
-description = "audit the dotfiles machine state from anywhere (delegates to the repo's verify)"
-run = 'mise -C "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}" verify'
-
-[tasks.reset-claude]
-description = "Clear all Claude Code project sessions"
-run = "claude project purge --all"
-
-# reset-codex is a file task: home/.config/mise/tasks/reset-codex. Its keep-list
-# guards auth/config from deletion (data-loss risk), so it lives as a real script
-# that tests/run.sh exercises against a CODEX_HOME sandbox.
-
-[tasks.reset-pi]
-description = "Clear all Pi coding-agent sessions"
-run = "rm -rf \"$HOME/.pi/agent/sessions\""
-
-[tasks.reset-all]
-description = "Clear all Claude Code, Codex, and Pi sessions"
-depends = [
-  "reset-claude",
-  "reset-codex",
-  "reset-pi",
-]

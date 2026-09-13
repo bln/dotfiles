@@ -3,7 +3,7 @@
 
 echo "== git-identity =="
 
-GIT_IDENTITY="$REPO/home/.config/mise/tasks/setup/git-identity"
+GIT_IDENTITY="$REPO/tasks/setup/git-identity"
 
 # Happy path: four prompted values render both identity files with correct content.
 {

@@ -8,7 +8,7 @@ echo "== static: config formats =="
   if command -v python3 >/dev/null 2>&1; then
     for f in "$REPO/mise.toml" "$REPO/home/.config/mise/config.toml"; do
       label="$(basename "$(dirname "$f")")/$(basename "$f") parses as TOML"
-      if python3 -c "import tomllib; tomllib.load(open('$f','rb'))" 2>/dev/null; then
+      if python3 -c "import sys,tomllib; tomllib.load(sys.stdin.buffer)" < "$f" 2>/dev/null; then
         ok "$label"
       else
         bad "$label" "TOML parse error in $f"
@@ -83,18 +83,17 @@ echo "== static: config formats =="
 
 # JSON templates parse after dummy placeholder substitution
 {
-  for tmpl in "$REPO/home/.config/mise/tasks/setup/pi-config.d/models.json.template" \
-              "$REPO/home/.config/mise/tasks/setup/pi-config.d/settings.json.template"; do
+  for tmpl in "$REPO/tasks/setup/pi-config.d/models.json.template" \
+              "$REPO/tasks/setup/pi-config.d/settings.json.template"; do
     label="$(basename "$tmpl") parses as JSON after substitution"
-    if command -v jq >/dev/null 2>&1; then
-      rendered="$(sed 's/{{[^}]*}}/PLACEHOLDER/g' "$tmpl")"
-      if printf '%s\n' "$rendered" | jq empty 2>/dev/null; then
+    if command -v python3 >/dev/null 2>&1; then
+      if python3 -c "import re,json,sys; t=open(sys.argv[1]).read(); json.loads(re.sub(r'[{][{][^}]*[}][}]','PLACEHOLDER',t))" "$tmpl" 2>/dev/null; then
         ok "$label"
       else
         bad "$label" "JSON parse failed after placeholder substitution"
       fi
     else
-      ok "$label (skipped - jq not available)"
+      ok "$label (skipped - python3 not available)"
     fi
   done
 }
@@ -114,9 +113,14 @@ echo "== static: config formats =="
   while IFS= read -r f; do
     case "$f" in *.lock|*.png|*.jpg|*.gif|*.ico) continue ;; esac
     [ -f "$f" ] || continue
-    if [ -s "$f" ] && [ "$(tail -c 1 "$f" | wc -l)" -eq 0 ]; then
-      bad "trailing newline: $f" "no newline at end of file"
-      missing_nl=$((missing_nl + 1))
+    if [ -s "$f" ]; then
+      if command -v python3 >/dev/null 2>&1; then
+        python3 -c "import sys; d=open(sys.argv[1],'rb').read(); sys.exit(0 if d.endswith(b'\n') else 1)" "$f" 2>/dev/null \
+          || { bad "trailing newline: $f" "no newline at end of file"; missing_nl=$((missing_nl + 1)); }
+      elif [ "$(tail -c 1 "$f" | wc -l)" -eq 0 ]; then
+        bad "trailing newline: $f" "no newline at end of file"
+        missing_nl=$((missing_nl + 1))
+      fi
     fi
   done < <(find "$REPO" -type f -not -path '*/.git/*' -not -name '.DS_Store' | sort)
   [ "$missing_nl" -eq 0 ] && ok "all text files end with newline"

@@ -18,7 +18,7 @@ done < <(
   {
     find "$REPO" -maxdepth 1 -type f -name '*.sh' -not -path '*/.git/*'
     find "$REPO/scripts" -type f -name '*.sh' -not -path '*/.git/*' 2>/dev/null || true
-    find "$REPO/home/.config/mise/tasks" "$REPO/.mise/tasks" -type f -not -path '*/*.d/*' \
+    find "$REPO/tasks" "$REPO/.mise/tasks" -type f -not -path '*/*.d/*' \
       -exec sh -c 'head -1 "$1" | grep -q "^#!.*sh"' _ {} \; -print 2>/dev/null || true
   } | sort -u
 )

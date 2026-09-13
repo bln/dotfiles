@@ -3,7 +3,7 @@
 
 echo "== reset-codex =="
 
-RESET_CODEX="$REPO/home/.config/mise/tasks/reset-codex"
+RESET_CODEX="$REPO/tasks/reset-codex"
 
 # Keeps config/auth, deletes session state. The keep-list is the data-loss
 # guard, so assert both sides: kept files survive, everything else is gone.

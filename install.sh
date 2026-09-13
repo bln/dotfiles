@@ -81,13 +81,12 @@ fi
 bold "== 3/5: Trusting config =="
 mise trust "$CONFIG"
 [ -f "$REPO/mise.toml" ] && mise trust "$REPO/mise.toml"
-[ -d "$REPO/home/.config/mise/tasks" ] && mise trust "$REPO/home/.config/mise/tasks"
+[ -d "$REPO/tasks" ] && mise trust "$REPO/tasks"
 
 # ── step 4/5: bootstrap ──────────────────────────────────────────────────────
 bold "== 4/5: mise bootstrap =="
 mise bootstrap --yes --force-dotfiles
 
-[ -d "$HOME/.config/mise/tasks" ] && mise trust "$HOME/.config/mise/tasks"
 
 # ── step 5/5: git identity ───────────────────────────────────────────────────
 if [ ! -f "$HOME/.config/git/config.local" ]; then

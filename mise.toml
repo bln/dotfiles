@@ -1,25 +1,29 @@
 #:schema https://mise.jdx.dev/schema/mise.json
-# Repo-local mise tasks for this checkout.
+# Repo-local mise config and tasks for this dotfiles checkout.
+# Run from anywhere: dot run <task>  (dot alias = mise -C ~/dotfiles)
 
-# ── verification pipeline ─────────────────────────────────────────────────────
+[task_config]
+# includes replaces the default file-task search paths, so list both:
+# tasks/       -- repo-local setup + reset scripts
+# .mise/tasks/ -- check:git-identity, check:vscode-symlink
+includes = ["tasks", ".mise/tasks"]
+
+# ── verification pipeline ──────────────────────────────────────────────────────
 # verify runs machine-state checks first (sequential - order matters), then
 # host-independent checks in parallel, then reports success.
 #
 # check:git-identity and check:vscode-symlink are file tasks under
 # .mise/tasks/check/. They guard real failures (blocked commits, divorced VSCode
-# settings), so they live as scripts with test seams (HOME; VSCODE_SETTINGS_*)
-# that tests/run.sh exercises against sandboxes - not inline TOML.
+# settings), so they live as scripts with test seams that tests/run.sh exercises.
 
 [tasks."verify:machine-state"]
 description = "sequential machine-state checks (mise health, bootstrap, packages)"
 run = [
-  # doctor first: fail fast if the installation itself is unhealthy (deactivated,
-  # shims off PATH, config unparseable) rather than reporting confusing drift.
+  # doctor first: fail fast if the installation itself is unhealthy.
   "mise doctor",
   "mise bootstrap status --missing",
   "mise dotfiles status --missing",
   "mise bootstrap packages status --missing",
-  'env PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH" brew bundle check --file "$HOME/.config/homebrew/Brewfile" --no-upgrade',
 ]
 
 [tasks.verify]
@@ -39,3 +43,42 @@ run = "bash scripts/lint-shell.sh"
 description = "run the shell script test harness against mktemp sandboxes"
 dir = "{{ config_root }}"
 run = "bash tests/run.sh"
+
+# ── bootstrap ──────────────────────────────────────────────────────────────────
+
+[tasks.bootstrap]
+description = "finish bootstrap: install VS Code extensions and uv default python"
+run = [
+  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  "uv python install --default --preview-features python-install-default",
+]
+
+# ── update ─────────────────────────────────────────────────────────────────────
+# Run from anywhere: dot run update
+
+[tasks.update]
+description = "upgrade everything: mise, tools, packages, VS Code extensions, python, dotfiles"
+interactive = true
+run = [
+  "mise self-update --yes",
+  "mise upgrade && mise lock",
+  "mise bootstrap packages upgrade",
+  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  "uv python upgrade",
+  "mise dotfiles apply",
+]
+
+# ── reset tasks ────────────────────────────────────────────────────────────────
+# reset-codex is a file task: tasks/reset-codex
+
+[tasks.reset-claude]
+description = "clear all Claude Code project sessions"
+run = "claude project purge --all"
+
+[tasks.reset-pi]
+description = "clear all Pi coding-agent sessions"
+run = "rm -rf \"$HOME/.pi/agent/sessions\""
+
+[tasks.reset-all]
+description = "clear all Claude Code, Codex, and Pi sessions"
+depends = ["reset-claude", "reset-codex", "reset-pi"]
