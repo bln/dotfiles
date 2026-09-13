@@ -50,7 +50,9 @@ run = "bash tests/run.sh"
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
   'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
-  "uv python install --default --preview-features python-install-default",
+  # Only install if no default Python is configured yet; the command is
+  # idempotent but prints "already installed" noise on every subsequent run.
+  "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
 ]
 
 # ── update ─────────────────────────────────────────────────────────────────────
