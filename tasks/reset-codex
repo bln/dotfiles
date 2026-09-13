@@ -1,12 +1,27 @@
 #!/usr/bin/env bash
 #MISE description="Clear Codex CLI and ChatGPT app state while retaining configuration"
+#USAGE flag "-n --dry-run" help="Print what would be removed without deleting"
 set -euo pipefail
 
 # Target dir is the seam: tests point CODEX_HOME at a mktemp sandbox; the
-# no-override default keeps production behavior.
+# no-override default keeps production behavior unchanged.
 codex_home="${CODEX_HOME:-$HOME/.codex}"
+dry_run="${USAGE_DRY_RUN:-false}"
 
 [ -d "$codex_home" ] || { echo "nothing to clear: $codex_home does not exist"; exit 0; }
+
+if [ "$dry_run" = "true" ]; then
+  echo "DRY RUN: would clear session state under $codex_home (keeping config/auth):"
+  find "$codex_home" -mindepth 1 -maxdepth 1 \
+    ! -name "auth.json" \
+    ! -name "config.toml" \
+    ! -name "AGENTS.md" \
+    ! -name "AGENTS.override.md" \
+    ! -name "rules" \
+    ! -name "skills" \
+    -print
+  exit 0
+fi
 
 # Delete everything under codex_home EXCEPT the config/auth we keep. Getting the
 # exclusion list wrong is data loss (auth.json, config.toml), so this is the part

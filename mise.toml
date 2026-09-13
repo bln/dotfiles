@@ -17,13 +17,12 @@ includes = ["tasks", ".mise/tasks"]
 # settings), so they live as scripts with test seams that tests/run.sh exercises.
 
 [tasks."verify:machine-state"]
-description = "sequential machine-state checks (mise health, bootstrap, packages)"
+description = "sequential machine-state checks"
 run = [
   # doctor first: fail fast if the installation itself is unhealthy.
   "mise doctor",
-  "mise bootstrap status --missing",
-  "mise dotfiles status --missing",
-  "mise bootstrap packages status --missing",
+  # plan covers all phases (dotfiles, packages, tools); exits 2 on any drift.
+  "mise -q bootstrap plan --detailed-exitcode",
 ]
 
 [tasks.verify]
@@ -37,23 +36,21 @@ run = "echo 'OK: dotfiles verification passed.'"
 [tasks.lint]
 description = "syntax-check and shellcheck every shell script in the repo"
 dir = "{{ config_root }}"
+sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "scripts/**"]
 run = "bash scripts/lint-shell.sh"
 
 [tasks.test]
 description = "run the shell script test harness against mktemp sandboxes"
 dir = "{{ config_root }}"
+sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "tests/**"]
 run = "bash tests/run.sh"
 
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
 [tasks.bootstrap]
-description = "finish bootstrap: install VS Code extensions and uv default python"
-run = [
-  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
-  # Only install if no default Python is configured yet; the command is
-  # idempotent but prints "already installed" noise on every subsequent run.
-  "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
-]
+description = "finish bootstrap: install VS Code extensions"
+# uv default Python is handled by [bootstrap.hooks] post-tools in config.toml.
+run = ['bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"']
 
 # ── update ─────────────────────────────────────────────────────────────────────
 # Run from anywhere: dot run update
@@ -63,12 +60,18 @@ description = "upgrade everything: mise, tools, packages, VS Code extensions, py
 interactive = true
 run = [
   "mise self-update --yes",
-  "mise upgrade && mise lock",
-  "mise bootstrap packages upgrade",
+  # --update upgrades already-installed items, not just missing ones.
+  "mise bootstrap --update --only packages,tools",
   'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  "mise bootstrap dotfiles apply",
   "uv python upgrade",
-  "mise dotfiles apply",
 ]
+
+# ── check tasks ────────────────────────────────────────────────────────────────
+
+[tasks."check:drift"]
+description = "show pending dotfile changes (diff vs deployed state)"
+run = "mise bootstrap dotfiles diff"
 
 # ── reset tasks ────────────────────────────────────────────────────────────────
 # reset-codex is a file task: tasks/reset-codex

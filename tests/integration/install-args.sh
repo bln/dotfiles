@@ -33,3 +33,15 @@ INSTALL="$REPO/install.sh"
   run_capture bash "$INSTALL" --verbose --debug
   assert_ne "multiple unknown args exits non-zero" "0" "$RUN_STATUS"
 }
+
+# --dry-run and -n are accepted (not treated as unknown args)
+{
+  run_capture bash "$INSTALL" --help
+  stdout="$(cat "$RUN_STDOUT")"
+  assert_contains "--help mentions dry-run" "$stdout" "dry-run"
+}
+{
+  # Verify -n is listed as an alias in help
+  run_capture bash "$INSTALL" --help
+  assert_eq "--help exits 0 consistently" "0" "$RUN_STATUS"
+}

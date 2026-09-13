@@ -33,16 +33,13 @@ PI_CONFIG="$REPO/tasks/setup/pi-config"
 {
   agent="$(sandbox)/agent"
   PI_AGENT_DIR="$agent" PI_PROXY_API_KEY="first" bash "$PI_CONFIG" </dev/null >/dev/null 2>&1
-  PI_AGENT_DIR="$agent" PI_PROXY_API_KEY="second" bash "$PI_CONFIG" --force </dev/null >/dev/null 2>&1
+  PI_AGENT_DIR="$agent" PI_PROXY_API_KEY="second" USAGE_FORCE=true bash "$PI_CONFIG" </dev/null >/dev/null 2>&1
   assert_contains "--force re-renders with new key" "$(cat "$agent/models.json")" "second"
 }
 
-# Unknown argument is rejected.
-{
-  agent="$(sandbox)/agent"
-  assert_exit "unknown arg exits 2" "2" \
-    env PI_AGENT_DIR="$agent" PI_PROXY_API_KEY="x" bash "$PI_CONFIG" --bogus </dev/null
-}
+# Note: unknown-argument validation is now handled by mise's #USAGE machinery
+# when the task is run via `mise run setup:pi-config`. Direct bash invocation
+# no longer validates flags; that behaviour moved to the mise task layer.
 
 # Edge case: API key with shell metacharacters ($, backtick, &).
 # These are shell-special but JSON-safe; the substitution must preserve them literally.

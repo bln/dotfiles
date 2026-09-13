@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="create machine-local git identity files"
 #MISE interactive=true
+#USAGE flag "--force" help="Overwrite existing files (default: skip if present)"
 set -euo pipefail
 
 config="$HOME/.config/git/config.local"
@@ -10,24 +11,11 @@ template_dir="$task_dir/git-identity.d"
 config_template="$template_dir/config.local.template"
 play_template="$template_dir/identity-play.template"
 
-force=0
-for arg in "$@"; do
-  case "$arg" in
-    --force) force=1 ;;
-    -h|--help)
-      echo "usage: mise run setup:git-identity [--force]" >&2
-      echo "  Creates machine-local git identity files from templates." >&2
-      echo "  --force overwrites existing files (default: skip existing)." >&2
-      exit 0
-      ;;
-    *)
-      echo "ERROR: unknown argument: $arg" >&2
-      exit 2
-      ;;
-  esac
-done
+# When run via `mise run`, USAGE_FORCE is set by mise's #USAGE parser.
+# When invoked directly (e.g. in tests), set USAGE_FORCE=true to force overwrite.
+force="${USAGE_FORCE:-false}"
 
-if [ -f "$config" ] && [ "$force" -eq 0 ]; then
+if [ -f "$config" ] && [ "$force" != "true" ]; then
   # shellcheck disable=SC2088 # literal path shown to the user, not a path to expand
   echo "~/.config/git/config.local already exists (pass --force to overwrite)."
   exit 0

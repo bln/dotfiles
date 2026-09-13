@@ -22,6 +22,18 @@ RESET_CODEX="$REPO/tasks/reset-codex"
   done
 }
 
+# --dry-run (USAGE_DRY_RUN=true) prints what would be removed but deletes nothing.
+{
+  home="$(sandbox)"
+  mkdir -p "$home/sessions" "$home/history"
+  touch "$home/sessions/s1.json" "$home/history/h.log" "$home/auth.json"
+  out="$(CODEX_HOME="$home" USAGE_DRY_RUN=true bash "$RESET_CODEX" 2>&1)"; rc=$?
+  assert_eq "dry-run exits 0" "0" "$rc"
+  assert_file "dry-run: auth.json untouched" "$home/auth.json"
+  assert_file "dry-run: sessions untouched" "$home/sessions/s1.json"
+  assert_contains "dry-run: output says DRY RUN" "$out" "DRY RUN"
+}
+
 # Missing CODEX_HOME dir is a clean no-op, not an error.
 {
   home="$(sandbox)/does-not-exist"

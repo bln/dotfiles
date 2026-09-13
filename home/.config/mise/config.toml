@@ -127,6 +127,9 @@ tap_to_click = true
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+# Install uv default Python after tools are installed; guard prevents noise on
+# repeated runs ("Python is already installed" message).
+post-tools    = "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default"
 
 [dotfiles]
 "~/.zshenv" = {}

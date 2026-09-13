@@ -1,104 +1,74 @@
 #!/usr/bin/env bash
 # Bootstrap a fresh macOS machine from this dotfiles repo.
+# On subsequent runs it converges to the declared state.
 set -euo pipefail
 
-bold() { printf "\033[1m%s\033[0m\n" "$1"; }
-die()  { printf "ERROR: %s\n" "$1" >&2; exit 1; }
+die() { printf "ERROR: %s\n" "$1" >&2; exit 1; }
 
-trap 'printf "FAILED at line %d. Machine state may be partial; re-run install.sh to converge.\n" "$LINENO" >&2' ERR
-
-# ── arguments ─────────────────────────────────────────────────────────────────
-# install has no --dry-run: its work is a one-shot converge (mise bootstrap +
-# native packages + residual VS Code extensions + uv python + git identity).
-# Reject unknown args rather than silently ignore them, and point at the
-# preview path.
+DRY_RUN=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    -n|--dry-run) DRY_RUN=true ;;
     -h|--help)
       cat <<'EOF'
-Usage: ~/dotfiles/install.sh
+Usage: ~/dotfiles/install.sh [--dry-run]
 
-Bootstrap a fresh macOS machine from this dotfiles checkout. Runs to completion;
-there is no dry-run. To preview the heavy convergence step without applying it:
-
-  mise bootstrap --dry-run
-
+Bootstrap a fresh macOS machine from this dotfiles checkout.
+  --dry-run  Preview what mise bootstrap would change without applying it.
+             Calls 'mise bootstrap --dry-run'; no changes are made.
 EOF
       exit 0
       ;;
-    *) die "unknown argument: $1 (install has no dry-run; see 'mise bootstrap --dry-run')" ;;
+    *) die "unknown argument: $1" ;;
   esac
-  # shellcheck disable=SC2317  # reachable once a non-exiting flag is added
   shift
 done
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
-CONFIG="$REPO/home/.config/mise/config.toml"
-LIVE_CONFIG="$HOME/.config/mise/config.toml"
 MIN_MISE_VERSION="2026.9.5"
+CONFIG="$REPO/home/.config/mise/config.toml"
 
 [ -f "$CONFIG" ] || die "$CONFIG not found. Run install.sh from the dotfiles checkout."
 
-# ── step 1/5: install mise ────────────────────────────────────────────────────
+# ── install mise ────────────────────────────────────────────
 if ! command -v mise >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/mise" ]; then
-  bold "== 1/5: Installing mise -> ~/.local/bin =="
-  # Pin the version to match min_version in config.toml.
-  MISE_VERSION="$MIN_MISE_VERSION" curl -fsSL https://mise.run | sh
-else
-  bold "== 1/5: mise already installed =="
-fi
-
-export PATH="$HOME/.local/bin:$PATH"
-
-# Verify mise version meets minimum requirement.
-mise_version="$(mise --version | head -1 | sed 's/[^0-9.]//g')"
-bold "== mise $mise_version =="
-if [ "$(printf '%s\n%s\n' "$MIN_MISE_VERSION" "$mise_version" | sort -V | head -1)" != "$MIN_MISE_VERSION" ]; then
-  die "mise $mise_version is older than required $MIN_MISE_VERSION. Run: mise self-update"
-fi
-
-# ── step 2/5: symlink config ─────────────────────────────────────────────────
-# On a fresh machine ~/.config/mise/config.toml does not exist yet. Point mise
-# at the repo copy for the first bootstrap; the dotfiles step symlinks it.
-bold "== 2/5: Linking config =="
-export MISE_GLOBAL_CONFIG_FILE="$CONFIG"
-
-mkdir -p "$(dirname "$LIVE_CONFIG")"
-if [ -L "$LIVE_CONFIG" ] || [ ! -e "$LIVE_CONFIG" ]; then
-  ln -sfn "$CONFIG" "$LIVE_CONFIG"
-elif [ -f "$LIVE_CONFIG" ]; then
-  # Resolve both paths to compare robustly (handles symlinks in the path).
-  real_live="$(cd "$(dirname "$LIVE_CONFIG")" && pwd)/$(basename "$LIVE_CONFIG")"
-  real_config="$(cd "$(dirname "$CONFIG")" && pwd)/$(basename "$CONFIG")"
-  if [ "$real_live" = "$real_config" ]; then
-    : # same file, nothing to do
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "DRY RUN: would install mise $MIN_MISE_VERSION"
   else
-    die "$LIVE_CONFIG exists and is not a symlink. Move it aside before installing."
+    # Install mise pinned to MIN_MISE_VERSION
+    MISE_VERSION="$MIN_MISE_VERSION" curl -fsSL https://mise.run | sh
   fi
 fi
+export PATH="$HOME/.local/bin:$PATH"
 
-# ── step 3/5: trust config ───────────────────────────────────────────────────
-bold "== 3/5: Trusting config =="
-mise trust "$CONFIG"
-[ -f "$REPO/mise.toml" ] && mise trust "$REPO/mise.toml"
-[ -d "$REPO/tasks" ] && mise trust "$REPO/tasks"
+[ "$DRY_RUN" = "true" ] || command -v mise >/dev/null 2>&1 || \
+  die "mise not found after install attempt. Check network access."
 
-# ── step 4/5: bootstrap ──────────────────────────────────────────────────────
-bold "== 4/5: mise bootstrap =="
-mise bootstrap --yes --force-dotfiles
+# ── point mise at this repo's config ────────────────────────────────────
+# On a fresh machine ~/.config/mise/config.toml does not exist yet.
+# MISE_GLOBAL_CONFIG_FILE bridges the gap: every mise call in this session
+# reads the repo config. Phase 10 of mise bootstrap (dotfiles apply) creates
+# the permanent symlink, so future shells need no override.
+export MISE_GLOBAL_CONFIG_FILE="$CONFIG"
 
-
-# ── step 5/5: git identity ───────────────────────────────────────────────────
-if [ ! -f "$HOME/.config/git/config.local" ]; then
-  bold "== 5/5: Git identity =="
-  mise run setup:git-identity
-else
-  bold "== 5/5: Git identity (already configured) =="
+if [ "$DRY_RUN" != "true" ]; then
+  mise trust "$CONFIG"
+  mise trust "$REPO/mise.toml"
+  [ -d "$REPO/tasks" ] && mise trust "$REPO/tasks"
 fi
 
-if [ -L "$HOME/.config/mise/config.toml" ]; then
-  bold "== Done. Open a new shell: =="
-  echo "  exec zsh -l"
+# ── bootstrap ─────────────────────────────────────────────────────
+# min_version in config.toml enforces the minimum mise version and aborts
+# with a clear error if mise is too old to run this config.
+if [ "$DRY_RUN" = "true" ]; then
+  mise bootstrap --dry-run
 else
-  echo "WARNING: config symlink missing; check 'mise dotfiles status'."
+  mise bootstrap --yes
+fi
+
+# ── git identity (interactive, must run last) ─────────────────────────────
+if [ "$DRY_RUN" != "true" ]; then
+  [ -f "$HOME/.config/git/config.local" ] || mise run setup:git-identity
+  echo
+  echo "Done. Open a new shell:  exec zsh -l"
 fi

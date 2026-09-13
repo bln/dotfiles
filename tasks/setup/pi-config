@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="instantiate pi agent config (models.json, settings.json) from templates"
 #MISE interactive=true
+#USAGE flag "--force" help="Overwrite existing files (default: skip if present)"
 set -euo pipefail
 
 # Output location. Overridable for tests (point at a sandbox); the no-override
@@ -14,28 +15,14 @@ settings_template="$template_dir/settings.json.template"
 models_out="$agent_dir/models.json"
 settings_out="$agent_dir/settings.json"
 
-force=0
-for arg in "$@"; do
-  case "$arg" in
-    --force) force=1 ;;
-    -h | --help)
-      echo "usage: mise run setup:pi-config [--force]" >&2
-      echo "  Renders pi config from templates into $agent_dir." >&2
-      echo "  Secret: set PI_PROXY_API_KEY, or you will be prompted." >&2
-      echo "  --force overwrites existing files (default: skip existing)." >&2
-      exit 0
-      ;;
-    *)
-      echo "ERROR: unknown argument: $arg" >&2
-      exit 2
-      ;;
-  esac
-done
+# When run via `mise run`, USAGE_FORCE is set by mise's #USAGE parser.
+# When invoked directly (e.g. in tests), set USAGE_FORCE=true to force overwrite.
+force="${USAGE_FORCE:-false}"
 
 # Whether a given output would be written this run (missing, or --force).
 will_write() {
   local output="$1"
-  [ ! -f "$output" ] || [ "$force" -eq 1 ]
+  [ ! -f "$output" ] || [ "$force" = "true" ]
 }
 
 # Secret comes from the environment when set, otherwise an interactive prompt.
