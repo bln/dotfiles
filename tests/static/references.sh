@@ -49,7 +49,7 @@ bad() {
       --include='*.sh' --include='*.toml' --include='*.json' \
       --include='*.lua' --include='*.yml' --include='*.yaml' \
       --include='*.md' --include='*.ts' \
-      --exclude-dir='.git' \
+      --exclude-dir='.git' --exclude-dir='tests' \
       --exclude='*.template' --exclude='*.lock' \
       2>/dev/null || true)"
 
@@ -72,9 +72,14 @@ bad() {
       stray=$((stray+1))
     fi
   done < <(find "$REPO" -type f \
-    \( -name '*.sh' -o -name '*.toml' -o -name '*.json' \
+    \( -name '*.sh' -o -name '*.json' \
       -o -name '*.lua' -o -name '*.ts' \) \
-    -not -path '*/.git/*' | sort)
+    -not -path '*/.git/*' \
+    -not -path '*/tests/*' \
+    | sort)
+  # .toml files are excluded: mise task templates legitimately use {{config_root}},
+  # {{env.HOME}}, etc. and should not be flagged as unfilled placeholders.
+  # tests/ is excluded: test code contains {{ as literal patterns for assertions.
   [ "$stray" -eq 0 ] && ok "no stray template placeholders"
 }
 

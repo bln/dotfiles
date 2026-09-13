@@ -48,9 +48,11 @@ run = "bash tests/run.sh"
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
 [tasks.bootstrap]
-description = "finish bootstrap: install VS Code extensions"
-# uv default Python is handled by [bootstrap.hooks] post-tools in config.toml.
-run = ['bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"']
+description = "finish bootstrap: install VS Code extensions and uv default python"
+run = [
+  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
+]
 
 # ── update ─────────────────────────────────────────────────────────────────────
 # Run from anywhere: dot run update

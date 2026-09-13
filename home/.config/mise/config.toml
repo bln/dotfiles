@@ -9,7 +9,7 @@ uv = "latest"
 
 [settings]
 lockfile = true
-lockfile_mode = "generate"   # record all platforms in one pass (v2026.9.5+)
+lockfile_mode = "generate"  # record all platforms in one pass (v2026.9.5+)
 dotfiles.root = "~/dotfiles/home"
 dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
@@ -23,6 +23,7 @@ LANG = "en_US.UTF-8"
 ENABLE_PROMPT_CACHING_1H = "1"
 PI_CACHE_RETENTION = "long"
 NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
+MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 _.path = [
   "{{env.HOME}}/.local/bin",
   "/opt/homebrew/bin",
@@ -50,7 +51,7 @@ la = "eza -lah --icons=auto --git"
 tree = "eza --tree --icons=auto"
 cat = "bat --style=plain"
 # Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
-dot    = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
+dot = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
 
 # Shared host packages. `latest` means present; upgrades are explicit with
 # `mise bootstrap packages upgrade`.
@@ -90,11 +91,11 @@ dot    = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
 "brew-cask:typora" = { os = "macos" }
 "brew-cask:iina" = { os = "macos" }
 
-"mas:1365531024" = { os = "macos" } # 1Blocker
-"mas:6739955340" = { os = "macos" } # Markdown Preview
-"mas:1592917505" = { os = "macos" } # Noir
-"mas:6720708363" = { os = "macos" } # Obsidian Web Clipper
-"mas:6471380298" = { os = "macos" } # StopTheMadness Pro
+"mas:1365531024" = { os = "macos" }  # 1Blocker
+"mas:6739955340" = { os = "macos" }  # Markdown Preview
+"mas:1592917505" = { os = "macos" }  # Noir
+"mas:6720708363" = { os = "macos" }  # Obsidian Web Clipper
+"mas:6471380298" = { os = "macos" }  # StopTheMadness Pro
 
 [bootstrap.macos.dock]
 tilesize = 48
@@ -127,9 +128,6 @@ tap_to_click = true
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
-# Install uv default Python after tools are installed; guard prevents noise on
-# repeated runs ("Python is already installed" message).
-post-tools    = "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default"
 
 [dotfiles]
 "~/.zshenv" = {}
