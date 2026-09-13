@@ -16,13 +16,14 @@ python.uv_venv_auto = "create|source"
 
 [env]
 # User environment formerly split across .zshrc/.zshenv.
+SHELL_SESSIONS_DISABLE = "1"
 EDITOR = "nvim"
 VISUAL = "nvim"
 PAGER = "less -FRX"
 LANG = "en_US.UTF-8"
 ENABLE_PROMPT_CACHING_1H = "1"
 PI_CACHE_RETENTION = "long"
-NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
+# NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 _.path = [
   "{{env.HOME}}/.local/bin",
@@ -53,30 +54,39 @@ cat = "bat --style=plain"
 # Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
 dot = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
 
+# directories
+dl = "cd ~/Downloads"
+dt = "cd ~/Desktop"
+dc = "cd ~/Documents"
+
+v = "nvim"
+
+
 # Shared host packages. `latest` means present; upgrades are explicit with
 # `mise bootstrap packages upgrade`.
 [bootstrap.packages]
-"brew:git" = "latest"
-"brew:mas" = "latest"
+"brew:atuin" = "latest"
 "brew:bat" = "latest"
 "brew:eza" = "latest"
 "brew:fd" = "latest"
 "brew:fzf" = "latest"
+"brew:gh" = "latest"
+"brew:git" = "latest"
+"brew:gitui" = "latest"
 "brew:jq" = "latest"
+"brew:mas" = "latest"
+"brew:neovim" = "latest"
+"brew:pandoc" = "latest"
+"brew:pi-coding-agent" = "latest"
 "brew:ripgrep" = "latest"
-"brew:tokei" = "latest"
-"brew:zoxide" = "latest"
+"brew:shellcheck" = "latest"
 "brew:starship" = "latest"
+"brew:tokei" = "latest"
+"brew:typst" = "latest"
+"brew:zoxide" = "latest"
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
-"brew:gh" = "latest"
-"brew:gitui" = "latest"
-"brew:mole" = "latest"
-"brew:neovim" = "latest"
-"brew:pi-coding-agent" = "latest"
-"brew:shellcheck" = "latest"
-"brew:pandoc" = "latest"
-"brew:typst" = "latest"
+
 
 "brew-cask:claude-code" = { os = "macos" }
 "brew-cask:codex" = { os = "macos" }

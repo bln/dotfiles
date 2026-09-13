@@ -28,11 +28,6 @@ for f in "$(dirname "${BASH_SOURCE[0]}")"/static/*.sh; do
   [ -f "$f" ] && source "$f"
 done
 
-# ── integration tests (install/wipe argument parsing) ─────────────────────────
-for f in "$(dirname "${BASH_SOURCE[0]}")"/integration/*.sh; do
-  [ -f "$f" ] && source "$f"
-done
-
 # ── summary ───────────────────────────────────────────────────────────────────
 echo
 echo "== summary: $pass passed, $fail failed =="
