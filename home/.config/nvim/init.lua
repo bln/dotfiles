@@ -114,7 +114,9 @@ end
 vim.opt.statusline = "%!v:lua.statusline()"
 
 -- ── Filetype tweaks & Markdown Enhancements ──────────────────────────────────
+local prose = vim.api.nvim_create_augroup("dotfiles_prose", { clear = true })
 vim.api.nvim_create_autocmd("FileType", {
+  group = prose,
   pattern = { "markdown", "text", "gitcommit" },
   callback = function()
     vim.opt_local.wrap          = true
@@ -130,7 +132,9 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 -- restore last cursor position on file open
+local restore = vim.api.nvim_create_augroup("dotfiles_restore", { clear = true })
 vim.api.nvim_create_autocmd("BufReadPost", {
+  group = restore,
   callback = function()
     local mark = vim.api.nvim_buf_get_mark(0, '"')
     local lcount = vim.api.nvim_buf_line_count(0)
@@ -141,7 +145,9 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 })
 
 -- strip trailing whitespace on save (skip filetypes where trailing space is meaningful)
+local tidy = vim.api.nvim_create_augroup("dotfiles_tidy", { clear = true })
 vim.api.nvim_create_autocmd("BufWritePre", {
+  group = tidy,
   pattern = "*",
   callback = function()
     local ft = vim.bo.filetype
@@ -153,6 +159,8 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 })
 
 -- highlight on yank
+local yank = vim.api.nvim_create_augroup("dotfiles_yank", { clear = true })
 vim.api.nvim_create_autocmd("TextYankPost", {
+  group = yank,
   callback = function() vim.hl.on_yank({ timeout = 200 }) end,
 })

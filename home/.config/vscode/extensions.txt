@@ -1,0 +1,26 @@
+# VS Code extensions - one extension ID per line.
+# Applied by: mise run setup:vscode-extensions
+# Each ID matches `code --list-extensions` output.
+
+# language support
+golang.go
+ms-python.debugpy
+ms-python.python
+ms-python.vscode-pylance
+ms-python.vscode-python-envs
+ms-vscode.makefile-tools
+tombi-toml.tombi
+mechatroner.rainbow-csv
+
+# AI
+anthropic.claude-code
+openai.chatgpt
+
+# tooling
+hverlin.mise-vscode
+typora.typora-open-in-typora
+
+# themes and icons
+github.github-vscode-theme
+pkief.material-icon-theme
+zhuangtongfa.material-theme

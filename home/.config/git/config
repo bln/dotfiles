@@ -65,7 +65,13 @@
 	showUntrackedFiles = all
 
 [log]
-	date = iso
+	date = iso-local
+
+[column]
+	ui = auto
+
+[transfer]
+	fsckObjects = true
 
 [rerere]
 	enabled = true

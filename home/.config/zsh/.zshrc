@@ -10,6 +10,7 @@ HISTSIZE=50000
 SAVEHIST=50000
 
 setopt HIST_IGNORE_ALL_DUPS   # remove older duplicate entries from history
+setopt HIST_IGNORE_SPACE      # lines starting with space are not recorded
 setopt HIST_FIND_NO_DUPS      # don't display duplicates when searching
 setopt HIST_REDUCE_BLANKS     # remove superfluous blanks from history items
 setopt HIST_VERIFY            # show command from history before executing
@@ -34,7 +35,10 @@ _gen_completion() {  # $1=binary  $2=file  $3+=args to emit zsh completion
   fi
 }
 _gen_completion bat      "$_zcompdir/_bat"      --completion zsh
+_gen_completion gh       "$_zcompdir/_gh"       completion -s zsh
+_gen_completion mise     "$_zcompdir/_mise"     completion zsh
 _gen_completion starship "$_zcompdir/_starship" completions zsh
+_gen_completion uv       "$_zcompdir/_uv"       generate-shell-completion zsh
 fpath=("$_zcompdir" $fpath)
 unfunction _gen_completion; unset _zcompdir
 

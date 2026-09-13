@@ -3,9 +3,10 @@ name: ci
 # Lint and test the repo's shell scripts. This is the CI-appropriate subset of
 # `mise run verify`: it deliberately skips the machine-state checks (bootstrap
 # status, dotfiles status, brew bundle check) that only make sense on a
-# converged macOS host, and runs only the host-independent gates. It is the
-# same lint+test a contributor runs locally via `mise run lint` / `mise run
-# test`.
+# converged macOS host, and runs only the host-independent gates.
+#
+# CI invokes the repo's own mise tasks as the canonical check, guaranteeing
+# CI and local `mise run` always exercise the same code path.
 
 on:
   push:
@@ -18,35 +19,61 @@ permissions:
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      # Pin checkout to a specific commit SHA for supply-chain hardening.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install shellcheck and mise
+      - name: Install shellcheck (Linux)
+        if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-          curl https://mise.run | sh
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+
+      - name: Install shellcheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+
+      - name: Install mise
+        run: |
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.5 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Lint (bash -n + shellcheck)
-        run: |
-          # Mirror the mise `lint` task without requiring mise on the runner.
-          mapfile -t scripts < <(
-            {
-              find . -type f -name '*.sh' -not -path './.git/*'
-              find ./home/.config/mise/tasks -type f -not -path '*/*.d/*' \
-                -exec sh -c 'head -1 "$1" | grep -q "^#!.*sh"' _ {} \; -print
-            } | sort -u
-          )
-          printf '%s\n' "${scripts[@]}"
-          bash -n "${scripts[@]}"
-          shellcheck "${scripts[@]}"
-
-      - name: Validate mise configuration
+      - name: Trust configuration
         run: |
           mise trust home/.config/mise/config.toml
-          MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise config ls >/dev/null
+          mise trust mise.toml
+          mise trust home/.config/mise/tasks
+
+      - name: Lint (bash -n + shellcheck)
+        run: mise run lint
+
+      - name: Validate mise configuration
+        run: MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise config ls >/dev/null
 
       - name: Test (script harness)
-        run: bash tests/run.sh
+        run: mise run test
+
+  # Bootstrap dry-run: validates the config parses and the plan is computable
+  # without actually installing anything. Runs only on macOS since bootstrap
+  # resources reference macOS-specific paths and packages.
+  bootstrap-plan:
+    runs-on: macos-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install mise
+        run: |
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.5 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Trust and validate bootstrap plan
+        run: |
+          mise trust home/.config/mise/config.toml
+          mise trust mise.toml
+          mise trust home/.config/mise/tasks
+          MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise bootstrap --dry-run

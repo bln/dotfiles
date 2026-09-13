@@ -85,3 +85,21 @@ render() {
 
 render "$models_template" "$models_out"
 render "$settings_template" "$settings_out"
+
+# Validate rendered JSON if python3 or jq is available. Catches template
+# corruption (missing comma, bad escaping) before the pi agent hits a parse error.
+validate_json() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null && return 0
+  elif command -v jq >/dev/null 2>&1; then
+    jq empty "$file" 2>/dev/null && return 0
+  else
+    return 0  # no validator available; skip
+  fi
+  echo "ERROR: $file is not valid JSON after rendering" >&2
+  exit 2
+}
+validate_json "$models_out"
+validate_json "$settings_out"

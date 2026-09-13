@@ -9,6 +9,7 @@ uv = "latest"
 
 [settings]
 lockfile = true
+lockfile_mode = "generate"   # record all platforms in one pass (v2026.9.5+)
 dotfiles.root = "~/dotfiles/home"
 dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
@@ -56,6 +57,7 @@ cat = "bat --style=plain"
 "brew:mas" = "latest"
 "brew:bat" = "latest"
 "brew:eza" = "latest"
+"brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:jq" = "latest"
 "brew:ripgrep" = "latest"
@@ -134,6 +136,7 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/.config/starship.toml" = {}
 "~/.config/npm/npmrc" = {}
 "~/.config/uv/uv.toml" = {}
+"~/.config/vscode/extensions.txt" = {}
 "~/.config/ghostty" = {}
 "~/.config/nvim" = {}
 
@@ -152,24 +155,49 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 [tasks.bootstrap]
 description = "finish bootstrap after native packages, dotfiles, and tools are applied"
 run = [
-  # The residual Brewfile intentionally owns only VS Code extensions.
-  'command -v brew >/dev/null && brew bundle --file "{{env.XDG_CONFIG_HOME}}/homebrew/Brewfile" || true',
+  # VS Code extensions managed via plain manifest + script (replaces Brewfile).
+  'bash "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}/scripts/apply-vscode-extensions.sh"',
   "uv python install --default --preview-features python-install-default",
 ]
 
-[tasks.update]
-description = "upgrade mise tools and native packages, reapply dotfiles, then audit"
-interactive = true
+# ── update sub-tasks ───────────────────────────────────────────────────────────
+# Split so partial failures don't block unrelated upgrades, and individual
+# components can be updated independently (e.g., `mise run update:tools`).
+
+[tasks."update:mise"]
+description = "update mise itself"
+run = "mise self-update --yes"
+
+[tasks."update:tools"]
+description = "upgrade mise-managed tools and regenerate lockfile"
+run = ["mise upgrade", "mise lock"]
+
+[tasks."update:packages"]
+description = "upgrade native host packages and VS Code extensions"
 run = [
-  "mise self-update --yes || curl -fsSL https://mise.run | sh",
-  "mise upgrade",
-  "mise lock",
   "mise bootstrap packages upgrade",
-  'command -v brew >/dev/null && brew bundle --file "{{env.XDG_CONFIG_HOME}}/homebrew/Brewfile" || true',
-  "uv python upgrade",
-  "mise dotfiles apply",
-  "mise run audit",
+  'bash "{{ env.DOTFILES_DIR | default(value=env.HOME ~ "/dotfiles") }}/scripts/apply-vscode-extensions.sh"',
 ]
+
+[tasks."update:python"]
+description = "upgrade uv-managed Python"
+run = "uv python upgrade"
+
+[tasks."update:dotfiles"]
+description = "reapply dotfile symlinks"
+run = "mise dotfiles apply"
+
+[tasks.update]
+description = "upgrade everything, reapply dotfiles, then audit"
+interactive = true
+depends = [
+  "update:mise",
+  "update:tools",
+  "update:packages",
+  "update:python",
+  "update:dotfiles",
+]
+run = "mise run audit"
 
 # Global entry point so you can audit the dotfiles from any directory. The real
 # checks live in the repo-local mise.toml `verify` task (they need the repo cwd
