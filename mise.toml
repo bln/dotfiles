@@ -4,46 +4,34 @@
 
 [task_config]
 # includes replaces the default file-task search paths, so list both:
-# tasks/       -- repo-local setup + reset scripts
-# .mise/tasks/ -- check:git-identity, check:vscode-symlink
+# tasks/       -- repo-local setup scripts
+# .mise/tasks/ -- kept for future file tasks
 includes = ["tasks", ".mise/tasks"]
 
 # ── verification pipeline ──────────────────────────────────────────────────────
-# verify runs machine-state checks first (sequential - order matters), then
-# host-independent checks in parallel, then reports success.
-#
-# check:git-identity and check:vscode-symlink are file tasks under
-# .mise/tasks/check/. They guard real failures (blocked commits, divorced VSCode
-# settings), so they live as scripts with test seams that tests/run.sh exercises.
-
-[tasks."verify:machine-state"]
-description = "sequential machine-state checks"
-run = [
-  # doctor first: fail fast if the installation itself is unhealthy.
-  "mise doctor",
-  # plan covers all phases (dotfiles, packages, tools); exits 2 on any drift.
-  "mise -q bootstrap plan --detailed-exitcode",
-]
+# verify runs sequentially: machine-state checks first (fail fast on unhealthy
+# installation), then test (lint + harness), then machine-local guard scripts.
 
 [tasks.verify]
 description = "verify declared machine state"
-depends = [
-  "verify:machine-state",
-  ["lint", "test", "check:vscode-symlink", "check:git-identity"],
-]
-run = "echo 'OK: dotfiles verification passed.'"
-
-[tasks.lint]
-description = "syntax-check and shellcheck every shell script in the repo"
 dir = "{{ config_root }}"
-sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "scripts/**"]
-run = "bash scripts/lint-shell.sh"
+run = [
+  # machine-state first: fail fast on unhealthy installation or drift.
+  "mise doctor",
+  "mise -q bootstrap plan --detailed-exitcode",
+  # host-independent: lint + test harness.
+  "mise run test",
+  # machine-local guard scripts.
+  'bash "{{ config_root }}/scripts/check-git-identity.sh"',
+  'bash "{{ config_root }}/scripts/check-vscode-symlink.sh"',
+  "echo 'OK: dotfiles verification passed.'",
+]
 
 [tasks.test]
-description = "run the shell script test harness against mktemp sandboxes"
+description = "lint and test all shell scripts"
 dir = "{{ config_root }}"
-sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "tests/**"]
-run = "bash tests/run.sh"
+sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "scripts/**", "tests/**"]
+run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
 
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
@@ -69,23 +57,4 @@ run = [
   "uv python upgrade",
 ]
 
-# ── check tasks ────────────────────────────────────────────────────────────────
 
-[tasks."check:drift"]
-description = "show pending dotfile changes (diff vs deployed state)"
-run = "mise bootstrap dotfiles diff"
-
-# ── reset tasks ────────────────────────────────────────────────────────────────
-# reset-codex is a file task: tasks/reset-codex
-
-[tasks.reset-claude]
-description = "clear all Claude Code project sessions"
-run = "claude project purge --all"
-
-[tasks.reset-pi]
-description = "clear all Pi coding-agent sessions"
-run = "rm -rf \"$HOME/.pi/agent/sessions\""
-
-[tasks.reset-all]
-description = "clear all Claude Code, Codex, and Pi sessions"
-depends = ["reset-claude", "reset-codex", "reset-pi"]

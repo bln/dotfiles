@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="flag when VSCode has replaced its symlinked settings.json with a real file"
+# Flag when VSCode has replaced its symlinked settings.json with a real file.
 set -euo pipefail
 
 # Seams: live/repo paths are overridable so tests can point them at a sandbox;

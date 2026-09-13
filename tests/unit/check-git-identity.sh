@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Tests for .mise/tasks/check/git-identity
+# Tests for scripts/check-git-identity.sh
 
 echo "== check:git-identity =="
 
-CHECK_GIT_IDENTITY="$REPO/.mise/tasks/check/git-identity"
+CHECK_GIT_IDENTITY="$REPO/scripts/check-git-identity.sh"
 
 # Passes when config.local resolves name+email.
 {

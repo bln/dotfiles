@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Tests for home/.config/mise/tasks/reset-codex
+# Tests for scripts/reset-codex.sh
 
 echo "== reset-codex =="
 
-RESET_CODEX="$REPO/tasks/reset-codex"
+RESET_CODEX="$REPO/scripts/reset-codex.sh"
 
 # Keeps config/auth, deletes session state. The keep-list is the data-loss
 # guard, so assert both sides: kept files survive, everything else is gone.

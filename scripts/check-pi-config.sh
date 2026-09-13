@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="assert pi agent config files are present, valid, and correctly permissioned"
+# Assert pi agent config files are present, valid, and correctly permissioned.
 set -euo pipefail
 
 # Seam: PI_AGENT_DIR overridable so tests can point at a sandbox.
@@ -25,7 +25,7 @@ check_file() {
   fi
 
   # Check no unfilled template placeholders
-  if grep -q '{{' "$file" 2>/dev/null; then
+  if grep -q '[{][{]' "$file" 2>/dev/null; then
     echo "ERROR: $label contains unfilled template placeholders" >&2
     errors=$((errors + 1))
     return 1

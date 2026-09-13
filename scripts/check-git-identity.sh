@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="assert machine-local git identity resolves (useConfigOnly blocks commits without it)"
+# Assert machine-local git identity resolves (useConfigOnly blocks commits without it).
 set -euo pipefail
 
 # Seam: config.local path derives from $HOME, so tests override HOME to a sandbox.

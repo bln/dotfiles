@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
-#MISE description="Clear Codex CLI and ChatGPT app state while retaining configuration"
-#USAGE flag "-n --dry-run" help="Print what would be removed without deleting"
+# Clear Codex CLI and ChatGPT app state while retaining configuration.
+#
+# Usage:
+#   scripts/reset-codex.sh              # clear session state
+#   scripts/reset-codex.sh --dry-run    # show what would be removed
 set -euo pipefail
 
 # Target dir is the seam: tests point CODEX_HOME at a mktemp sandbox; the
 # no-override default keeps production behavior unchanged.
 codex_home="${CODEX_HOME:-$HOME/.codex}"
+
+# Accept --dry-run flag; also honour USAGE_DRY_RUN for test compatibility.
 dry_run="${USAGE_DRY_RUN:-false}"
+for arg in "$@"; do
+  case "$arg" in
+    -n|--dry-run) dry_run=true ;;
+    -h|--help)
+      echo "usage: reset-codex.sh [--dry-run]" >&2
+      echo "  Clears Codex CLI and ChatGPT app state while retaining configuration." >&2
+      exit 0
+      ;;
+    *) echo "ERROR: unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
 
 [ -d "$codex_home" ] || { echo "nothing to clear: $codex_home does not exist"; exit 0; }
 

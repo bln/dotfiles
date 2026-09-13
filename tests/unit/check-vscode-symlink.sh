@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Tests for .mise/tasks/check/vscode-symlink
+# Tests for scripts/check-vscode-symlink.sh
 
 echo "== check:vscode-symlink =="
 
-CHECK_VSCODE="$REPO/.mise/tasks/check/vscode-symlink"
+CHECK_VSCODE="$REPO/scripts/check-vscode-symlink.sh"
 
 # Intact symlink passes.
 {
