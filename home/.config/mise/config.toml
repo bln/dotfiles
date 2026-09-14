@@ -61,8 +61,9 @@ dc = "cd ~/Documents"
 
 v = "nvim"
 
-
-# Shared host packages. `latest` means present; upgrades are explicit with
+# Shared host packages reconciled only through mise. Backend prefixes (brew:,
+# brew-cask:) identify providers; they are not a direct Homebrew workflow.
+# `latest` means desired presence; upgrades are explicit with
 # `mise bootstrap packages upgrade`.
 [bootstrap.packages]
 "brew:atuin" = "latest"
@@ -86,7 +87,6 @@ v = "nvim"
 "brew:zoxide" = "latest"
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
-
 
 "brew-cask:claude-code" = { os = "macos" }
 "brew-cask:codex" = { os = "macos" }

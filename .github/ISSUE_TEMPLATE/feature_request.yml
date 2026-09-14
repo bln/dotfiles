@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a change to managed state or repository design
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Tool or package
+        - Dotfile or application configuration
+        - Task or script
+        - Test or CI
+        - Documentation
+    validations:
+      required: true

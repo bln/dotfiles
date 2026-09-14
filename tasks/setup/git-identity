@@ -49,6 +49,9 @@ render_template() {
   [ -f "$template" ] || { echo "ERROR: template not found: $template" >&2; exit 2; }
 
   content="$(<"$template")"
+  # Bash 5.2+ treats & in replacement strings as the matched pattern by default.
+  # Disable that so names/emails containing & are preserved literally.
+  shopt -u patsub_replacement 2>/dev/null || true
   marker="{{WORK_NAME}}"
   content="${content//$marker/$work_name}"
   marker="{{WORK_EMAIL}}"

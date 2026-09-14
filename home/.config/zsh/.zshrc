@@ -129,13 +129,24 @@ mkcd() { mkdir -p "$1" && cd "$1"; }
 serve() { python3 -m http.server "${1:-8000}"; }
 
 # ── zsh plugins (loaded last for proper terminal rendering) ───────────────────
-HB_PREFIX="/opt/homebrew/share"
+# Plugins are installed via mise bootstrap packages (brew:zsh-autosuggestions,
+# brew:zsh-syntax-highlighting). Detect the native package share prefix once
+# rather than hard-coding /opt/homebrew (which is Apple Silicon only).
+_plugin_prefix=""
+if command -v brew &>/dev/null; then
+  _plugin_prefix="$(brew --prefix)/share"
+elif [[ -d /opt/homebrew/share ]]; then
+  _plugin_prefix="/opt/homebrew/share"
+elif [[ -d /usr/local/share ]]; then
+  _plugin_prefix="/usr/local/share"
+fi
 
-if [[ -f "$HB_PREFIX/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
-  source "$HB_PREFIX/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh"
   ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
 fi
 
-if [[ -f "$HB_PREFIX/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
-  source "$HB_PREFIX/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
+unset _plugin_prefix

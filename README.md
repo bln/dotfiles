@@ -1,172 +1,173 @@
 # dotfiles
 
-A mise-based macOS dotfiles repo. One command converges a fresh Mac: tools,
-dotfile symlinks, macOS defaults, Homebrew packages, Mac App Store apps, VSCode
-extensions, and a global uv-managed Python.
+[![CI](https://github.com/bln/dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/bln/dotfiles/actions/workflows/ci.yml)
 
-## Install
+A declarative macOS development environment managed by
+[mise](https://mise.jdx.dev/). One command converges a fresh Mac: tools, dotfile
+symlinks, macOS defaults, packages (formulae, casks, fonts, Mac App Store apps),
+VS Code extensions, and a global uv-managed Python.
 
-On a fresh machine:
+mise is the sole user-facing control plane. Backend identifiers such as `brew:`
+and `brew-cask:` in `[bootstrap.packages]` are mise resource keys, not a direct
+Homebrew workflow. There is no Brewfile.
 
-```bash
-git clone <this-repo-url> ~/dotfiles
+## Quick start
+
+```sh
+git clone <repo-url> ~/dotfiles
 ~/dotfiles/install.sh
 exec zsh -l
 ```
 
-`install.sh` installs mise into `~/.local/bin`, points the live mise config at
-this checkout, trusts it, runs `mise bootstrap --yes`, then prompts for a
-machine-local git identity. It is a one-shot converge with no dry-run; to preview
-the heavy step first, run `mise bootstrap --dry-run`.
+`install.sh` installs mise, trusts the repo configs, runs
+`mise bootstrap --yes`, then prompts for a machine-local git identity. Preview
+first with `mise bootstrap --dry-run`. Run `install.sh --help` for options.
 
-## Philosophy
+## Design principles
 
-Four decisions govern everything here:
-
-1. **One convergence engine.** mise is the single entry point - it installs
-   tools, applies dotfile symlinks, writes macOS defaults, and drives Homebrew
-   and uv. No competing bootstrap scripts or dotfile managers.
-2. **One declarative source of truth per layer.** Each thing lives in exactly
-   one place and is *applied*, never hand-edited on the machine (see the table
-   below). Homebrew owns casks/MAS/extensions; mise `[tools]` owns
-   version-resolved tools; `home/` owns dotfiles.
-3. **Secrets and identity are never tracked.** git identity and the pi API key
-   are machine-local, rendered into `chmod 600` files the repo never sees.
-   `useConfigOnly` makes a missing identity fail loudly, not commit as the wrong
-   person.
-4. **Small, reversible, verifiable.** `wipe.sh` reverses `install.sh`; `verify`
-   proves the machine matches the repo. Where a step is not cleanly reversible
-   (macOS defaults), that is stated rather than faked.
-
-The working rules that follow from these live in [AGENTS.md](AGENTS.md).
-
-## Common tasks
-
-Every change follows the same shape: **edit the source, then apply.** Never edit
-live state on the machine - it will be overwritten on the next converge.
-
-| To... | Edit | Then run |
-| --- | --- | --- |
-| Add/remove a CLI tool with a pinned version | `home/.config/mise/config.toml` `[tools]` | `mise install` |
-| Add/remove a Homebrew package, cask, MAS app, or VSCode extension | `home/.config/homebrew/Brewfile` | `brew bundle` |
-| Change a shell/editor/git dotfile | the file under `home/` | `mise dotfiles apply` |
-| Change a macOS default (dock, finder, keyboard) | `[bootstrap.macos.*]` in the mise config | `mise bootstrap macos defaults apply` |
-| Set up git identity on a new machine | (prompted) | `mise run setup:git-identity` |
-| Create or rotate the pi agent API key | (prompted, or `PI_PROXY_API_KEY`) | `mise run setup:pi-config --force` |
-| Update everything and re-check | nothing | `mise update` |
-| Check the machine matches the repo | nothing | `mise audit` |
-| Add a new shell script | `scripts/` or `home/.config/mise/tasks/` | `mise run lint` |
-
-After any change, run `mise -C ~/dotfiles verify` to confirm the machine still
-matches the repo.
-
-## Commands
-
-```bash
-mise bootstrap status          # show declared machine-state drift
-mise bootstrap --dry-run       # preview bootstrap work without applying
-mise update                    # upgrade all layers, reapply dotfiles, then audit
-mise audit                     # full verification from anywhere (delegates to the repo)
-mise -C ~/dotfiles verify      # the same checks, run in-repo (what CI and audit call)
-mise -C ~/dotfiles run lint    # bash -n + shellcheck on every shell script
-mise -C ~/dotfiles run test    # run the script test harness (tests/run.sh)
-mise reset-all                 # clear Claude Code, Codex, and Pi agent sessions
-~/dotfiles/wipe.sh --dry-run   # preview a wipe
-~/dotfiles/wipe.sh             # tear down (see Wipe below)
-```
-
-`mise audit` and `mise update` are global - they work from any directory, so you
-never have to switch into the repo. Both delegate the actual checks to the
-repo-local `verify` task (`doctor`, bootstrap/dotfiles/native-package drift, residual `brew bundle check`, lint, test, and the `check:*` guards), which needs a converged macOS
-host; `update` runs `audit`'s checks as its final step. `lint` and `test` are
-host-independent and are what CI runs. Session-reset tasks (`reset-claude`,
-`reset-codex`, `reset-pi`, `reset-all`) clear agent session state while
-preserving configuration.
-
-## Package and shell ownership
-
-The global mise config is the source of truth for command-line formulae, macOS
-casks, fonts, Mac App Store applications, shared environment variables, and
-interactive aliases. The residual Brewfile intentionally contains only VS Code
-extensions. `.zshrc` contains only Zsh-specific startup behavior such as
-completion, prompt, key bindings, plugins, and argument-aware functions.
-
-Preview package and full-machine changes before applying them:
-
-```bash
-mise bootstrap packages status
-mise bootstrap packages apply --dry-run
-mise bootstrap --dry-run
-```
-
-Native `brew-cask:` resources use canonical application destinations and do not
-preserve the previous Brew Bundle `~/Applications` cask option.
+1. **One interface.** Use mise to install, update, inspect, and verify the
+   machine. Never call a backend package manager directly.
+2. **Declarative state.** `home/.config/mise/config.toml` describes the host.
+   `mise.toml` defines repository tasks. Edit the source, then apply.
+3. **Safe re-runs.** Bootstrap and setup tasks are idempotent.
+4. **Explicit ownership.** Linked files are owned by the repo; shared files use
+   include or copy-once; secrets are generated locally.
+5. **Local secrets stay local.** Identity and credentials are never committed.
 
 ## Layout
 
 ```text
 dotfiles/
-├── install.sh              # fresh-machine bootstrap (one-shot converge)
-├── wipe.sh                 # reverse of install (shell-only)
-├── mise.toml               # repo-local tasks: verify, lint, test, update, reset-*, check:*
-├── .mise/tasks/            # repo-local file tasks (check:git-identity, check:vscode-symlink)
-├── AGENTS.md               # repo working rules (agents + humans)
-├── CLAUDE.md               # includes AGENTS.md for Claude Code
-├── .github/workflows/      # CI: lint + test
+├── install.sh                  # fresh-machine bootstrap (one-shot converge)
+├── wipe.sh                     # safe removal of repository-owned state
+├── mise.toml                   # repo-local tasks: verify, test, bootstrap, update
+├── AGENTS.md                   # working rules for agents and humans
+├── CLAUDE.md                   # includes AGENTS.md for Claude Code
+├── LICENSE
+├── .github/
+│   ├── workflows/ci.yml        # CI: lint + test + bootstrap plan + typecheck
+│   ├── dependabot.yml
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── ISSUE_TEMPLATE/
+├── scripts/
+│   ├── apply-vscode-extensions.sh
+│   ├── check-git-identity.sh
+│   ├── check-pi-config.sh
+│   ├── check-vscode-symlink.sh
+│   ├── lint-shell.sh
+│   └── reset-codex.sh
+├── tasks/
+│   └── setup/
+│       ├── git-identity        # prompted machine-local git identity
+│       └── pi-config           # prompted pi agent API key config
 ├── tests/
-│   └── run.sh              # test harness for the parameterized scripts
-└── home/                   # payload symlinked into $HOME by mise dotfiles
+│   ├── run.sh                  # test harness (suite selection supported)
+│   ├── lib/testlib.sh          # assertion helpers + sandbox management
+│   ├── unit/                   # script-level tests via env-var seams
+│   ├── static/                 # config format, structural, and secret checks
+│   └── contract/               # architecture and policy invariants
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── TESTING.md
+│   └── PACKAGE-POLICY.md
+└── home/                       # payload symlinked into $HOME by mise dotfiles
     ├── .zshenv
-    ├── .agents/            # AGENTS.md + skills, shared across agent CLIs
-    ├── .pi/                # pi agent extensions
+    ├── .agents/                # AGENTS.md + skills, shared across agent CLIs
+    ├── .pi/                    # pi agent extensions
     └── .config/
-        ├── mise/           # config.toml (source of truth), lock, tasks/
-        ├── homebrew/Brewfile # VS Code extensions only
-        ├── git/            # config + global ignore (identity is machine-local)
-        ├── zsh/            # .zshrc, .zprofile
-        ├── nvim/
-        ├── ghostty/
-        ├── vscode/
+        ├── mise/config.toml    # THE source of truth: tools, packages, defaults
+        ├── mise/mise.lock
+        ├── git/                # config + global ignore (identity is machine-local)
+        ├── zsh/                # .zshrc, .zprofile
+        ├── nvim/init.lua
+        ├── ghostty/config
+        ├── gitui/
+        ├── vscode/             # settings.json, extensions.txt
         ├── starship.toml
-        ├── npm/
-        └── uv/
+        ├── npm/npmrc
+        └── uv/uv.toml
 ```
 
 ## Source of truth
 
-The authoritative location for each managed layer. Change the source, not the
-machine.
-
 | Layer | Source | Apply |
-| --- | --- | --- |
-| mise tools | `home/.config/mise/config.toml` `[tools]` | `mise install` |
-| dotfiles | `home/` plus the `[dotfiles]` table | `mise dotfiles apply` |
+|---|---|---|
+| Tools (node, uv) | `home/.config/mise/config.toml` `[tools]` | `mise install` |
+| Packages (formulae, casks, fonts, MAS apps) | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
+| Dotfile symlinks | `home/` + `[dotfiles]` table | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
-| formulae, casks, fonts, MAS apps | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
-| VS Code extensions | `home/.config/homebrew/Brewfile` | `brew bundle --file ~/.config/homebrew/Brewfile` |
-| environment and aliases | `[env]` and `[shell_alias]` in the global mise config | `mise activate zsh` |
-| git identity | machine-local prompt (untracked) | `mise run setup:git-identity` |
-| pi agent config | `home/.config/mise/tasks/setup/pi-config.d/*.template` | `mise run setup:pi-config` |
+| VS Code extensions | `home/.config/vscode/extensions.txt` | `bash scripts/apply-vscode-extensions.sh` |
+| Environment and aliases | `[env]` and `[shell_alias]` | `mise activate zsh` |
+| Git identity | machine-local prompt (untracked) | `mise run setup:git-identity` |
+| Pi agent config | `tasks/setup/pi-config.d/*.template` | `mise run setup:pi-config` |
 
-**pi agent config** is rendered from templates rather than symlinked, because
-`models.json` holds a proxy API key. `mise run setup:pi-config` fills the
-templates into `~/.pi/agent/` as `chmod 600` files (set `PI_PROXY_API_KEY` or
-enter it at the prompt); existing files are left untouched unless you pass
-`--force`. Only the placeholder templates are tracked.
+## Adding software
+
+1. **Versioned portable tool** (mise registry or GitHub/npm/cargo backend):
+   add to `[tools]` in `home/.config/mise/config.toml`, then `mise install`.
+2. **Native host package or macOS app**: add to `[bootstrap.packages]`, then
+   `mise bootstrap packages apply`.
+3. **Stateful setup** (symlinks, includes, generated config): create an
+   idempotent file task under `tasks/`.
+4. **Dev-only dependency** (shellcheck, etc.): add to `mise.toml` `[tools]`.
+
+See `docs/PACKAGE-POLICY.md` for the full backend preference order.
+
+## Configuration ownership
+
+| Who writes it | Strategy | Examples |
+|---|---|---|
+| Only the repo | **Symlink** | zsh, starship, nvim, ghostty, git ignore |
+| Repo and a tool | **Include** | git config (includes machine-local identity) |
+| Mostly the tool | **Copy once** | VS Code settings (seeded, then application-owned) |
+| Machine-specific | **Generate** | git identity, pi agent config |
+
+## Common commands
+
+```sh
+mise -C ~/dotfiles tasks              # list the public task interface
+mise -C ~/dotfiles run test           # host-independent repository tests
+mise -C ~/dotfiles run verify         # repository + installed-machine checks
+mise -C ~/dotfiles run update         # upgrade tools, packages, dotfiles
+mise -C ~/dotfiles run bootstrap      # finish post-bootstrap setup (idempotent)
+mise bootstrap status                 # show declared machine-state drift
+mise bootstrap --dry-run              # preview bootstrap without applying
+```
+
+The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so
+`dot run verify` works from any directory.
+
+## Testing and CI
+
+```sh
+mise run test                    # all suites (static + unit + contract)
+mise run test -- static          # just static checks
+mise run test -- unit            # just unit tests
+mise run test -- contract        # just architecture contracts
+```
+
+`test` checks repository behavior without assuming a configured workstation.
+`verify` additionally checks mise health, declared-state drift, git identity,
+and the VS Code settings link. See `docs/TESTING.md`.
 
 ## Wipe
 
-To tear the machine back down:
+`wipe.sh` defaults to a dry run and removes only repository-owned state. It
+does not uninstall a shared native package manager unless explicitly requested.
 
-```bash
-~/dotfiles/wipe.sh --dry-run   # preview every removal first
-~/dotfiles/wipe.sh             # prompts for confirmation, then removes
+```sh
+~/dotfiles/wipe.sh                     # dry run: preview removals
+~/dotfiles/wipe.sh --apply             # execute the removals
+~/dotfiles/wipe.sh --apply --full      # also uninstall mise, tools, and packages
 ```
 
-It reverses install in order: remove machine-local identity, unapply dotfiles,
-unapply mise-managed formulae/casks/fonts/Mac-App-Store-apps and uninstall residual Brewfile-managed VS Code extensions
-(the last needs `sudo`), uninstall mise-managed tools, then implode mise last.
+It does **not** revert macOS system defaults (dock, finder, keyboard) - defaults
+write records no prior value, so there is nothing to restore.
 
-It is **not** a full inverse: it does not revert the macOS system defaults (dock,
-finder, keyboard) written at install - `defaults write` records no prior value,
-so there is nothing to restore - and it leaves Homebrew itself installed.
+## Contributing
+
+See `CONTRIBUTING.md`. Run `mise run test` before opening a pull request.
+
+## License
+
+See `LICENSE`.

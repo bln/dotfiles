@@ -33,6 +33,26 @@ dir = "{{ config_root }}"
 sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "scripts/**", "tests/**"]
 run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
 
+[tasks."test:static"]
+description = "run static analysis tests only"
+dir = "{{ config_root }}"
+run = "bash tests/run.sh static"
+
+[tasks."test:unit"]
+description = "run unit tests only"
+dir = "{{ config_root }}"
+run = "bash tests/run.sh unit"
+
+[tasks."test:integration"]
+description = "run integration tests only"
+dir = "{{ config_root }}"
+run = "bash tests/run.sh integration"
+
+[tasks."test:contract"]
+description = "run contract tests only"
+dir = "{{ config_root }}"
+run = "bash tests/run.sh contract"
+
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
 [tasks.bootstrap]

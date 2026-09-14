@@ -1,13 +1,37 @@
 #!/usr/bin/env bash
-# Destructively remove this dotfiles-managed machine state, then print rebuild steps.
+# Remove repository-owned state from this machine.
+#
+# Safe by default: without --apply, prints what would be removed.
+# Without --full, removes only dotfile symlinks and generated local config.
+# With --full, also unapplies mise dotfiles, uninstalls mise-managed packages
+# and tools, and removes uv cache state.
+#
+# Does NOT revert macOS system defaults (dock/finder/keyboard) written at
+# install - defaults write records no prior value, so there is nothing to restore.
 set -euo pipefail
 
-REPO="${DOTFILES_DIR:-$HOME/dotfiles}"
-DRY_RUN=false
+REPO="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+APPLY=false
+FULL=false
 
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
 warn() { printf "WARNING: %s\n" "$1" >&2; }
 die()  { printf "ERROR: %s\n" "$1" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage: wipe.sh [--apply] [--full]
+
+Without --apply: dry run, prints what would be removed.
+With    --apply: executes the removals.
+
+Without --full:  removes only repository-owned symlinks and generated local
+                 config (git identity, pi agent config).
+With    --full:  also unapplies mise dotfiles, uninstalls mise-managed
+                 packages and tools, removes uv cache, and implodes mise.
+                 Does NOT uninstall Homebrew itself (it may predate this repo).
+USAGE
+}
 
 # Guard: refuse to rm -rf anything that is not strictly under $HOME.
 safe_under_home() {
@@ -17,141 +41,135 @@ safe_under_home() {
   return 1
 }
 
-# Safe removal: checks path is under HOME before deleting.
 safe_remove() {
   local path="$1"
   if ! safe_under_home "$path"; then
     warn "refusing to remove path outside HOME: $path"
     return 1
   fi
-  if [ "$DRY_RUN" = true ]; then
-    printf 'DRY RUN: rm -rf %q\n' "$path"
-  elif [ -e "$path" ] || [ -L "$path" ]; then
-    rm -rf "$path"
-    printf '  removed: %s\n' "$path"
+  if [ "$APPLY" = true ]; then
+    if [ -e "$path" ] || [ -L "$path" ]; then
+      rm -rf "$path"
+      printf '  removed: %s\n' "$path"
+    fi
+  else
+    if [ -e "$path" ] || [ -L "$path" ]; then
+      printf '  DRY RUN: would remove %s\n' "$path"
+    fi
   fi
 }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    -n|--dry-run) DRY_RUN=true ;;
-    -h|--help)
-      cat <<'EOF'
-Usage: ~/dotfiles/wipe.sh [--dry-run]
-
-Destructively remove the state installed by this dotfiles repo.
-EOF
-      exit 0
-      ;;
+    --apply) APPLY=true ;;
+    --full)  FULL=true ;;
+    -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
   shift
 done
 
-bold "== This will PERMANENTLY remove: =="
-echo "  - machine-local git identity files"
-echo "  - mise-managed dotfile symlinks"
-echo "  - mise-managed packages (formulae, casks, and Mac App Store apps)"
-echo "  - declared VS Code extensions"
-echo "  - mise-managed tools, runtimes, mise itself, and uv cache state"
-echo
-echo "Does NOT revert macOS system defaults (dock/finder/keyboard) written at"
-echo "install - defaults write records no prior value, so there is nothing to restore"
-echo
-if [ "$DRY_RUN" != true ]; then
-  read -r -p "Proceed with wipe? [type 'yes' to proceed]: " ans
-  [ "$ans" = "yes" ] || { echo "Aborted."; exit 1; }
+if [ "$APPLY" = false ]; then
+  bold "== DRY RUN: previewing removals (pass --apply to execute) =="
+  echo
 fi
 
 removed=0
 skipped=0
 
-bold "== 1/4: remove machine-local git identity =="
+bold "== 1: remove machine-local generated config =="
 for path in \
   "$HOME/.config/git/config.local" \
-  "$HOME/.config/git/identity-play"
+  "$HOME/.config/git/identity-play" \
+  "$HOME/.pi/agent/models.json" \
+  "$HOME/.pi/agent/settings.json"
 do
   safe_remove "$path" && removed=$((removed + 1)) || skipped=$((skipped + 1))
 done
 
-bold "== 2/4: unapply mise-managed dotfiles =="
-export PATH="$HOME/.local/bin:$PATH"
-if command -v mise >/dev/null 2>&1; then
-  if [ "$DRY_RUN" = true ]; then
-    mise bootstrap dotfiles unapply --dry-run --yes
-  else
-    mise bootstrap dotfiles unapply --yes
+bold "== 2: remove repository-owned dotfile symlinks =="
+# Walk home/ to find all files the repo would symlink, and remove only those
+# that are actually symlinks pointing at our repo.
+while IFS= read -r source; do
+  relative="${source#"$REPO/home/"}"
+  target="$HOME/$relative"
+  if [ -L "$target" ]; then
+    # Verify the symlink points at our repo before removing
+    link_dest="$(readlink "$target" 2>/dev/null || true)"
+    case "$link_dest" in
+      "$REPO/"*|"$HOME/dotfiles/"*)
+        safe_remove "$target" && removed=$((removed + 1)) || skipped=$((skipped + 1))
+        ;;
+      *)
+        printf '  SKIP: %s is a symlink but not owned by this repo\n' "$target"
+        skipped=$((skipped + 1))
+        ;;
+    esac
   fi
-else
-  warn "mise not found; skipping dotfiles unapply"
-  skipped=$((skipped + 1))
-fi
+done < <(find "$REPO/home" -type f 2>/dev/null || true)
 
-bold "== 3/4: remove VS Code extensions and Homebrew =="
-# VS Code extensions must go first: 'code' is a brew cask and will be gone
-# once Homebrew is uninstalled.
-extensions_manifest="$REPO/home/.config/vscode/extensions.txt"
-if command -v code >/dev/null 2>&1 && [ -f "$extensions_manifest" ]; then
-  while IFS= read -r line; do
-    line="${line%%#*}"     # strip comments
-    line="${line// /}"    # strip spaces
-    [ -n "$line" ] || continue
-    if [ "$DRY_RUN" = true ]; then
-      printf 'DRY RUN: code --uninstall-extension %s\n' "$line"
+if [ "$FULL" = true ]; then
+  bold "== 3: unapply mise-managed dotfiles =="
+  export PATH="$HOME/.local/bin:$PATH"
+  if command -v mise >/dev/null 2>&1; then
+    if [ "$APPLY" = true ]; then
+      mise bootstrap dotfiles unapply --yes
     else
-      code --uninstall-extension "$line" 2>/dev/null || true
+      mise bootstrap dotfiles unapply --dry-run --yes
     fi
-  done < "$extensions_manifest"
-else
-  warn "code not found or extensions manifest missing; skipping VS Code extension cleanup"
-  skipped=$((skipped + 1))
-fi
-
-# Homebrew's own uninstall script removes all formulae, casks, and the brew
-# binary in the correct dependency order.
-if command -v brew >/dev/null 2>&1; then
-  if [ "$DRY_RUN" = true ]; then
-    echo "DRY RUN: would uninstall all Homebrew packages and Homebrew itself"
   else
-    NONINTERACTIVE=1 /bin/bash -c \
-      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" \
-      -- --force || warn "Homebrew uninstall reported failures; some packages may remain"
+    warn "mise not found; skipping dotfiles unapply"
+    skipped=$((skipped + 1))
   fi
-else
-  warn "brew not found; skipping Homebrew removal"
-  skipped=$((skipped + 1))
-fi
 
-bold "== 4/4: remove mise tools, mise, and uv state =="
-if command -v mise >/dev/null 2>&1; then
-  if [ "$DRY_RUN" = true ]; then
-    mise uninstall --all --dry-run || true
-    mise implode --dry-run --config || true
+  bold "== 4: remove VS Code extensions =="
+  extensions_manifest="$REPO/home/.config/vscode/extensions.txt"
+  if command -v code >/dev/null 2>&1 && [ -f "$extensions_manifest" ]; then
+    while IFS= read -r line; do
+      line="${line%%#*}"
+      line="${line// /}"
+      [ -n "$line" ] || continue
+      if [ "$APPLY" = true ]; then
+        code --uninstall-extension "$line" 2>/dev/null || true
+      else
+        printf '  DRY RUN: would uninstall extension %s\n' "$line"
+      fi
+    done < "$extensions_manifest"
   else
-    mise uninstall --all --yes || true
-    mise implode --yes --config || true
+    warn "code not found or extensions manifest missing; skipping"
+    skipped=$((skipped + 1))
   fi
-else
-  warn "mise not found; skipping mise cleanup"
-  skipped=$((skipped + 1))
-fi
 
-for path in \
-  "$HOME/.local/share/uv" \
-  "$HOME/.cache/uv"
-do
-  safe_remove "$path" && removed=$((removed + 1)) || skipped=$((skipped + 1))
-done
+  bold "== 5: remove mise tools and mise itself =="
+  if command -v mise >/dev/null 2>&1; then
+    if [ "$APPLY" = true ]; then
+      mise uninstall --all --yes || true
+      mise implode --yes --config || true
+    else
+      mise uninstall --all --dry-run || true
+      mise implode --dry-run --config || true
+    fi
+  else
+    warn "mise not found; skipping mise cleanup"
+    skipped=$((skipped + 1))
+  fi
+
+  bold "== 6: remove uv cache state =="
+  for path in \
+    "$HOME/.local/share/uv" \
+    "$HOME/.cache/uv"
+  do
+    safe_remove "$path" && removed=$((removed + 1)) || skipped=$((skipped + 1))
+  done
+fi
 
 echo
-bold "== WIPE COMPLETE =="
-echo "  $removed items removed, $skipped items skipped/warned"
-
-  if [ "$DRY_RUN" = true ]; then
-    echo "Next: run the wipe if dry-run previewed expected behavior:"
-  else
-    echo "Next: open a fresh terminal and run:"
-    echo "  $REPO/install.sh"
-    echo "  exec zsh -l"
-    echo "  mise -C $REPO verify"
-  fi
+bold "== WIPE $([ "$APPLY" = true ] && echo "COMPLETE" || echo "PREVIEW") =="
+if [ "$APPLY" = true ]; then
+  echo "  Done. Open a fresh terminal and run:"
+  echo "    $REPO/install.sh"
+  echo "    exec zsh -l"
+else
+  echo "  No changes made. Re-run with --apply after reviewing this plan."
+  [ "$FULL" = false ] && echo "  Add --full to also remove mise tools, packages, and uv state."
+fi

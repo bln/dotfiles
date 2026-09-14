@@ -18,6 +18,6 @@ export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 
 # ~/.local/bin holds script-installed mise and uv-managed python/python3. It must
-# be on PATH before .zprofile (Homebrew + mise shims) and .zshrc (mise activate)
-# run, so it lives here in .zshenv, which is sourced for every shell invocation.
+# be on PATH before .zprofile (mise shims) and .zshrc (mise activate) run, so it
+# lives here in .zshenv, which is sourced for every shell invocation.
 export PATH="$HOME/.local/bin:$PATH"

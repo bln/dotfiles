@@ -50,6 +50,9 @@ render() {
 
   local content
   content="$(<"$template")"
+  # Bash 5.2+ treats & in replacement strings as the matched pattern by default.
+  # Disable that so API keys containing & are preserved literally.
+  shopt -u patsub_replacement 2>/dev/null || true
 
   if [[ "$content" == *'{{PI_PROXY_API_KEY}}'* ]]; then
     [ -n "$api_key" ] || {

@@ -1,0 +1,35 @@
+name: Bug report
+description: Report reproducible repository behavior
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials or private configuration.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and architecture
+      placeholder: macOS 15.x, arm64
+    validations:
+      required: true
+  - type: input
+    id: mise
+    attributes:
+      label: mise version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Sanitized output

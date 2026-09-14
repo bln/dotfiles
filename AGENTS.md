@@ -19,7 +19,7 @@ them in a top-level `scripts/` dir (not shipped), mirroring that split.
   scripts live in `scripts/` with test seams that `tests/run.sh` exercises.
   The test harness stays plain bash in `tests/` (no bats or other framework
   without approval).
-- Do not add dependencies to `[tools]`, `[bootstrap.packages]`, or the Brewfile
+- Do not add dependencies to `[tools]` or `[bootstrap.packages]`
   without explicit approval.
 - Do not create, edit, move, or delete files under `home/.agents/skills`
   without explicit approval.
