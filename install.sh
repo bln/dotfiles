@@ -40,7 +40,7 @@ CONFIG="$REPO/home/.config/mise/config.toml"
 export PATH="$HOME/.local/bin:$PATH"
 
 if ! command -v mise >/dev/null 2>&1; then
-  curl -fsSL https://mise.run | MISE_VERSION="2026.9.5" sh
+  curl -fsSL https://mise.run | MISE_VERSION="2026.9.7" sh
 fi
 
 command -v mise >/dev/null 2>&1 || die "mise not found after install attempt."

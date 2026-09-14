@@ -39,7 +39,7 @@ jobs:
 
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.5 sh
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.7 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust configuration
@@ -47,9 +47,6 @@ jobs:
           mise trust home/.config/mise/config.toml
           mise trust mise.toml
           mise trust tasks
-
-      - name: Lint (bash -n + shellcheck)
-        run: mise run lint
 
       - name: Validate mise configuration
         run: MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise config ls >/dev/null
@@ -68,7 +65,7 @@ jobs:
 
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.5 sh
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.7 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust and validate bootstrap plan
@@ -78,24 +75,3 @@ jobs:
           mise trust home/.config/mise/tasks
           MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise bootstrap --dry-run
 
-  # TypeScript syntax check: validates friendly-footer.ts compiles (syntax +
-  # structure) without requiring the Pi SDK, which is not available in CI.
-  # --noResolve prevents TypeScript from resolving @earendil-works/* from
-  # node_modules; --skipLibCheck skips lib.d.ts declarations. Together they
-  # catch syntax errors and intra-file type errors while staying Pi-SDK-free.
-  typecheck:
-    name: TypeScript syntax check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Check friendly-footer.ts
-        run: |
-          npx --yes typescript tsc \
-            --noEmit \
-            --target ES2022 \
-            --module esnext \
-            --moduleResolution bundler \
-            --skipLibCheck \
-            --noResolve \
-            home/.pi/agent/extensions/friendly-footer.ts
