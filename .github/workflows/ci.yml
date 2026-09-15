@@ -39,7 +39,7 @@ jobs:
 
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.7 sh
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.9 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust configuration
@@ -65,7 +65,7 @@ jobs:
 
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.7 sh
+          curl -fsSL https://mise.run | MISE_VERSION=2026.9.9 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust and validate bootstrap plan
@@ -74,4 +74,3 @@ jobs:
           mise trust mise.toml
           mise trust home/.config/mise/tasks
           MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise bootstrap --dry-run
-

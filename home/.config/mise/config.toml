@@ -1,18 +1,14 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
-min_version = "2026.9.7"
-
-[tools]
-node = "lts"
-uv = "latest"
+min_version = "2026.9.9"
 
 [settings]
 lockfile = true
-lockfile_mode = "generate"  # record all platforms in one pass
 dotfiles.root = "~/dotfiles/home"
 dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
+minimum_release_age_excludes = ["claude-code", "codex", "pi"]
 
 [env]
 # User environment formerly split across .zshrc/.zshenv.
@@ -23,83 +19,45 @@ PAGER = "less -FRX"
 LANG = "en_US.UTF-8"
 ENABLE_PROMPT_CACHING_1H = "1"
 PI_CACHE_RETENTION = "long"
-# NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
+XDG_CONFIG_HOME = "{{env.HOME}}/.config"
+NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
-_.path = [
-  "{{env.HOME}}/.local/bin",
-  "/opt/homebrew/bin",
-  "/opt/homebrew/sbin",
-]
+_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin"]
 
-# Interactive aliases. These require `mise activate zsh`; tasks/CI should use mise tasks.
-[shell_alias]
-".." = "cd .."
-"..." = "cd ../.."
-"...." = "cd ../../.."
-c = "clear"
-q = "exit"
-path = '''printf '%s\n' "${PATH//:/\n}"'''
-reload = "exec zsh"
-zshrc = '''nvim "$ZDOTDIR/.zshrc"'''
-vim = "nvim"
-cp = "cp -i"
-mv = "mv -i"
-rm = "rm -i"
-mkdir = "mkdir -p"
-ls = "eza --icons=auto"
-ll = "eza -lh --icons=auto --git"
-la = "eza -lah --icons=auto --git"
-tree = "eza --tree --icons=auto"
-cat = "bat --style=plain"
-# Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
-dot = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
+[tools]
+node = "lts"
+uv = "latest"
 
-# directories
-dl = "cd ~/Downloads"
-dt = "cd ~/Desktop"
-dc = "cd ~/Documents"
+atuin = "latest"
+zoxide = "latest"
+fzf = "latest"
+starship = "latest"
+bat = "latest"
+delta = "latest"
+eza = "latest"
+fd = "latest"
+jq = "latest"
+ripgrep = "latest"
+superfile = "latest"
+gh = "latest"
+lazygit = "latest"
+gitui = "latest"
+neovim = "latest"
+shellcheck = "latest"
+claude-code = "latest"
+codex = "latest"
+pi = "latest"
 
-v = "nvim"
-
-# Shared host packages reconciled only through mise. Backend prefixes (brew:,
-# brew-cask:) identify providers; they are not a direct Homebrew workflow.
-# `latest` means desired presence; upgrades are explicit with
-# `mise bootstrap packages upgrade`.
 [bootstrap.packages]
-"brew:atuin" = "latest"
-"brew:bat" = "latest"
-"brew:eza" = "latest"
-"brew:fd" = "latest"
-"brew:fzf" = "latest"
-"brew:gh" = "latest"
 "brew:git" = "latest"
-"brew:gitui" = "latest"
-"brew:jq" = "latest"
 "brew:mas" = "latest"
-"brew:neovim" = "latest"
-"brew:pandoc" = "latest"
-"brew:pi-coding-agent" = "latest"
-"brew:ripgrep" = "latest"
-"brew:shellcheck" = "latest"
-"brew:starship" = "latest"
-"brew:tokei" = "latest"
-"brew:typst" = "latest"
-"brew:zoxide" = "latest"
+
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
-
-"brew-cask:claude-code" = { os = "macos" }
-"brew-cask:codex" = { os = "macos" }
-"brew-cask:ghostty" = { os = "macos" }
-"brew-cask:visual-studio-code" = { os = "macos" }
-"brew-cask:font-jetbrains-mono" = { os = "macos" }
-"brew-cask:font-jetbrains-mono-nerd-font" = { os = "macos" }
-"brew-cask:coconutbattery" = { os = "macos" }
-"brew-cask:keka" = { os = "macos" }
-"brew-cask:bloom" = { os = "macos" }
-"brew-cask:smoothcsv" = { os = "macos" }
-"brew-cask:typora" = { os = "macos" }
-"brew-cask:iina" = { os = "macos" }
+"brew-cask:ghostty" = "latest"
+"brew-cask:visual-studio-code" = "latest"
+"brew-cask:typora" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 
 "mas:1365531024" = { os = "macos" }  # 1Blocker
 "mas:6739955340" = { os = "macos" }  # Markdown Preview
@@ -138,6 +96,36 @@ tap_to_click = true
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+# Interactive aliases. These require `mise activate zsh`; tasks/CI should use mise tasks.
+[shell_alias]
+".." = "cd .."
+"..." = "cd ../.."
+"...." = "cd ../../.."
+c = "clear"
+q = "exit"
+path = '''printf '%s\n' "${PATH//:/\n}"'''
+reload = "exec zsh"
+zshrc = '''nvim "$ZDOTDIR/.zshrc"'''
+vim = "nvim"
+cp = "cp -i"
+mv = "mv -i"
+rm = "rm -i"
+mkdir = "mkdir -p"
+l = "eza --icons=auto"
+ll = "eza -lh --icons=auto --git"
+la = "eza -lah --icons=auto --git"
+tree = "eza --tree --icons=auto"
+cat = "bat --style=plain"
+# Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
+dot = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
+
+# directories
+dl = "cd ~/Downloads"
+dt = "cd ~/Desktop"
+dc = "cd ~/Documents"
+
+v = "nvim"
 
 [dotfiles]
 "~/.zshenv" = {}
