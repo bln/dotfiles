@@ -45,35 +45,31 @@ dotfiles/
 ├── CLAUDE.md                   # includes AGENTS.md for Claude Code
 ├── LICENSE
 ├── .github/
-│   ├── workflows/ci.yml        # CI: lint + test + bootstrap plan + typecheck
+│   ├── workflows/ci.yml        # CI: lint + test + bootstrap plan
 │   ├── dependabot.yml
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── ISSUE_TEMPLATE/
 ├── scripts/
 │   ├── apply-vscode-extensions.sh
 │   ├── check-git-identity.sh
-│   ├── check-pi-config.sh
 │   ├── check-vscode-settings.sh
 │   ├── lint-shell.sh
 │   └── reset-codex.sh
 ├── tasks/
 │   └── setup/
-│       ├── git-identity        # prompted machine-local git identity
-│       └── pi-config           # prompted pi agent API key config
+│       └── git-identity        # prompted machine-local git identity
 ├── tests/
 │   ├── run.sh                  # test harness (suite selection supported)
 │   ├── lib/testlib.sh          # assertion helpers + sandbox management
 │   ├── unit/                   # script-level tests via env-var seams
 │   ├── static/                 # config format, structural, and secret checks
-│   └── contract/               # architecture and policy invariants
+│   ├── integration/            # real mise + sandboxed shell startup
+│   └── verify/                 # host-only behavioral checks (macOS, not CI)
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── TESTING.md
-│   └── PACKAGE-POLICY.md
+│   └── ARCHITECTURE.md         # design rationale + package policy
 └── home/                       # payload symlinked into $HOME by mise dotfiles
     ├── .zshenv
     ├── .agents/                # AGENTS.md + skills, shared across agent CLIs
-    ├── .pi/                    # pi agent extensions
     └── .config/
         ├── mise/config.toml    # THE source of truth: tools, packages, defaults
         ├── mise/mise.lock
@@ -82,7 +78,7 @@ dotfiles/
         ├── nvim/init.lua
         ├── ghostty/config
         ├── gitui/
-        ├── vscode/             # settings.json, extensions.txt
+        ├── vscode/             # settings.json (extensions declared in mise [tools])
         ├── starship.toml
         ├── npm/npmrc
         └── uv/uv.toml
@@ -96,10 +92,9 @@ dotfiles/
 | Packages (formulae, casks, fonts, MAS apps) | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
 | Dotfile symlinks | `home/` + `[dotfiles]` table | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
-| VS Code extensions | `home/.config/vscode/extensions.txt` | `bash scripts/apply-vscode-extensions.sh` |
+| VS Code extensions | `config.toml` `[tools]` `vscode-ext:*` | `bash scripts/apply-vscode-extensions.sh` |
 | Environment and aliases | `[env]` and `[shell_alias]` | `mise activate zsh` |
 | Git identity | machine-local prompt (untracked) | `mise run setup:git-identity` |
-| Pi agent config | `tasks/setup/pi-config.d/*.template` | `mise run setup:pi-config` |
 
 ## Adding software
 
@@ -111,16 +106,32 @@ dotfiles/
    idempotent file task under `tasks/`.
 4. **Dev-only dependency** (shellcheck, etc.): add to `mise.toml` `[tools]`.
 
-See `docs/PACKAGE-POLICY.md` for the full backend preference order.
+See `docs/ARCHITECTURE.md` for the full backend preference order and package policy.
+
+### Managing VS Code extensions
+
+Extensions are declared in `home/.config/mise/config.toml` `[tools]` as
+`vscode-ext:<id>` entries (a no-op mise backend plugin makes the keys legal):
+
+```toml
+"vscode-ext:esbenp.prettier-vscode" = "latest"
+```
+
+- **Add / remove**: edit the `vscode-ext:*` entries, then run
+  `bash scripts/apply-vscode-extensions.sh` (or `dot run update`).
+- **Sync behavior**: the script installs declared-but-missing extensions (so an
+  extension you deleted in the VS Code UI is reinstalled). Run `dot run update`
+  to also upgrade all installed extensions via `code --update-extensions`.
+- **Prune** (extensions installed but not declared, e.g. added via the VS Code
+  UI): warned by default, not removed. Pass `--prune` (or
+  `VSCODE_EXTENSIONS_PRUNE=true`) to uninstall them. `dot run update` prunes.
+- Find an extension's ID with `code --list-extensions`.
 
 ## Configuration ownership
 
-| Who writes it | Strategy | Examples |
-|---|---|---|
-| Only the repo | **Symlink** | zsh, starship, nvim, ghostty, git ignore |
-| Repo and a tool | **Include** | git config (includes machine-local identity) |
-| Mostly the tool | **Copy once** | VS Code settings (seeded, then application-owned) |
-| Machine-specific | **Generate** | git identity, pi agent config |
+The repo owns some files outright and shares others with the tools that write
+them. See "Configuration ownership strategies" in `docs/ARCHITECTURE.md` for the
+symlink / include / copy-once / generate breakdown.
 
 ## Common commands
 
@@ -139,26 +150,22 @@ The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so
 
 ## Testing and CI
 
-```sh
-mise run test                    # all suites (static + unit + contract)
-mise run test -- static          # just static checks
-mise run test -- unit            # just unit tests
-mise run test -- contract        # just architecture contracts
-```
-
-`test` checks repository behavior without assuming a configured workstation.
-`verify` additionally checks mise health, declared-state drift, git identity,
-and the VS Code settings link. See `docs/TESTING.md`.
+`mise run test` (from the repo root, or `dot run test` anywhere) runs the
+host-independent suites - static, unit, integration - which is exactly what CI
+runs. `mise run verify` additionally runs the host-only behavioral checks
+(tools on PATH, plugins loaded) and checks mise health, declared-state drift,
+git identity, and the VS Code settings link on a converged macOS host. See
+CONTRIBUTING.md for the suites and how to add a test.
 
 ## Wipe
 
-`wipe.sh` defaults to a dry run and removes only repository-owned state. It
-does not uninstall a shared native package manager unless explicitly requested.
+`wipe.sh` defaults to a dry run. With `--apply` it removes everything:
+dotfile symlinks, generated local config, VS Code extensions, mise tools,
+uv cache, and implodes mise. Does not uninstall Homebrew.
 
 ```sh
-~/dotfiles/wipe.sh                     # dry run: preview removals
-~/dotfiles/wipe.sh --apply             # execute the removals
-~/dotfiles/wipe.sh --apply --full      # also uninstall mise, tools, and packages
+~/dotfiles/wipe.sh           # dry run: preview removals
+~/dotfiles/wipe.sh --apply   # execute the removals
 ```
 
 It does **not** revert macOS system defaults (dock, finder, keyboard) - defaults
@@ -166,7 +173,9 @@ write records no prior value, so there is nothing to restore.
 
 ## Contributing
 
-See `CONTRIBUTING.md`. Run `mise run test` before opening a pull request.
+See `CONTRIBUTING.md` for where changes belong, code rules, and testing. Run
+`mise run test` before opening a pull request. Report security issues privately
+per `SECURITY.md`.
 
 ## License
 

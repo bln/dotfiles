@@ -16,7 +16,7 @@ ownership of unrelated user state.
 | Repository-owned configuration | `home/` using its `$HOME`-relative path |
 | Machine identity or secrets | Generated ignored files, never tracked values |
 
-See `docs/ARCHITECTURE.md` and `docs/PACKAGE-POLICY.md`.
+See `docs/ARCHITECTURE.md` (two-file boundary and package policy).
 
 ## Requirements
 
@@ -39,14 +39,38 @@ Scopes: `zsh`, `git`, `nvim`, `ghostty`, `vscode`, `mise`, `ci`, `wipe`, etc.
 
 ## Tests
 
-Add or update tests for every behavior change. Name files `test-<subject>.sh`
-and place them in the appropriate `static/`, `unit/`, `integration/`, or
-`contract/` suite.
+Add or update tests for every behavior change. Run from the repo root (or use
+`dot run test` from anywhere):
 
 ```sh
-mise run test          # host-independent repository tests
-mise run verify        # additionally checks installed machine state (macOS)
+mise run test          # host-independent repository tests (what CI runs)
+mise run verify        # additionally runs host-only checks + machine state (macOS)
 ```
+
+### Suites
+
+| Suite | Directory | Checks | Needs host state? |
+|---|---|---|---|
+| **static** | `tests/static/` | Config parse/shape, version consistency, template + secret hygiene, lint | No |
+| **unit** | `tests/unit/` | Individual task/script behavior via env-var seams and fake-binary shims | No |
+| **integration** | `tests/integration/` | Real mise plan reproducibility; sandboxed zsh startup under a pty | Skips cleanly if mise/zsh absent |
+| **verify** | `tests/verify/` | Tools resolve on PATH, plugins loaded, install re-run idempotent | Yes (macOS host, not CI) |
+
+static, unit, and integration run in CI on every push and PR (`mise run test`);
+integration tests skip cleanly when mise or zsh is unavailable. The verify suite
+is host-coupled behavioral validation wired into `mise run verify`, never CI.
+
+### Conventions
+
+- Name test files `test-<subject>.sh`; the runner auto-discovers `test-*.sh` in each suite.
+- Start each file with `#!/usr/bin/env bash` and `set -euo pipefail`.
+- Source the shared library: `source "${BASH_SOURCE[0]%/*}/../lib/testlib.sh"`.
+- Use `ok "<msg>"` for a passing assertion and `bad "<msg>" "<detail>"` for a failure.
+- Tests must be host-independent (no network, no installed tools) unless placed in `tests/integration/`.
+- Exercise the real shipped script via its documented override seam (env var or
+  flag pointed at a mktemp sandbox) - never copy the script into a fixture.
+
+`tests/lib/testlib.sh` provides `ok`/`bad` and the summary/exit trap.
 
 ## Pull requests
 
