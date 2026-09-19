@@ -23,7 +23,7 @@ run = [
   "mise run test",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
-  'bash "{{ config_root }}/scripts/check-vscode-symlink.sh"',
+  'bash "{{ config_root }}/scripts/check-vscode-settings.sh"',
   "echo 'OK: dotfiles verification passed.'",
 ]
 

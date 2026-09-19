@@ -53,7 +53,7 @@ dotfiles/
 │   ├── apply-vscode-extensions.sh
 │   ├── check-git-identity.sh
 │   ├── check-pi-config.sh
-│   ├── check-vscode-symlink.sh
+│   ├── check-vscode-settings.sh
 │   ├── lint-shell.sh
 │   └── reset-codex.sh
 ├── tasks/

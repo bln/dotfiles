@@ -35,7 +35,12 @@ build/
 
 # machine-local files - never commit
 home/.config/git/config.local
+home/.config/zsh/.zshrc.local
 home/mise.local.toml
+
+# mise writes a lockfile next to the repo-local mise.toml; the tracked
+# lockfile is home/.config/mise/mise.lock, so ignore this generated one.
+/mise.lock
 
 # PKM app state (repo opened as Obsidian/Octarine vault)
 .obsidian/

@@ -8,6 +8,9 @@ lockfile = true
 dotfiles.root = "~/dotfiles/home"
 dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
+# Let a release settle before adopting it, except for the fast-moving agent
+# CLIs we deliberately track at the bleeding edge.
+minimum_release_age = "2d"
 minimum_release_age_excludes = ["claude-code", "codex", "pi"]
 
 [env]
@@ -149,4 +152,8 @@ v = "nvim"
 
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
-"~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json" }
+# VS Code rewrites settings.json in place (Settings UI, extensions), so a
+# symlink gets orphaned into a divorced regular file. Manage it in copy mode
+# instead: apply seeds the live file from the repo, and app-written changes are
+# pulled back with `mise dotfiles add --changed` (or `dot run update`).
+"~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json", mode = "copy" }

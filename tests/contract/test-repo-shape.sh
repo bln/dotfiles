@@ -26,7 +26,7 @@ done
 # Every shipped script has a corresponding test file
 for script in \
   scripts/check-git-identity.sh \
-  scripts/check-vscode-symlink.sh \
+  scripts/check-vscode-settings.sh \
   scripts/reset-codex.sh; do
 
   base="$(basename "$script" .sh)"

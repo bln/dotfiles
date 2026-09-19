@@ -150,3 +150,8 @@ if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-syntax-highlighting/zsh-sy
   source "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
 unset _plugin_prefix
+
+# ── machine-local overrides (never committed) ─────────────────────────────────
+# Per-machine tweaks live in $ZDOTDIR/.zshrc.local (gitignored). Sourced last so
+# it can override anything above. Absent on a fresh machine - that is fine.
+[[ -r "${ZDOTDIR:-$HOME}/.zshrc.local" ]] && source "${ZDOTDIR:-$HOME}/.zshrc.local"
