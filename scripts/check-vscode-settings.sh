@@ -5,7 +5,7 @@ set -euo pipefail
 # Seams: live/repo paths are overridable so tests can point them at a sandbox;
 # the no-override defaults keep production behavior unchanged.
 live="${VSCODE_SETTINGS_LIVE:-$HOME/Library/Application Support/Code/User/settings.json}"
-repo="${VSCODE_SETTINGS_REPO:-$HOME/dotfiles/home/.config/vscode/settings.json}"
+repo="${VSCODE_SETTINGS_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/home/.config/vscode/settings.json}"
 
 # settings.json is managed in copy mode (mise dotfiles), because VS Code
 # rewrites it in place and would orphan a symlink. The trade-off is drift: the

@@ -30,7 +30,6 @@ run = [
 [tasks.test]
 description = "lint and test all shell scripts"
 dir = "{{ config_root }}"
-sources = ["**/*.sh", "tasks/**", "scripts/**", "tests/**"]
 run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
 
 # ── bootstrap ──────────────────────────────────────────────────────────────────

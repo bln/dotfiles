@@ -34,6 +34,17 @@ RESET_CODEX="$REPO/scripts/reset-codex.sh"
   assert_contains "dry-run: output says DRY RUN" "$out" "DRY RUN"
 }
 
+# --dry-run CLI flag has the same behavior as USAGE_DRY_RUN=true.
+{
+  home="$(sandbox)"
+  mkdir -p "$home/sessions"
+  touch "$home/sessions/s1.json" "$home/auth.json"
+  out="$(CODEX_HOME="$home" bash "$RESET_CODEX" --dry-run 2>&1)"; rc=$?
+  assert_eq "--dry-run flag exits 0" "0" "$rc"
+  assert_file "--dry-run flag: sessions untouched" "$home/sessions/s1.json"
+  assert_contains "--dry-run flag: output says DRY RUN" "$out" "DRY RUN"
+}
+
 # Missing CODEX_HOME dir is a clean no-op, not an error.
 {
   home="$(sandbox)/does-not-exist"
