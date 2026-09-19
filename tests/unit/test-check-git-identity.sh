@@ -5,28 +5,28 @@ echo "== check:git-identity =="
 
 CHECK_GIT_IDENTITY="$REPO/scripts/check-git-identity.sh"
 
-# Passes when config.local resolves name+email.
+# Passes when identity-personal resolves name+email.
 {
   home="$(sandbox)"; mkdir -p "$home/.config/git"
-  git config --file "$home/.config/git/config.local" user.name "Work User"
-  git config --file "$home/.config/git/config.local" user.email "w@x.co"
+  git config --file "$home/.config/git/identity-personal" user.name "Personal User"
+  git config --file "$home/.config/git/identity-personal" user.email "me@x.co"
   run_capture env HOME="$home" bash "$CHECK_GIT_IDENTITY"
   assert_eq "resolves -> exit 0" "0" "$RUN_STATUS"
-  assert_contains "reports the identity" "$(cat "$RUN_STDOUT")" "Work User"
+  assert_contains "reports the identity" "$(cat "$RUN_STDOUT")" "Personal User"
 }
 
-# Fails when config.local is missing.
+# Fails when identity-personal is missing.
 {
-  home="$(sandbox)"   # no config.local at all
+  home="$(sandbox)"   # no identity-personal at all
   run_capture env HOME="$home" bash "$CHECK_GIT_IDENTITY"
-  assert_eq "missing config.local -> exit 1" "1" "$RUN_STATUS"
+  assert_eq "missing identity-personal -> exit 1" "1" "$RUN_STATUS"
   assert_contains "names the fix" "$(cat "$RUN_STDERR")" "setup:git-identity"
 }
 
 # Fails when name present but email missing.
 {
   home="$(sandbox)"; mkdir -p "$home/.config/git"
-  git config --file "$home/.config/git/config.local" user.name "No Email"
+  git config --file "$home/.config/git/identity-personal" user.name "No Email"
   run_capture env HOME="$home" bash "$CHECK_GIT_IDENTITY"
   assert_eq "missing email -> exit 1" "1" "$RUN_STATUS"
 }
@@ -34,7 +34,7 @@ CHECK_GIT_IDENTITY="$REPO/scripts/check-git-identity.sh"
 # Fails when email present but name missing.
 {
   home="$(sandbox)"; mkdir -p "$home/.config/git"
-  git config --file "$home/.config/git/config.local" user.email "no-name@x.co"
+  git config --file "$home/.config/git/identity-personal" user.email "no-name@x.co"
   run_capture env HOME="$home" bash "$CHECK_GIT_IDENTITY"
   assert_eq "missing name -> exit 1" "1" "$RUN_STATUS"
 }

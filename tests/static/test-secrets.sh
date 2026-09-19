@@ -9,8 +9,8 @@ tracked() { (cd "$REPO" && git ls-files 2>/dev/null); }
 # Machine-local identity must never be tracked.
 {
   for rel in \
-    "home/.config/git/config.local" \
-    "home/.config/git/identity-play"; do
+    "home/.config/git/identity-personal" \
+    "home/.config/git/identity-work"; do
     if tracked | grep -Fxq "$rel"; then
       bad "not tracked: $(basename "$rel")" "$rel is committed (should be machine-local)"
     else

@@ -1,14 +1,23 @@
 [user]
-	# name and email are machine-local - set them in ~/.config/git/config.local (not in the repo).
-	# useConfigOnly means git will error rather than guess your identity in any repo
-	# that does not have a local user config, so you can't accidentally commit as the
-	# wrong person even if the local config is missing.
+	# Identity is machine-local (~/.config/git/identity-*, untracked - created by
+	# `mise run setup:git-identity`). useConfigOnly makes git refuse to guess rather
+	# than commit as the wrong person if no identity resolves.
 	useConfigOnly = true
 
 [include]
-	# Machine-local identity (name, email, any work/personal overrides).
-	# Create ~/.config/git/config.local - it is not tracked in the dotfiles repo.
-	path = ~/.config/git/config.local
+	# Default identity: no-remote repos, github.com, and everything not matched below.
+	path = ~/.config/git/identity-personal
+
+# Work identity, selected only when a remote points at github.tools.sap. Three
+# host-anchored patterns, one per URL form: git's hasconfig glob is anchored at
+# the start (a leading * never matches) and * does not cross '/', so https, ssh,
+# and the scp-style git@host: form each need their own pattern.
+[includeIf "hasconfig:remote.*.url:https://github.tools.sap/**"]
+	path = ~/.config/git/identity-work
+[includeIf "hasconfig:remote.*.url:ssh://*github.tools.sap/**"]
+	path = ~/.config/git/identity-work
+[includeIf "hasconfig:remote.*.url:git@github.tools.sap:*/**"]
+	path = ~/.config/git/identity-work
 
 [core]
 	editor = nvim

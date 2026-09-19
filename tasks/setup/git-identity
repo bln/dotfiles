@@ -4,20 +4,21 @@
 #USAGE flag "--force" help="Overwrite existing files (default: skip if present)"
 set -euo pipefail
 
-config="$HOME/.config/git/config.local"
-play="$HOME/.config/git/identity-play"
-task_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-template_dir="$task_dir/git-identity.d"
-config_template="$template_dir/config.local.template"
-play_template="$template_dir/identity-play.template"
+# Machine-local identity files, routed by remote in ~/.config/git/config:
+#   identity-personal - default (no-remote repos, github.com, everything else)
+#   identity-work     - selected when a remote points at github.tools.sap
+personal="$HOME/.config/git/identity-personal"
+work="$HOME/.config/git/identity-work"
 
 # When run via `mise run`, USAGE_FORCE is set by mise's #USAGE parser.
 # When invoked directly (e.g. in tests), set USAGE_FORCE=true to force overwrite.
 force="${USAGE_FORCE:-false}"
 
-if [ -f "$config" ] && [ "$force" != "true" ]; then
+# Guard on the default file - it must always resolve, so it is the one that
+# gates a re-run into a no-op.
+if [ -f "$personal" ] && [ "$force" != "true" ]; then
   # shellcheck disable=SC2088 # literal path shown to the user, not a path to expand
-  echo "~/.config/git/config.local already exists (pass --force to overwrite)."
+  echo "~/.config/git/identity-personal already exists (pass --force to overwrite)."
   exit 0
 fi
 
@@ -41,47 +42,25 @@ prompt_email() {
   esac
 }
 
-render_template() {
-  local template="$1"
-  local output="$2"
-  local content marker
-
-  [ -f "$template" ] || { echo "ERROR: template not found: $template" >&2; exit 2; }
-
-  content="$(<"$template")"
-  # Bash 5.2+ treats & in replacement strings as the matched pattern by default.
-  # Disable that so names/emails containing & are preserved literally.
-  shopt -u patsub_replacement 2>/dev/null || true
-  marker="{{WORK_NAME}}"
-  content="${content//$marker/$work_name}"
-  marker="{{WORK_EMAIL}}"
-  content="${content//$marker/$work_email}"
-  marker="{{PLAY_NAME}}"
-  content="${content//$marker/$play_name}"
-  marker="{{PLAY_EMAIL}}"
-  content="${content//$marker/$play_email}"
-
-  if [[ "$content" == *"{{"* ]]; then
-    echo "ERROR: unfilled placeholder in template: $template" >&2
-    exit 2
-  fi
-
-  printf '%s\n' "$content" > "$output"
+# Write a [user] block literally - printf %s preserves any metacharacters in the
+# name/email (no template substitution, so no & / {{ }} escaping needed).
+write_identity() {
+  local file="$1" name="$2" email="$3"
+  printf '[user]\n\tname = %s\n\temail = %s\n' "$name" "$email" > "$file"
+  chmod 600 "$file"
 }
 
-work_name="$(prompt_required 'Work git name:  ')"
-work_email="$(prompt_email 'Work git email: ')"
-play_name="$(prompt_required 'Play (github.com) git name:  ')"
-play_email="$(prompt_email 'Play (github.com) git email: ')"
+personal_name="$(prompt_required 'Personal (github.com) git name:  ')"
+personal_email="$(prompt_email 'Personal (github.com) git email: ')"
+work_name="$(prompt_required 'Work (github.tools.sap) git name:  ')"
+work_email="$(prompt_email 'Work (github.tools.sap) git email: ')"
 
 mkdir -p "$HOME/.config/git"
-render_template "$config_template" "$config"
-chmod 600 "$config"
-render_template "$play_template" "$play"
-chmod 600 "$play"
+write_identity "$personal" "$personal_name" "$personal_email"
+write_identity "$work" "$work_name" "$work_email"
 
 echo
-echo "Created ~/.config/git/config.local"
-echo "  work:  $work_name <$work_email>"
-echo "Created ~/.config/git/identity-play"
-echo "  play:  $play_name <$play_email>"
+echo "Created ~/.config/git/identity-personal"
+echo "  personal: $personal_name <$personal_email>"
+echo "Created ~/.config/git/identity-work"
+echo "  work:     $work_name <$work_email>"
