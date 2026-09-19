@@ -1,37 +1,35 @@
 #!/usr/bin/env bash
-# Secret hygiene: scan tracked files for accidental secret inclusion.
-# Only check structural patterns (PEM headers) that are universally stable.
-# Volatile token prefixes (ghp_, npm_, etc.) are omitted: they change with
-# platform rotations and cause false positives on legitimate test fixtures.
-#
-# Uses testlib ok()/bad() - do NOT redefine them here.
-# NOTE: PEM header checks are already in references.sh (structural properties).
-# This file covers the remaining secret-specific checks that don't overlap.
+# Secret hygiene: no machine-local identity or private key material is tracked.
+# Uses `git ls-files` so the check reflects what is actually committed.
 
 echo "== static: secret hygiene =="
 
-# Machine-local identity files that must not be tracked.
+tracked() { (cd "$REPO" && git ls-files 2>/dev/null); }
+
+# Machine-local identity must never be tracked.
 {
-  for f in "$REPO/home/.config/git/config.local" \
-           "$REPO/home/.config/git/identity-play"; do
-    if [ -f "$f" ]; then
-      bad "no tracked identity: $(basename "$f")" "exists in repo (should be gitignored)"
+  for rel in \
+    "home/.config/git/config.local" \
+    "home/.config/git/identity-play"; do
+    if tracked | grep -Fxq "$rel"; then
+      bad "not tracked: $(basename "$rel")" "$rel is committed (should be machine-local)"
     else
-      ok "no tracked identity: $(basename "$f")"
+      ok "not tracked: $(basename "$rel")"
     fi
   done
 }
 
-# Generated pi config files that must not be tracked.
+# No PEM private-key material in any tracked file.
 {
-  for f in "$REPO/home/.pi/agent/models.json" \
-           "$REPO/home/.pi/agent/settings.json"; do
-    if [ -f "$f" ]; then
-      bad "no tracked pi config: $(basename "$f")" "exists in repo (should be machine-generated)"
-    else
-      ok "no tracked pi config: $(basename "$f")"
+  leak=0
+  while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    case "$rel" in tests/*) continue ;; esac   # tests may mention the pattern
+    [ -f "$REPO/$rel" ] || continue
+    if grep -q 'BEGIN [A-Z ]*PRIVATE KEY' "$REPO/$rel" 2>/dev/null; then
+      bad "no private key in tracked files" "PEM private-key header in $rel"
+      leak=$((leak + 1))
     fi
-  done
+  done < <(tracked)
+  [ "$leak" -eq 0 ] && ok "no PEM private-key material in tracked files"
 }
-
-echo "== secret hygiene checks passed =="

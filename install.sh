@@ -57,7 +57,7 @@ fi
 if [ "$MODE" = "update" ]; then
   printf '==> Updating tools and packages...\n'
   mise install
-  mise run update 2>/dev/null || printf '(no update task defined, skipping)\n'
+  mise run update
   printf '==> Update complete.\n'
 else
   mise bootstrap --yes --force-dotfiles

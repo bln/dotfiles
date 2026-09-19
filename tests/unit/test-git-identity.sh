@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for home/.config/mise/tasks/setup/git-identity
+# Tests for tasks/setup/git-identity
 
 echo "== git-identity =="
 
@@ -14,6 +14,8 @@ GIT_IDENTITY="$REPO/tasks/setup/git-identity"
   play="$home/.config/git/identity-play"
   assert_file "config.local created" "$cfg"
   assert_file "identity-play created" "$play"
+  assert_mode "config.local is 600" "$cfg" "600"
+  assert_mode "identity-play is 600" "$play" "600"
   assert_contains "work name rendered"  "$(cat "$cfg")"  "Work User"
   assert_contains "work email rendered" "$(cat "$cfg")"  "work@example.com"
   assert_contains "play name rendered"  "$(cat "$play")" "Play User"

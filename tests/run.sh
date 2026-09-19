@@ -6,10 +6,8 @@
 # mktemp sandbox.
 #
 # Usage:
-#   bash tests/run.sh              # run all suites
-#   bash tests/run.sh static       # run one suite
-#   bash tests/run.sh unit
-#   bash tests/run.sh contract
+#   bash tests/run.sh           # run CI suites (static, unit, integration)
+#   bash tests/run.sh verify    # host-only behavioral checks (macOS, not CI)
 set -euo pipefail
 
 REPO="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -23,11 +21,11 @@ source "$TEST_ROOT/lib/testlib.sh"
 run_suite() {
   local suite="$1"
   local suite_dir="$TEST_ROOT/$suite"
-  local found=false
   if [ ! -d "$suite_dir" ]; then
     printf 'warning: no %s suite directory\n' "$suite" >&2
     return
   fi
+  local found=false
   for test_file in "$suite_dir"/test-*.sh; do
     [ -f "$test_file" ] || continue
     found=true
@@ -38,17 +36,15 @@ run_suite() {
   fi
 }
 
-case "${1:-all}" in
-  all)
-    for suite in static unit integration contract; do
-      run_suite "$suite"
-    done
+case "${1:-}" in
+  "")
+    for suite in static unit integration; do run_suite "$suite"; done
     ;;
-  static|unit|integration|contract)
-    run_suite "$1"
+  verify)
+    run_suite verify
     ;;
   *)
-    printf 'usage: %s [all|static|unit|integration|contract]\n' "$0" >&2
+    printf 'usage: %s [verify]\n' "$0" >&2
     exit 2
     ;;
 esac

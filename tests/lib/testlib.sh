@@ -32,6 +32,64 @@ sandbox() {
 # ── output helpers ───────────────────────────────────────────────────────────
 ok()  { printf '  ok   %s\n' "$1"; pass=$((pass + 1)); }
 bad() { printf '  FAIL %s\n' "$1"; printf '       %s\n' "$2" >&2; fail=$((fail + 1)); }
+# skip: record a non-failing skip (missing optional dependency). Counts as a
+# pass so the suite stays green, but names what was not exercised.
+skip() { printf '  skip %s\n' "$1"; pass=$((pass + 1)); }
+
+# ── zsh_startup ──────────────────────────────────────────────────────────────
+# Build (or reuse) a sandbox HOME/ZDOTDIR symlinking the repo's real rc files,
+# then run zsh under a pseudo-terminal (so interactive startup matches a real
+# terminal, not the `zsh -i -c` non-tty path which triggers a benign fzf
+# `setopt zle` warning). GNU and BSD `script` differ; this handles both.
+#   sb="$(zsh_home)"                       # once, to reuse across passes
+#   zsh_startup <-i|-l> "$sb" ["cmd"]      # cmd runs inside the shell (default: exit)
+# then read $RUN_STATUS, $RUN_STDOUT (cmd's stdout), $RUN_STDERR.
+# If no sandbox is passed, a fresh one is created for that single run.
+#
+# Hermetic by design: the shell runs with a MINIMAL PATH (system dirs + zsh's
+# own bin only), so the caller's real mise/starship/zoxide/fzf are invisible.
+# This matches a fresh CI runner and, crucially, exercises the rc's `command -v`
+# tool guards on their absent branch. It also avoids a hang: real `mise activate
+# zsh` eval'd inside a login shell under a `script` pty blocks reading the tty.
+# The tool-present path is covered behaviorally in the verify tier
+# (test-tools-on-path), against the live machine - never here.
+zsh_home() {
+  local sb
+  sb="$(sandbox)"
+  mkdir -p "$sb/.config/zsh" "$sb/.cache" "$sb/.local/share" "$sb/.local/state"
+  ln -sf "$REPO/home/.zshenv"               "$sb/.zshenv"
+  ln -sf "$REPO/home/.config/zsh/.zshrc"    "$sb/.config/zsh/.zshrc"
+  ln -sf "$REPO/home/.config/zsh/.zprofile" "$sb/.config/zsh/.zprofile"
+  printf '%s\n' "$sb"
+}
+
+zsh_startup() {
+  local flag="$1" sb="${2:-}" cmd="${3:-exit}"
+  [ -n "$sb" ] || sb="$(zsh_home)"
+  RUN_STDOUT="$(mktemp)"; RUN_STDERR="$(mktemp)"; sandboxes+=("$RUN_STDOUT" "$RUN_STDERR")
+  # Minimal PATH: system dirs plus wherever this zsh lives (so `zsh` and its
+  # helpers resolve) - nothing from the caller's toolchain.
+  local zbin minpath
+  zbin="$(dirname "$(command -v zsh)")"
+  minpath="$zbin:/usr/bin:/bin:/usr/sbin:/sbin"
+  # Pin HOME/ZDOTDIR and the XDG dirs at the sandbox so .zshenv resolves cache/
+  # config/data inside it - otherwise the caller's real XDG_* leak through
+  # `script`. stdin from /dev/null so no run can block on terminal input.
+  set +e
+  if script --version 2>/dev/null | grep -q util-linux; then
+    HOME="$sb" ZDOTDIR="$sb/.config/zsh" PATH="$minpath" \
+      XDG_CONFIG_HOME="$sb/.config" XDG_CACHE_HOME="$sb/.cache" \
+      XDG_DATA_HOME="$sb/.local/share" XDG_STATE_HOME="$sb/.local/state" \
+      script -qec "zsh $flag -c '$cmd'" /dev/null >"$RUN_STDOUT" 2>"$RUN_STDERR" </dev/null
+  else
+    HOME="$sb" ZDOTDIR="$sb/.config/zsh" PATH="$minpath" \
+      XDG_CONFIG_HOME="$sb/.config" XDG_CACHE_HOME="$sb/.cache" \
+      XDG_DATA_HOME="$sb/.local/share" XDG_STATE_HOME="$sb/.local/state" \
+      script -q /dev/null zsh "$flag" -c "$cmd" >"$RUN_STDOUT" 2>"$RUN_STDERR" </dev/null
+  fi
+  RUN_STATUS=$?
+  set -e
+}
 
 # ── run_capture ──────────────────────────────────────────────────────────────
 # Run a command capturing stdout and stderr separately.
@@ -59,11 +117,6 @@ run_capture() {
 # assert_eq LABEL EXPECTED ACTUAL
 assert_eq() {
   if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "expected [$2], got [$3]"; fi
-}
-
-# assert_ne LABEL NOT_EXPECTED ACTUAL
-assert_ne() {
-  if [ "$2" != "$3" ]; then ok "$1"; else bad "$1" "expected NOT [$2], got [$3]"; fi
 }
 
 # assert_contains LABEL HAYSTACK NEEDLE
@@ -123,18 +176,6 @@ assert_json() {
     return
   fi
   if jq empty "$2" 2>/dev/null; then ok "$1"; else bad "$1" "$2 is not valid JSON"; fi
-}
-
-# assert_exit LABEL EXPECTED_CODE COMMAND...
-# Runs the command and checks the exit code.
-assert_exit() {
-  local label="$1" expected="$2"
-  shift 2
-  set +e
-  "$@" >/dev/null 2>&1
-  local rc=$?
-  set -e
-  assert_eq "$label" "$expected" "$rc"
 }
 
 # assert_no_placeholder LABEL CONTENT

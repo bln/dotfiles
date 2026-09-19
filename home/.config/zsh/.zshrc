@@ -1,5 +1,7 @@
 # mise: activate tools + shims for interactive shells (PATH is set in .zshenv)
-command -v mise &>/dev/null && eval "$(mise activate zsh)"
+if command -v mise &>/dev/null; then
+  eval "$(mise activate zsh)"
+fi
 
 
 
@@ -154,4 +156,8 @@ unset _plugin_prefix
 # ── machine-local overrides (never committed) ─────────────────────────────────
 # Per-machine tweaks live in $ZDOTDIR/.zshrc.local (gitignored). Sourced last so
 # it can override anything above. Absent on a fresh machine - that is fine.
-[[ -r "${ZDOTDIR:-$HOME}/.zshrc.local" ]] && source "${ZDOTDIR:-$HOME}/.zshrc.local"
+# Use a full `if` (not `&& source`) so an absent file does not leave the shell
+# with a nonzero $? at the first prompt.
+if [[ -r "${ZDOTDIR:-$HOME}/.zshrc.local" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zshrc.local"
+fi

@@ -3,10 +3,8 @@
 # Run from anywhere: dot run <task>  (dot alias = mise -C ~/dotfiles)
 
 [task_config]
-# includes replaces the default file-task search paths, so list both:
-# tasks/       -- repo-local setup scripts
-# .mise/tasks/ -- kept for future file tasks
-includes = ["tasks", ".mise/tasks"]
+# File tasks live in tasks/ (top-level, not shipped to $HOME).
+includes = ["tasks"]
 
 # ── verification pipeline ──────────────────────────────────────────────────────
 # verify runs sequentially: machine-state checks first (fail fast on unhealthy
@@ -21,6 +19,8 @@ run = [
   "mise -q bootstrap plan --detailed-exitcode",
   # host-independent: lint + test harness.
   "mise run test",
+  # host-coupled behavioral checks (tools on PATH, plugins loaded).
+  "bash tests/run.sh verify",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
   'bash "{{ config_root }}/scripts/check-vscode-settings.sh"',
@@ -30,28 +30,8 @@ run = [
 [tasks.test]
 description = "lint and test all shell scripts"
 dir = "{{ config_root }}"
-sources = ["**/*.sh", "tasks/**", ".mise/tasks/**", "scripts/**", "tests/**"]
+sources = ["**/*.sh", "tasks/**", "scripts/**", "tests/**"]
 run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
-
-[tasks."test:static"]
-description = "run static analysis tests only"
-dir = "{{ config_root }}"
-run = "bash tests/run.sh static"
-
-[tasks."test:unit"]
-description = "run unit tests only"
-dir = "{{ config_root }}"
-run = "bash tests/run.sh unit"
-
-[tasks."test:integration"]
-description = "run integration tests only"
-dir = "{{ config_root }}"
-run = "bash tests/run.sh integration"
-
-[tasks."test:contract"]
-description = "run contract tests only"
-dir = "{{ config_root }}"
-run = "bash tests/run.sh contract"
 
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +39,9 @@ run = "bash tests/run.sh contract"
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
   'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
-  "uv python find --default >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
+  # `--default` creates the unversioned ~/.local/bin/python symlink; a plain
+  # install does not. Guard on that so re-runs stay quiet and idempotent.
+  "uv python find python >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
 ]
 
 # ── update ─────────────────────────────────────────────────────────────────────
@@ -70,9 +52,16 @@ description = "upgrade everything: mise, tools, packages, VS Code extensions, py
 interactive = true
 run = [
   "mise self-update --yes",
-  # --update upgrades already-installed items, not just missing ones.
-  "mise bootstrap --update --only packages,tools",
-  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  # tools: re-resolve `latest`, bump versions in config.toml, rewrite mise.lock.
+  # vscode-ext is a local symlink plugin, not a remote — exclude it to suppress
+  # the "is a symlink, not updating" warning; extensions are handled below.
+  "mise upgrade --bump --yes --exclude vscode-ext",
+  # packages: refresh metadata + converge brew/brew-cask/mas.
+  "mise bootstrap --update --only packages",
+  # VS Code: update all installed extensions, install missing declared ones,
+  # and prune undeclared ones.
+  "NODE_NO_WARNINGS=1 code --update-extensions",
+  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh" --prune',
   "mise bootstrap dotfiles apply",
   "uv python upgrade",
 ]
