@@ -26,13 +26,14 @@ tools and applications belong in the global config.
 
 ## Lifecycle
 
-1. `install.sh` installs mise, trusts configs, runs `mise bootstrap --yes`.
+1. `install.sh` installs mise, then `mise bootstrap --from` clones/reuses and
+   trusts the repo and runs `mise bootstrap --yes`.
 2. Declarative resources (tools, packages, dotfiles, macOS defaults) converge.
 3. The `bootstrap` task performs application-specific setup (VS Code extensions, uv python).
 4. `test` validates repository behavior (host-independent, runs in CI).
 5. `verify` checks both repository behavior and installed-machine state.
-6. `update` refreshes all managed layers.
-7. `wipe.sh` removes repository-owned state (safe-by-default, dry-run first).
+6. `update` refreshes all managed layers (this is the re-converge path).
+7. `teardown` removes repository-owned state (safe-by-default, dry-run first).
 
 ## Configuration ownership strategies
 
@@ -41,9 +42,9 @@ The strategy for how each config file is installed depends on who writes it:
 | Who writes it | Strategy | Examples |
 |---|---|---|
 | Only the repo | **Symlink** - edit in repo, change is live immediately | zsh, starship, nvim, ghostty, git ignore |
-| Repo + tool | **Include** - one line in a machine-local file pulls in the repo file | git config (includes config.local) |
+| Repo + tool | **Include** - the repo file pulls in machine-local files | git config (includes untracked identity files) |
 | Mostly the tool | **Copy once** - repo file seeds it, then tool owns it | VS Code settings (if symlink breaks) |
-| Machine-specific | **Generate** - task renders from template with local input | git identity |
+| Machine-specific | **Generate** - task prompts for local input, writes untracked files | git identity |
 
 VS Code extensions are declared as `[tools]` entries under a no-op local backend
 plugin (`vscode-ext:<id>` in `config.toml`), so the extension set lives in machine
@@ -79,7 +80,7 @@ Exceptions to the no-direct-backend rule:
   This is the only bootstrapping exception.
 - `.zshrc` may reference Homebrew plugin paths but must detect the prefix
   dynamically, never hard-code `/opt/homebrew`.
-- `wipe.sh` may reference package-manager state for cleanup.
+- `scripts/teardown-*.sh` may reference package-manager state for cleanup.
 
 Enforced by the test suite: `tests/static/test-config-shape.sh` checks every
 package key carries a known backend prefix (`brew:`, `brew-cask:`, `mas:`, ...),

@@ -1,10 +1,10 @@
 # Working in this repo
 
 This is a single mise-based macOS dotfiles repo. Keep it simple: one home
-payload, top-level install/wipe scripts, small mise tasks, and one global mise config.
+payload, a top-level install script, small mise tasks, and one global mise config.
 
 `home/` mirrors `$HOME` (symlinked by mise). Everything else is repo machinery,
-never symlinked: top-level `install.sh`/`wipe.sh` and `tests/` run against the
+never symlinked: top-level `install.sh` and `tests/` run against the
 checkout; `tasks/setup/` holds mise file-tasks (run as `mise run setup:...`)
 that generate machine-local state. If you add repo-local helper scripts, put
 them in the top-level `scripts/` dir (not shipped), mirroring that split.
@@ -14,8 +14,8 @@ them in the top-level `scripts/` dir (not shipped), mirroring that split.
 - Do not split this repo into profile, machinery, policy, or package projects.
 - Do not add a Python project, verifier package, uv task dependency, or test
   framework for repo automation without explicit approval.
-- Keep `install.sh` and `wipe.sh` as shell. Keep `verify`, `test`, `bootstrap`,
-  and `update` as the exposed mise tasks in `mise.toml`. Non-trivial helper
+- Keep `install.sh` as a thin shell wrapper. Keep `verify`, `test`, `bootstrap`,
+  `update`, and `teardown` as the exposed mise tasks in `mise.toml`. Non-trivial helper
   scripts live in `scripts/` with test seams that `tests/run.sh` exercises.
   The test harness stays plain bash in `tests/` (no bats or other framework
   without approval).

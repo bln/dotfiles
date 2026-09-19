@@ -14,14 +14,26 @@ Homebrew workflow. There is no Brewfile.
 ## Quick start
 
 ```sh
-git clone <repo-url> ~/dotfiles
+curl -fsSL https://mise.run | MISE_VERSION=2026.9.9 sh
+curl -fsSL https://raw.githubusercontent.com/bln/dotfiles/main/install.sh | bash
+exec zsh -l
+```
+
+Or, from a clone (use the **https** URL - it must match the `--from` URL in
+`install.sh`, or mise's checkout reuse bails):
+
+```sh
+git clone https://github.com/bln/dotfiles.git ~/dotfiles
 ~/dotfiles/install.sh
 exec zsh -l
 ```
 
-`install.sh` installs mise, trusts the repo configs, runs
-`mise bootstrap --yes`, then prompts for a machine-local git identity. Preview
-first with `mise bootstrap --dry-run`. Run `install.sh --help` for options.
+`install.sh` installs mise (pinned), then hands the whole converge to
+`mise bootstrap --from`: it clones/reuses the repo, trusts it, and runs the
+8-phase bootstrap (tools, packages, dotfiles, macOS defaults, and the repo's
+`[tasks.bootstrap]` for VS Code extensions + uv python), then prompts for a
+machine-local git identity. It is a **first-run** entrypoint; re-converge with
+`dot run update`. Preview a bootstrap with `mise bootstrap --dry-run`.
 
 ## Design principles
 
@@ -38,9 +50,8 @@ first with `mise bootstrap --dry-run`. Run `install.sh --help` for options.
 
 ```text
 dotfiles/
-├── install.sh                  # fresh-machine bootstrap (one-shot converge)
-├── wipe.sh                     # safe removal of repository-owned state
-├── mise.toml                   # repo-local tasks: verify, test, bootstrap, update
+├── install.sh                  # first-run bootstrap (mise bootstrap --from)
+├── mise.toml                   # repo-local tasks: verify, test, bootstrap, update, teardown
 ├── AGENTS.md                   # working rules for agents and humans
 ├── CLAUDE.md                   # includes AGENTS.md for Claude Code
 ├── LICENSE
@@ -54,7 +65,10 @@ dotfiles/
 │   ├── check-git-identity.sh
 │   ├── check-vscode-settings.sh
 │   ├── lint-shell.sh
-│   └── reset-codex.sh
+│   ├── reset-codex.sh
+│   ├── teardown-dotfiles.sh    # teardown step: mise dotfiles unapply
+│   ├── teardown-vscode.sh      # teardown step: uninstall declared extensions
+│   └── teardown-local.sh       # teardown step: remove machine-local files
 ├── tasks/
 │   └── setup/
 │       └── git-identity        # prompted machine-local git identity
@@ -94,7 +108,7 @@ dotfiles/
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
 | VS Code extensions | `config.toml` `[tools]` `vscode-ext:*` | `bash scripts/apply-vscode-extensions.sh` |
 | Environment and aliases | `[env]` and `[shell_alias]` | `mise activate zsh` |
-| Git identity | machine-local prompt (untracked) | `mise run setup:git-identity` |
+| Git identity | machine-local, routed by remote host (untracked) | `mise run setup:git-identity` |
 
 ## Adding software
 
@@ -157,19 +171,25 @@ runs. `mise run verify` additionally runs the host-only behavioral checks
 git identity, and the VS Code settings link on a converged macOS host. See
 CONTRIBUTING.md for the suites and how to add a test.
 
-## Wipe
+## Teardown
 
-`wipe.sh` defaults to a dry run. With `--apply` it removes everything:
-dotfile symlinks, generated local config, VS Code extensions, mise tools,
-uv cache, and implodes mise. Does not uninstall Homebrew.
+`mise run teardown` (or `dot run teardown`) defaults to a dry run. With `--apply`
+it removes repository-owned state: dotfile symlinks (via `mise dotfiles unapply`),
+declared VS Code extensions, and machine-local files (git identity, uv cache).
+It then prints the two commands to finish manually - these can't be task steps
+(`mise uninstall` re-shims the runner mid-task; `mise implode` deletes mise
+itself):
 
 ```sh
-~/dotfiles/wipe.sh           # dry run: preview removals
-~/dotfiles/wipe.sh --apply   # execute the removals
+dot run teardown            # dry run: preview removals
+dot run teardown --apply    # execute, then run the printed commands:
+mise uninstall --all --yes
+mise implode --config --yes
 ```
 
-It does **not** revert macOS system defaults (dock, finder, keyboard) - defaults
-write records no prior value, so there is nothing to restore.
+It does not uninstall Homebrew, and does **not** revert macOS system defaults
+(dock, finder, keyboard) - defaults write records no prior value, so there is
+nothing to restore.
 
 ## Contributing
 

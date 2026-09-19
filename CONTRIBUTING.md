@@ -35,7 +35,7 @@ See `docs/ARCHITECTURE.md` (two-file boundary and package policy).
 Use Conventional Commits: `type(scope): description`
 
 Types: `feat`, `fix`, `docs`, `test`, `ci`, `refactor`, `chore`.
-Scopes: `zsh`, `git`, `nvim`, `ghostty`, `vscode`, `mise`, `ci`, `wipe`, etc.
+Scopes: `zsh`, `git`, `nvim`, `ghostty`, `vscode`, `mise`, `ci`, `teardown`, etc.
 
 ## Tests
 
