@@ -21,11 +21,16 @@ VISUAL = "nvim"
 PAGER = "less -FRX"
 LANG = "en_US.UTF-8"
 ENABLE_PROMPT_CACHING_1H = "1"
-PI_CACHE_RETENTION = "long"
 XDG_CONFIG_HOME = "{{env.HOME}}/.config"
 NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 _.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin"]
+
+[plugins]
+# No-op local backend so VS Code extensions can be declared as [tools] entries
+# below (vscode-ext:<id>). mise auto-links this on `mise install`.
+# Uses env.HOME for portability - no hardcoded username.
+vscode-ext = "{{env.HOME}}/.config/mise/plugins/vscode-ext"
 
 [tools]
 node = "lts"
@@ -50,6 +55,27 @@ shellcheck = "latest"
 claude-code = "latest"
 codex = "latest"
 pi = "latest"
+
+# VS Code extensions (declared here, synced by apply-vscode-extensions.sh).
+# language support
+"vscode-ext:golang.go" = "latest"
+"vscode-ext:ms-python.debugpy" = "latest"
+"vscode-ext:ms-python.python" = "latest"
+"vscode-ext:ms-python.vscode-pylance" = "latest"
+"vscode-ext:ms-python.vscode-python-envs" = "latest"
+"vscode-ext:ms-vscode.makefile-tools" = "latest"
+"vscode-ext:tombi-toml.tombi" = "latest"
+"vscode-ext:mechatroner.rainbow-csv" = "latest"
+# AI
+"vscode-ext:anthropic.claude-code" = "latest"
+"vscode-ext:openai.chatgpt" = "latest"
+# tooling
+"vscode-ext:hverlin.mise-vscode" = "latest"
+"vscode-ext:typora.typora-open-in-typora" = "latest"
+# themes and icons
+"vscode-ext:github.github-vscode-theme" = "latest"
+"vscode-ext:pkief.material-icon-theme" = "latest"
+"vscode-ext:zhuangtongfa.material-theme" = "latest"
 
 [bootstrap.packages]
 "brew:git" = "latest"
@@ -139,14 +165,11 @@ v = "nvim"
 "~/.config/starship.toml" = {}
 "~/.config/npm/npmrc" = {}
 "~/.config/uv/uv.toml" = {}
-"~/.config/vscode/extensions.txt" = {}
 "~/.config/ghostty" = {}
 "~/.config/nvim" = {}
 
 "~/.claude/CLAUDE.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
 "~/.claude/skills" = { source = "~/dotfiles/home/.agents/skills" }
-"~/.pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
-"~/.pi/agent/extensions/friendly-footer.ts" = {}
 "~/.codex/AGENTS.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
 "~/.agents/skills" = { source = "~/dotfiles/home/.agents/skills" }
 
