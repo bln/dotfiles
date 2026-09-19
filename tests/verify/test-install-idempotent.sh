@@ -22,7 +22,8 @@ run_capture bash "$REPO/install.sh"
 assert_eq "install.sh re-run exits 0" "0" "$RUN_STATUS"
 
 # After a re-run on a converged host, the bootstrap plan should be empty:
-# --detailed-exitcode returns 0 when there is nothing to do.
-CONFIG="$REPO/home/.config/mise/config.toml"
-run_capture env MISE_GLOBAL_CONFIG_FILE="$CONFIG" mise -q bootstrap plan --detailed-exitcode
+# --detailed-exitcode returns 0 when there is nothing to do. The new entrypoint
+# runs from the checkout (mise bootstrap --from --cd), so no config-file bridge
+# is needed - plan reads the merged config from the repo cwd.
+run_capture env mise -C "$REPO" -q bootstrap plan --detailed-exitcode
 assert_eq "bootstrap plan is empty after re-run" "0" "$RUN_STATUS"

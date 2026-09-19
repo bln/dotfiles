@@ -70,7 +70,10 @@ else
 fi
 
 # Key scripts exist
-for f in "$REPO/install.sh" "$REPO/wipe.sh" "$REPO/tests/run.sh"; do
+for f in "$REPO/install.sh" "$REPO/tests/run.sh" \
+         "$REPO/scripts/teardown-dotfiles.sh" \
+         "$REPO/scripts/teardown-vscode.sh" \
+         "$REPO/scripts/teardown-local.sh"; do
   assert_file "$(basename "$f") exists" "$f"
 done
 

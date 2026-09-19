@@ -2,64 +2,31 @@
 set -euo pipefail
 
 # -------------------------------------------------------------------
-# install.sh - Bootstrap or update this dotfiles workstation via mise
+# install.sh - first-run bootstrap of this dotfiles workstation via mise.
 #
-# Usage:
-#   ./install.sh            Full bootstrap (first-time setup)
-#   ./install.sh --update   Update existing installation
-#   ./install.sh --help     Show this help message
+# Installs mise (pinned), then hands the whole converge to
+# `mise bootstrap --from`: it clones (or reuses) the repo, trusts it, cd's in,
+# and runs the 8-phase bootstrap - tools, packages, dotfiles, macOS defaults,
+# and the repo's own `[tasks.bootstrap]` (VS Code extensions + uv python).
+# Finally prompts for a machine-local git identity in the foreground.
+#
+# Re-converge is `mise run update` (or `dot run update`), not this script.
 # -------------------------------------------------------------------
 
-die() {
-  printf 'ERROR: %s\n' "$1" >&2
-  exit 1
-}
-
-usage() {
-  printf 'Usage: %s [--update | --help]\n\n' "$(basename "$0")"
-  printf '  (no args)   Full bootstrap: install mise, trust configs, converge everything\n'
-  printf '  --update    Update an existing installation (tools, packages, dotfiles)\n'
-  printf '  --help      Show this help message\n'
-  exit 0
-}
-
-MODE="bootstrap"
-for arg in "$@"; do
-  case "$arg" in
-    --help|-h)  usage ;;
-    --update)   MODE="update" ;;
-    *)          die "Unknown argument: $arg. Use --help for usage." ;;
-  esac
-done
-
-REPO="$(cd "$(dirname "$0")" && pwd)"
-CONFIG="$REPO/home/.config/mise/config.toml"
-
-[ -f "$CONFIG" ] || die "$CONFIG not found."
-
-export PATH="$HOME/.local/bin:$PATH"
-
+# MISE_VERSION is pinned; keep it byte-identical to config.toml min_version and
+# .github/workflows/ci.yml (enforced by tests/static/test-version-consistency.sh).
 if ! command -v mise >/dev/null 2>&1; then
   curl -fsSL https://mise.run | MISE_VERSION="2026.9.9" sh
 fi
+export PATH="$HOME/.local/bin:$PATH"
+command -v mise >/dev/null 2>&1 || { printf 'ERROR: mise not found after install.\n' >&2; exit 1; }
 
-command -v mise >/dev/null 2>&1 || die "mise not found after install attempt."
+# The --from URL must match the checkout's remote.origin.url exactly, or
+# --from-dir reuse bails. It matches this repo's https origin.
+mise bootstrap --from "https://github.com/bln/dotfiles.git" \
+  ${DOTFILES_DIR:+--from-dir "$DOTFILES_DIR"} --yes --force-dotfiles
 
-export MISE_GLOBAL_CONFIG_FILE="$CONFIG"
-
-mise trust "$CONFIG"
-mise trust "$REPO/mise.toml"
-
-if [ -d "$REPO/tasks" ]; then
-  mise trust "$REPO/tasks"
-fi
-
-if [ "$MODE" = "update" ]; then
-  printf '==> Updating tools and packages...\n'
-  mise install
-  mise run update
-  printf '==> Update complete.\n'
-else
-  mise bootstrap --yes --force-dotfiles
-  [ -f "$HOME/.config/git/config.local" ] || mise run setup:git-identity
-fi
+# Prompt for machine-local identity in the foreground (TTY intact) - not a
+# bootstrap hook, which would silently skip under a non-TTY stdin. Idempotent:
+# the task no-ops when identity-personal already exists.
+[ -f "$HOME/.config/git/identity-personal" ] || mise run setup:git-identity

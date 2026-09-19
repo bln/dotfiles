@@ -43,6 +43,23 @@ run = [
   "uv python find python >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
 ]
 
+# ── teardown ─────────────────────────────────────────────────────────────────
+# Run from anywhere: dot run teardown  (add --apply to execute)
+
+[tasks.teardown]
+description = "remove repository-owned state (dry-run; pass --apply to execute)"
+dir = "{{ config_root }}"
+usage = 'flag "--apply" help="Execute removals (default: dry-run preview)"'
+# Load-bearing order. The two commands that can't be task steps - `mise uninstall
+# --all` (re-shims the runner mid-array) and `mise implode` (self-deletes mise) -
+# are printed as manual next steps instead.
+run = [
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-dotfiles.sh"',
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-vscode.sh"',
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-local.sh"',
+  'printf "\n== teardown %s ==\n  Then finish manually (removes mise itself):\n    mise uninstall --all --yes\n    mise implode --config --yes\n" "$([ "${usage_apply:-false}" = true ] && echo COMPLETE || echo PREVIEW)"',
+]
+
 # ── update ─────────────────────────────────────────────────────────────────────
 # Run from anywhere: dot run update
 
