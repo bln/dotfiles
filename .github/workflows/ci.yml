@@ -72,5 +72,5 @@ jobs:
         run: |
           mise trust home/.config/mise/config.toml
           mise trust mise.toml
-          mise trust home/.config/mise/tasks
+          mise trust tasks
           MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise bootstrap --dry-run

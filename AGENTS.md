@@ -3,11 +3,11 @@
 This is a single mise-based macOS dotfiles repo. Keep it simple: one home
 payload, top-level install/wipe scripts, small mise tasks, and one global mise config.
 
-`home/` mirrors `$HOME` (symlinked by mise). Everything else is repo machinery:
-top-level `install.sh`/`wipe.sh` and `tests/` run against the checkout and are
-never symlinked; `home/.config/mise/tasks/` holds mise tasks that ship to
-`$HOME` and run as `mise run ...`. If you add repo-local helper scripts, put
-them in a top-level `scripts/` dir (not shipped), mirroring that split.
+`home/` mirrors `$HOME` (symlinked by mise). Everything else is repo machinery,
+never symlinked: top-level `install.sh`/`wipe.sh` and `tests/` run against the
+checkout; `tasks/setup/` holds mise file-tasks (run as `mise run setup:...`)
+that generate machine-local state. If you add repo-local helper scripts, put
+them in the top-level `scripts/` dir (not shipped), mirroring that split.
 
 ## Rules
 
@@ -24,7 +24,10 @@ them in a top-level `scripts/` dir (not shipped), mirroring that split.
 - Do not create, edit, move, or delete files under `home/.agents/skills`
   without explicit approval.
 - Personal identity stays out of tracked files. Use machine-local git identity
-  files created by `mise setup:git-identity`.
+  files created by `mise run setup:git-identity`.
+
+For the design rationale behind these rules see `docs/ARCHITECTURE.md`; for
+contributor process (code rules, tests, commit style) see `CONTRIBUTING.md`.
 
 ## Verification
 
@@ -32,7 +35,7 @@ For dotfiles changes, prefer:
 
 ```bash
 mise -C ~/dotfiles run test    # lint (shellcheck) + script harness against mktemp sandboxes
-mise -C ~/dotfiles verify      # the above, plus live machine-state checks
+mise -C ~/dotfiles run verify  # the above, plus live machine-state checks
 ```
 
 `test` is host-independent (this is what CI runs); `verify` layers on the
