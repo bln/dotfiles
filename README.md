@@ -14,7 +14,7 @@ Homebrew workflow. There is no Brewfile.
 ## Quick start
 
 ```sh
-curl -fsSL https://mise.run | MISE_VERSION=2026.9.12 sh
+curl -fsSL https://mise.run | sh
 curl -fsSL https://raw.githubusercontent.com/bln/dotfiles/main/install.sh | bash
 exec zsh -l
 ```
@@ -28,7 +28,7 @@ git clone https://github.com/bln/dotfiles.git ~/dotfiles
 exec zsh -l
 ```
 
-`install.sh` installs mise (pinned), then hands the whole converge to
+`install.sh` installs mise, then hands the whole converge to
 `mise bootstrap --from`: it clones/reuses the repo, trusts it, and runs the
 8-phase bootstrap (tools, packages, dotfiles, macOS defaults, and the repo's
 `[tasks.bootstrap]` for VS Code extensions + uv python), then prompts for a
@@ -71,12 +71,10 @@ dotfiles/
 │   └── setup/
 │       └── git-identity        # prompted machine-local git identity
 ├── tests/
-│   ├── run.sh                  # test harness (suite selection supported)
+│   ├── run.sh                  # test harness (run.sh [ci|host|all])
 │   ├── lib/testlib.sh          # assertion helpers + sandbox management
-│   ├── unit/                   # script-level tests via env-var seams
-│   ├── static/                 # config format, structural, and secret checks
-│   ├── integration/            # real mise + sandboxed shell startup
-│   └── verify/                 # host-only behavioral checks (macOS, not CI)
+│   ├── ci/                     # hermetic: script logic, shell startup, format parse
+│   └── host/                   # needs a converged mac (tools, real code); not CI
 ├── docs/
 │   └── ARCHITECTURE.md         # design rationale + package policy
 └── home/                       # payload managed in $HOME by mise dotfiles
@@ -231,12 +229,17 @@ network access.
 
 ## Testing and CI
 
-`mise run test` (from the repo root, or `dot run test` anywhere) runs the
-host-independent suites - static, unit, integration - which is exactly what CI
-runs. `mise run verify` additionally runs the host-only behavioral checks
-(tools on PATH, plugins loaded) and checks mise health, declared-state drift,
-git identity, and VS Code profile drift on a converged macOS host. See
-CONTRIBUTING.md for the suites and how to add a test.
+`mise run test` (from the repo root, or `dot run test` anywhere) lints every
+shell script and runs the **ci** tier - hermetic tests that need no host state,
+exactly what CI runs. `mise run verify` additionally runs the **host** tier
+(tools on PATH, plugins loaded, real VS Code) plus mise health and
+declared-state drift on a converged macOS host.
+
+The suite is intentionally small and organised by one question - *does this
+need a real mac?* - not by test category. It guards behavior, script logic, and
+data-loss paths; it does NOT restate the config or re-test mise. Read
+`docs/TESTING.md` before adding, removing, or "strengthening" a test - it is the
+contract that keeps the suite from re-accreting double-entry checks.
 
 ## Teardown
 

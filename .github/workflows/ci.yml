@@ -37,9 +37,11 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install shellcheck
 
+      # No MISE_VERSION pin: config.toml min_version is the single source of truth
+      # for the mise floor; installing latest always satisfies it (see docs/TESTING.md).
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.12 sh
+          curl -fsSL https://mise.run | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust configuration
@@ -65,7 +67,7 @@ jobs:
 
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | MISE_VERSION=2026.9.12 sh
+          curl -fsSL https://mise.run | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Trust and validate bootstrap plan

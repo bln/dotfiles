@@ -105,6 +105,16 @@ require_code_closed() {
 
 storage_json() { printf '%s/globalStorage/storage.json' "$USER_DIR"; }
 
+# set_minus A B -> lines present in A but not in B (both newline-separated; the
+# delta is order-independent and blank lines are dropped). This is the pure core
+# of the extension drift math: sync/check derive "to install" and "undeclared"
+# from it. Kept as a standalone, IO-free function so tests source this script and
+# exercise it directly on plain strings - no fake `code`, no sandbox.
+set_minus() {
+  comm -23 <(printf '%s\n' "$1" | sed '/^$/d' | sort -u) \
+           <(printf '%s\n' "$2" | sed '/^$/d' | sort -u)
+}
+
 # valid_location <loc>: a location id is an opaque token VS Code stores in
 # storage.json and we join under $USER_DIR/profiles to build a path we later
 # rm -rf. Never trust it blindly: reject anything that is not a single safe path
@@ -268,39 +278,32 @@ sync_files() {
 # sync_extensions <name> [--prune]: install declared-but-missing; prune undeclared
 # (against effective_declared) only when pruning, else warn.
 sync_extensions() {
-  local name="$1" declared installed ext
+  local name="$1" declared installed ext to_install undeclared
   local -a sel=()
   while IFS= read -r a; do [ -n "$a" ] && sel+=("$a"); done < <(profile_code_args "$name")
   declared="$(effective_declared "$name")"
   installed="$(installed_extensions "$name")"
 
+  to_install="$(set_minus "$declared" "$installed")"
   while IFS= read -r ext; do
     [ -n "$ext" ] || continue
-    if ! grep -Fxq "$ext" <<<"$installed"; then
-      printf 'Installing %s (%s)\n' "$ext" "${name:-$GLOBAL}"
-      "$CODE_BIN" --install-extension "$ext" "${sel[@]+"${sel[@]}"}" \
-        || note_failure "failed to install $ext (${name:-$GLOBAL})"
-    fi
-  done <<<"$(declared_extensions_effective_for_install "$name")"
+    printf 'Installing %s (%s)\n' "$ext" "${name:-$GLOBAL}"
+    "$CODE_BIN" --install-extension "$ext" "${sel[@]+"${sel[@]}"}" \
+      || note_failure "failed to install $ext (${name:-$GLOBAL})"
+  done <<<"$to_install"
 
+  undeclared="$(set_minus "$installed" "$declared")"
   while IFS= read -r ext; do
     [ -n "$ext" ] || continue
-    if ! grep -Fxq "$ext" <<<"$declared"; then
-      if [ "$PRUNE" = true ]; then
-        printf 'Pruning untracked %s (%s)\n' "$ext" "${name:-$GLOBAL}"
-        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" \
-          || note_failure "failed to prune $ext (${name:-$GLOBAL})"
-      else
-        warn "installed extension not declared: $ext (${name:-$GLOBAL}) (pass --prune to remove)"
-      fi
+    if [ "$PRUNE" = true ]; then
+      printf 'Pruning untracked %s (%s)\n' "$ext" "${name:-$GLOBAL}"
+      "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" \
+        || note_failure "failed to prune $ext (${name:-$GLOBAL})"
+    else
+      warn "installed extension not declared: $ext (${name:-$GLOBAL}) (pass --prune to remove)"
     fi
-  done <<<"$installed"
+  done <<<"$undeclared"
 }
-
-# For install we only install the profile's effective set (own + globals for a
-# named profile). Kept separate so a future policy could diverge install from
-# prune; today both use effective_declared.
-declared_extensions_effective_for_install() { effective_declared "$1"; }
 
 # ── subcommands ───────────────────────────────────────────────────────────────
 
@@ -367,23 +370,21 @@ check_snippets() {
 # set against what `code` reports installed. Missing (declared, not installed)
 # and undeclared (installed, not declared) are both drift. Requires `code`.
 check_extensions() {
-  local name="$1" declared installed ext rc=0
+  local name="$1" declared installed ext rc=0 missing undeclared
   declared="$(effective_declared "$name")"
   installed="$(installed_extensions "$name")"
+  missing="$(set_minus "$declared" "$installed")"
   while IFS= read -r ext; do
     [ -n "$ext" ] || continue
-    grep -Fxq "$ext" <<<"$installed" || {
-      warn "extension declared but not installed: $ext (${name:-$GLOBAL}) - run 'vscode-profiles apply'."
-      rc=1
-    }
-  done <<<"$declared"
+    warn "extension declared but not installed: $ext (${name:-$GLOBAL}) - run 'vscode-profiles apply'."
+    rc=1
+  done <<<"$missing"
+  undeclared="$(set_minus "$installed" "$declared")"
   while IFS= read -r ext; do
     [ -n "$ext" ] || continue
-    grep -Fxq "$ext" <<<"$declared" || {
-      warn "extension installed but not declared: $ext (${name:-$GLOBAL}) - 'apply --prune' to remove or declare it."
-      rc=1
-    }
-  done <<<"$installed"
+    warn "extension installed but not declared: $ext (${name:-$GLOBAL}) - 'apply --prune' to remove or declare it."
+    rc=1
+  done <<<"$undeclared"
   return "$rc"
 }
 
@@ -568,4 +569,9 @@ main() {
   esac
 }
 
-main "$@"
+# Execute only when run directly; sourcing (tests) loads the pure helpers
+# (set_minus, valid_location, declared_extensions, effective_declared) without
+# running a subcommand.
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  main "$@"
+fi

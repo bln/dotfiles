@@ -1,6 +1,9 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
+# min_version is the ONLY place the required mise version is declared. install.sh
+# and CI install latest mise (no second pin to drift); mise enforces this floor
+# after the repo is cloned. See docs/TESTING.md.
 min_version = "2026.9.12"
 
 [settings]

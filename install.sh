@@ -13,10 +13,12 @@ set -euo pipefail
 # Re-converge is `mise run update` (or `dot run update`), not this script.
 # -------------------------------------------------------------------
 
-# MISE_VERSION is pinned; keep it byte-identical to config.toml min_version and
-# .github/workflows/ci.yml (enforced by tests/static/test-version-consistency.sh).
+# Install the latest mise if absent. We deliberately do NOT pin a version here:
+# config.toml's `min_version` is the single source of truth for the mise floor
+# this repo requires, and `mise bootstrap` enforces it once the repo is cloned.
+# A second pinned copy here (or in CI) would only create drift. See docs/TESTING.md.
 if ! command -v mise >/dev/null 2>&1; then
-  curl -fsSL https://mise.run | MISE_VERSION="2026.9.12" sh
+  curl -fsSL https://mise.run | sh
 fi
 export PATH="$HOME/.local/bin:$PATH"
 command -v mise >/dev/null 2>&1 || { printf 'ERROR: mise not found after install.\n' >&2; exit 1; }

@@ -40,38 +40,39 @@ Scopes: `zsh`, `git`, `nvim`, `ghostty`, `vscode`, `mise`, `ci`, `teardown`, etc
 
 ## Tests
 
-Add or update tests for every behavior change. Run from the repo root (or use
+Read `docs/TESTING.md` first - it is the contract for what this suite does and
+does not test. In short: guard behavior, script logic, and data-loss paths;
+never restate the config or re-test mise. Run from the repo root (or use
 `dot run test` from anywhere):
 
 ```sh
-mise run test          # host-independent repository tests (what CI runs)
-mise run verify        # additionally runs host-only checks + machine state (macOS)
+mise run test          # lint + the ci tier (hermetic; what CI runs)
+mise run verify        # additionally runs the host tier + machine state (macOS)
 ```
 
-### Suites
+### Tiers
 
-| Suite | Directory | Checks | Needs host state? |
+Tests are split by one question only - *does this need a converged mac?*
+
+| Tier | Directory | Checks | Needs host state? |
 |---|---|---|---|
-| **static** | `tests/static/` | Config parse/shape, version consistency, template + secret hygiene, lint | No |
-| **unit** | `tests/unit/` | Individual task/script behavior via env-var seams and fake-binary shims | No |
-| **integration** | `tests/integration/` | Real mise plan reproducibility; sandboxed zsh startup under a pty | Skips cleanly if mise/zsh absent |
-| **verify** | `tests/verify/` | Tools resolve on PATH, plugins loaded, install re-run idempotent | Yes (macOS host, not CI) |
+| **ci** | `tests/ci/` | Script logic via seams, shell startup under a pty, config parse, secret + copy-tree hygiene | No (hermetic) |
+| **host** | `tests/host/` | Tools+plugins resolve, install re-run idempotent, real VS Code apply/teardown | Yes (macOS host, not CI) |
 
-static, unit, and integration run in CI on every push and PR (`mise run test`);
-integration tests skip cleanly when mise or zsh is unavailable. The verify suite
-is host-coupled behavioral validation wired into `mise run verify`, never CI.
+The ci tier runs on every push (Linux + macOS). The host tier is wired into
+`mise run verify`, never CI, and skips cleanly off-host. Do not re-introduce a
+static/unit/integration split; see `docs/TESTING.md`.
 
 ### Conventions
 
-- Name test files `test-<subject>.sh`; the runner auto-discovers `test-*.sh` in each suite.
-- Start each file with `#!/usr/bin/env bash` and `set -euo pipefail`.
-- Source the shared library: `source "${BASH_SOURCE[0]%/*}/../lib/testlib.sh"`.
-- Use `ok "<msg>"` for a passing assertion and `bad "<msg>" "<detail>"` for a failure.
-- Tests must be host-independent (no network, no installed tools) unless placed in `tests/integration/`.
-- Exercise the real shipped script via its documented override seam (env var or
-  flag pointed at a mktemp sandbox) - never copy the script into a fixture.
-
-`tests/lib/testlib.sh` provides `ok`/`bad` and the summary/exit trap.
+- Name test files `test-<subject>.sh`; the runner auto-discovers `test-*.sh` in each tier.
+- Source the shared library and use `ok`/`bad`/`skip`; `tests/lib/testlib.sh` owns the summary and exit trap.
+- Exercise the real shipped script via its documented seam (env var or flag at a
+  mktemp sandbox) - never copy the script into a fixture. If a script is hard to
+  test, make it testable (add a seam, make it sourceable, extract the pure
+  decision).
+- Skip cleanly (do not fail) when an optional dependency is absent.
+- Before adding a test, run the checklist at the end of `docs/TESTING.md`.
 
 ## Pull requests
 

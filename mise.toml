@@ -20,7 +20,7 @@ run = [
   # host-independent: lint + test harness.
   "mise run test",
   # host-coupled behavioral checks (tools on PATH, plugins loaded).
-  "bash tests/run.sh verify",
+  "bash tests/run.sh host",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
   "mise dotfiles status --missing",

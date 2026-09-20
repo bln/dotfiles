@@ -11,8 +11,8 @@
 # real install path is exercised OFFLINE - no marketplace, no network, no
 # committed binary fixtures.
 #
-# Host-coupled (needs `code`, `zip`, `jq`, `uuidgen`); wired into `verify`,
-# never CI. Skips cleanly when any dependency or a headless probe is missing.
+# Host-coupled (needs `code`, `zip`, `jq`, `uuidgen`); host tier only (run by
+# `mise run verify`), never CI. Skips cleanly when any dependency or a headless probe is missing.
 
 echo "== vscode-real-code =="
 

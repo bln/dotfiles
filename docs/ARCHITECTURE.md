@@ -116,8 +116,9 @@ Exceptions to the no-direct-backend rule:
   dynamically, never hard-code `/opt/homebrew`.
 - `scripts/teardown-*.sh` may reference package-manager state for cleanup.
 
-Enforced by the test suite: `tests/static/test-config-shape.sh` checks every
-package key carries a known backend prefix (`brew:`, `brew-cask:`, `mas:`, ...),
-`tests/static/test-lint.sh` runs shellcheck across all scripts, and the
-host-only `tests/verify/test-tools-on-path.sh` proves the `.zshrc` brew-prefix
-detection resolves at runtime rather than hard-coding `/opt/homebrew`.
+Enforced at converge time and by the test suite: mise itself rejects a package
+key with an unknown backend prefix when `mise bootstrap --dry-run` runs in CI
+(we do not restate that rule in a grep test - see `docs/TESTING.md`),
+`scripts/lint-shell.sh` runs shellcheck across all scripts, and the host-only
+`tests/host/test-tools-on-path.sh` proves the `.zshrc` brew-prefix detection
+resolves at runtime rather than hard-coding `/opt/homebrew`.
