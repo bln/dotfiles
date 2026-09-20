@@ -23,16 +23,33 @@ GITCFG="$REPO/home/.config/git/config"
   assert_contains "work email"     "$(cat "$work")" "work@corp.example"
 }
 
-# Idempotency: a second run with identity-personal present is a no-op (exit 0),
-# does not re-prompt, and leaves the file untouched.
+# Idempotency: a second run with BOTH files present is a no-op (exit 0), does
+# not re-prompt, and leaves the files untouched.
 {
   home="$(sandbox)"
   printf 'A\na@x.co\nB\nb@x.co\n' | HOME="$home" bash "$GIT_IDENTITY" >/dev/null 2>&1
   before="$(cat "$home/.config/git/identity-personal")"
   out="$(HOME="$home" bash "$GIT_IDENTITY" </dev/null 2>&1)"; rc=$?
   assert_eq "re-run exits 0" "0" "$rc"
-  assert_contains "re-run reports existing" "$out" "already exists"
+  assert_contains "re-run reports existing" "$out" "already exist"
   assert_eq "re-run leaves file unchanged" "$before" "$(cat "$home/.config/git/identity-personal")"
+}
+
+# Half-configured recovery (finding): if only identity-personal exists (an
+# interrupted first run that wrote personal but not work), a re-run must NOT
+# no-op - it must re-prompt and write the missing work file.
+{
+  home="$(sandbox)"; mkdir -p "$home/.config/git"
+  # Simulate the interrupted state: personal present, work absent.
+  printf '[user]\n\tname = Personal User\n\temail = me@personal.com\n' \
+    >"$home/.config/git/identity-personal"
+  out="$(printf 'Personal User\nme@personal.com\nWork User\nwork@corp.example\n' \
+    | HOME="$home" bash "$GIT_IDENTITY" 2>&1)"; rc=$?
+  assert_eq "half-configured re-run exits 0" "0" "$rc"
+  assert_not_contains "did not treat half-config as done" "$out" "already exist"
+  assert_file "re-run creates the missing work file" "$home/.config/git/identity-work"
+  assert_contains "work file has the work identity" \
+    "$(cat "$home/.config/git/identity-work")" "work@corp.example"
 }
 
 # Validation: a malformed email is rejected with a non-zero exit and no files.

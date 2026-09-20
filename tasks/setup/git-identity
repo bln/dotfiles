@@ -14,11 +14,12 @@ work="$HOME/.config/git/identity-work"
 # When invoked directly (e.g. in tests), set USAGE_FORCE=true to force overwrite.
 force="${USAGE_FORCE:-false}"
 
-# Guard on the default file - it must always resolve, so it is the one that
-# gates a re-run into a no-op.
-if [ -f "$personal" ] && [ "$force" != "true" ]; then
-  # shellcheck disable=SC2088 # literal path shown to the user, not a path to expand
-  echo "~/.config/git/identity-personal already exists (pass --force to overwrite)."
+# Guard: both files must exist for the identity to be complete. Gating on only
+# one lets an interrupted run (personal written, work not) look "done" on re-run.
+# Require BOTH present to no-op; if either is missing, (re)prompt and rewrite.
+if [ -f "$personal" ] && [ -f "$work" ] && [ "$force" != "true" ]; then
+  # shellcheck disable=SC2088 # literal paths shown to the user, not paths to expand
+  echo "~/.config/git/identity-personal and identity-work already exist (pass --force to overwrite)."
   exit 0
 fi
 
