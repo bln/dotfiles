@@ -14,6 +14,7 @@ ownership of unrelated user state.
 | Native package or macOS application | `[bootstrap.packages]` in the global config |
 | Stateful setup (links, generated config) | An executable mise task under `tasks/` |
 | Repository-owned configuration | `home/` using its `$HOME`-relative path |
+| Agent instructions and skills | explicit `[dotfiles]` entries in copy mode |
 | Machine identity or secrets | Generated ignored files, never tracked values |
 
 See `docs/ARCHITECTURE.md` (two-file boundary and package policy).

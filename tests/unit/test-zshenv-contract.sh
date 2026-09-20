@@ -40,6 +40,9 @@ assert_eq "XDG_DATA_HOME defaults under HOME"   "$sb/.local/share"   "$(probe "$
 assert_eq "XDG_STATE_HOME defaults under HOME"  "$sb/.local/state"   "$(probe "$sb" XDG_STATE_HOME)"
 assert_eq "ZDOTDIR points at ~/.config/zsh"     "$sb/.config/zsh"    "$(probe "$sb" ZDOTDIR)"
 assert_eq "NPM config relocated into XDG"       "$sb/.config/npm/npmrc" "$(probe "$sb" NPM_CONFIG_USERCONFIG)"
+assert_eq "Pi config relocated into XDG"         "$sb/.config/pi/agent" "$(probe "$sb" PI_CODING_AGENT_DIR)"
+assert_eq "Codex config relocated into XDG"      "$sb/.config/codex" "$(probe "$sb" CODEX_HOME)"
+assert_eq "Claude config relocated into XDG"     "$sb/.config/claude" "$(probe "$sb" CLAUDE_CONFIG_DIR)"
 
 # ~/.local/bin must be present AND ahead of the inherited PATH so script-installed
 # mise/uv win over any system copy.

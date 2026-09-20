@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Target dir is the seam: tests point CODEX_HOME at a mktemp sandbox; the
 # no-override default keeps production behavior unchanged.
-codex_home="${CODEX_HOME:-$HOME/.codex}"
+codex_home="${CODEX_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/codex}"
 
 # Parse args before the CODEX_HOME safety guard so --help/--dry-run are always
 # answerable regardless of env (the guard only needs to fire before any delete,

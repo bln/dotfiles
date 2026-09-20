@@ -23,6 +23,7 @@ run = [
   "bash tests/run.sh verify",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
+  "mise dotfiles status --missing",
   'bash "{{ config_root }}/scripts/vscode-profiles" check',
   "echo 'OK: dotfiles verification passed.'",
 ]
@@ -50,6 +51,7 @@ run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--p
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
+  "mise dotfiles apply",
   # apply is best-effort here: a transient extension-install failure returns
   # nonzero but must not abort the rest of the converge (verify's `check` is the
   # strict gate). It still prints the failure.
@@ -95,8 +97,6 @@ run = [
   # failure warns but must not abort the remaining upgrade steps.
   "NODE_NO_WARNINGS=1 code --update-extensions",
   "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
-  "mise bootstrap dotfiles apply",
+  "mise dotfiles apply",
   "uv python upgrade",
 ]
-
-

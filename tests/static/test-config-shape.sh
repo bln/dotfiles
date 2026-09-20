@@ -7,7 +7,8 @@
 #   - lockfile = true (tool versions are pinned, not floating)
 #   - every [bootstrap.packages] key carries a known backend prefix
 #     (brew:, brew-cask:, ...) so mise can resolve it
-#   - _.path includes ~/.local/bin (where mise shims + installed bins land)
+#   - mise's path includes ~/.local/bin for non-interactive tasks
+#   - interactive aliases and user environment are not stored in mise config
 #   - [tools] is non-empty
 #
 # A grep test cannot assert these structurally; we parse the real TOML.
@@ -66,6 +67,23 @@ path = env.get("_", {}).get("path", []) if isinstance(env.get("_"), dict) else e
 check("_.path includes ~/.local/bin",
       any(".local/bin" in str(p) for p in (path or [])),
       f"_.path = {path!r}")
+check("mise cask app directory is configured",
+      env.get("MISE_BREW_CASK_OPT_APPDIR") == "{{env.HOME}}/Applications",
+      f"MISE_BREW_CASK_OPT_APPDIR = {env.get('MISE_BREW_CASK_OPT_APPDIR')!r}")
+
+shell_env = {
+    "SHELL_SESSIONS_DISABLE", "EDITOR", "VISUAL", "PAGER",
+    "LANG", "ENABLE_PROMPT_CACHING_1H", "XDG_CONFIG_HOME",
+    "NPM_CONFIG_USERCONFIG", "PI_CODING_AGENT_DIR", "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+}
+for name in sorted(shell_env):
+    check(f"{name} is shell-owned",
+          name not in env,
+          f"unexpected mise env entry: {name}")
+check("interactive aliases are shell-owned",
+      "shell_alias" not in cfg,
+      "unexpected [shell_alias] table")
 
 KNOWN = ("brew:", "brew-cask:", "mas:", "aqua:", "cargo:", "npm:", "pipx:", "go:", "ubi:", "asdf:", "vfox:")
 pkgs = cfg.get("bootstrap", {}).get("packages", {})

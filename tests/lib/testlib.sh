@@ -70,8 +70,8 @@ skip() { printf '  skip %s\n' "$1"; pass=$((pass + 1)); }
 # This matches a fresh CI runner and, crucially, exercises the rc's `command -v`
 # tool guards on their absent branch. It also avoids a hang: real `mise activate
 # zsh` eval'd inside a login shell under a `script` pty blocks reading the tty.
-# The tool-present path is covered behaviorally in the verify tier
-# (test-tools-on-path), against the live machine - never here.
+# The integration suite also prepends fixture commands when it needs to exercise
+# the tool-present branch; the verify tier covers the real installed machine.
 zsh_home() {
   local sb
   sb="$(sandbox)"
@@ -87,10 +87,15 @@ zsh_startup() {
   [ -n "$sb" ] || sb="$(zsh_home)"
   RUN_STDOUT="$(mktemp)"; RUN_STDERR="$(mktemp)"; sandboxes+=("$RUN_STDOUT" "$RUN_STDERR")
   # Minimal PATH: system dirs plus wherever this zsh lives (so `zsh` and its
-  # helpers resolve) - nothing from the caller's toolchain.
+  # helpers resolve) - nothing from the caller's toolchain. Tests can prepend
+  # a fixture directory with ZSH_STARTUP_EXTRA_PATH to exercise tool-present
+  # branches without copying or modifying the real rc file.
   local zbin minpath
   zbin="$(dirname "$(command -v zsh)")"
   minpath="$zbin:/usr/bin:/bin:/usr/sbin:/sbin"
+  if [ -n "${ZSH_STARTUP_EXTRA_PATH:-}" ]; then
+    minpath="$ZSH_STARTUP_EXTRA_PATH:$minpath"
+  fi
   # Pin HOME/ZDOTDIR and the XDG dirs at the sandbox so .zshenv resolves cache/
   # config/data inside it - otherwise the caller's real XDG_* leak through
   # `script`. stdin from /dev/null so no run can block on terminal input.

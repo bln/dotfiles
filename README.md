@@ -79,11 +79,15 @@ dotfiles/
 │   └── verify/                 # host-only behavioral checks (macOS, not CI)
 ├── docs/
 │   └── ARCHITECTURE.md         # design rationale + package policy
-└── home/                       # payload symlinked into $HOME by mise dotfiles
+└── home/                       # payload managed in $HOME by mise dotfiles
     ├── .zshenv
-    ├── .agents/                # AGENTS.md + skills, shared across agent CLIs
     └── .config/
-        ├── mise/config.toml    # THE source of truth: tools, packages, defaults
+        ├── pi/agent/AGENTS.md   # copied into the Pi agent root
+        ├── codex/AGENTS.md      # copied into the Codex root
+        ├── skills/              # copied to ~/.agents/skills for Pi and Codex
+        ├── claude/CLAUDE.md     # copied into the Claude root
+        ├── claude/skills/       # independent copied Claude skill tree
+        ├── mise/config.toml     # THE source of truth: tools, packages, defaults
         ├── mise/mise.lock
         ├── git/                # config + global ignore (identity is machine-local)
         ├── zsh/                # .zshrc, .zprofile
@@ -105,10 +109,38 @@ dotfiles/
 | Tools (node, uv) | `home/.config/mise/config.toml` `[tools]` | `mise install` |
 | Packages (formulae, casks, fonts, MAS apps) | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
 | Dotfile symlinks | `home/` + `[dotfiles]` table | `mise dotfiles apply` |
+| Agent instructions and skills | explicit `[dotfiles]` entries in copy mode | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
 | VS Code profiles (settings + extensions) | `home/.config/vscode/` (per-profile `extensions.txt` + files) | `scripts/vscode-profiles apply` |
-| Environment and aliases | `[env]` and `[shell_alias]` | `mise activate zsh` |
+| Shell bootstrap | `home/.zshenv` | zsh startup |
+| Interactive environment, activation, aliases, and functions | `home/.config/zsh/.zshrc` | `exec zsh` |
 | Git identity | machine-local, routed by remote host (untracked) | `mise run setup:git-identity` |
+
+### Agent resources
+
+Agent instructions and skills are copied as real files and directories because
+Pi, Codex, and Claude can write in their configuration roots. Only these
+resources are repository-owned:
+
+- `~/.config/pi/agent/AGENTS.md`
+- `~/.config/codex/AGENTS.md`
+- `~/.agents/skills/**` from `home/.config/skills/**`
+- `~/.config/claude/CLAUDE.md`
+- `~/.config/claude/skills/**` from its independent source tree
+
+Agent settings, credentials, sessions, databases, caches, plugins, and Codex
+system skills remain machine-local and ignored. Use the native mise commands:
+
+```sh
+mise dotfiles diff
+mise dotfiles apply
+mise dotfiles status --missing
+```
+
+`mise dotfiles pull` pulls shared mise history; it is not a live-to-repository
+capture. Do not capture an entire writable agent root. Deliberate individual
+instruction-file capture can use `mise dotfiles add` after review. Skill trees
+remain repository-authored.
 
 ## Adding software
 

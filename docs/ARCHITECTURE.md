@@ -10,16 +10,23 @@ invoked directly by scripts, tasks, or CI workflows.
 
 | File | Scope | Owns |
 |---|---|---|
-| `home/.config/mise/config.toml` | **Machine state** | Tool versions, package resources, macOS defaults, dotfile mappings, environment variables, shell aliases, bootstrap hooks |
+| `home/.config/mise/config.toml` | **Machine state** | Tool versions, package resources, macOS defaults, dotfile mappings, mise bootstrap settings, bootstrap hooks |
 | `mise.toml` | **Repository workflow** | Development tasks (test, lint, verify, update, bootstrap), task discovery paths |
 
 Development-only tools belong in the repository `mise.toml`. Workstation-wide
 tools and applications belong in the global config.
 
+Shell startup is deliberately separate from the machine declaration:
+`.zshenv` owns the early XDG, agent-root, and path bootstrap; `.zprofile` owns
+login-shell mise shims; and `.zshrc` owns interactive mise activation, user
+environment defaults, aliases, functions, and optional integrations. The global
+config keeps only mise/package-manager environment needed to converge the host.
+
 ## Sources of truth
 
 - `home/.config/mise/config.toml` + `mise.lock`: desired machine state.
-- `home/`: repository-owned `$HOME` content (symlinked by mise dotfiles).
+- `home/`: repository-owned `$HOME` content. Most entries are symlinked by
+  mise dotfiles; agent instructions and skills are copy-managed.
 - `tasks/setup/`: idempotent generators for machine-local state.
 - `scripts/`: operational checks and helpers.
 - `tests/`: repository correctness validation.
@@ -29,7 +36,7 @@ tools and applications belong in the global config.
 1. `install.sh` installs mise, then `mise bootstrap --from` clones/reuses and
    trusts the repo and runs `mise bootstrap --yes`.
 2. Declarative resources (tools, packages, dotfiles, macOS defaults) converge.
-3. The `bootstrap` task performs application-specific setup (VS Code extensions, uv python).
+3. The `bootstrap` task performs application-specific setup (agent resources, VS Code extensions, uv python).
 4. `test` validates repository behavior (host-independent, runs in CI).
 5. `verify` checks both repository behavior and installed-machine state.
 6. `update` refreshes all managed layers (this is the re-converge path).
@@ -65,6 +72,22 @@ absent (Linux CI, macOS without VS Code). The CLI is self-contained and
 extractable - all state paths route through `VSCODE_*` env seams so tests point
 it at a sandbox and can drive a fully isolated real `code` instance
 (`--user-data-dir`/`--extensions-dir`).
+
+Agent instructions and skills use native mise dotfiles entries in `mode =
+"copy"`. The tracked sources mirror the configured roots: Pi uses
+`home/.config/pi/agent/AGENTS.md`, Codex uses
+`home/.config/codex/AGENTS.md`, the shared Pi/Codex skill tree uses
+`home/.config/skills/`, and Claude has independent sources under
+`home/.config/claude/`. Mise applies these as real files and directories, never
+symlinks.
+
+The copy mappings intentionally have no bulk live-to-repository pull. `mise
+dotfiles pull` is for mise's optional shared history and does not capture these
+writable agent roots. `mise dotfiles add` can still be used for a deliberately
+reviewed individual capture, but credentials, sessions, databases, plugins,
+Codex `.system` skills, and other runtime state are never part of the
+repository-owned mapping. Skills are edited in the repository and copied out
+to each consumer; the independent Claude tree avoids fan-out during apply.
 
 Never symlink a file that a tool rewrites. `git config --global` in particular
 writes through a symlink and would put machine-local values in the repo.

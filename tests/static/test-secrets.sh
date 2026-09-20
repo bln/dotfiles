@@ -19,6 +19,25 @@ tracked() { (cd "$REPO" && git ls-files 2>/dev/null); }
   done
 }
 
+# Agent state roots are intentionally live-only. The paths are checked with
+# --no-index so the assertion proves the ignore rules even before a file exists.
+{
+  for rel in \
+    "home/.config/pi/agent/auth.json" \
+    "home/.config/pi/agent/settings.json" \
+    "home/.config/pi/auth.json" \
+    "home/.config/codex/config.toml" \
+    "home/.config/codex/auth.json" \
+    "home/.config/claude/.claude.json" \
+    "home/.config/claude/settings.json"; do
+    if git -C "$REPO" check-ignore --no-index -q "$rel"; then
+      ok "ignored agent state: $rel"
+    else
+      bad "ignored agent state: $rel" "$rel is not covered by .gitignore"
+    fi
+  done
+}
+
 # No PEM private-key material in any tracked file.
 {
   leak=0

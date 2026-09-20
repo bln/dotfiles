@@ -38,6 +38,24 @@ home/.config/git/config.local
 home/.config/zsh/.zshrc.local
 home/mise.local.toml
 
+# Agent runtime roots are machine-local. Only the explicit instruction files
+# and skill trees below are repository resources. Credentials, settings,
+# sessions, databases, caches, plugins, and other agent state stay local.
+home/.agents/
+home/.config/pi/**
+!home/.config/pi/agent/
+!home/.config/pi/agent/AGENTS.md
+home/.config/codex/**
+!home/.config/codex/AGENTS.md
+home/.config/skills/**
+!home/.config/skills/
+!home/.config/skills/**
+home/.config/claude/**
+!home/.config/claude/
+!home/.config/claude/CLAUDE.md
+!home/.config/claude/skills/
+!home/.config/claude/skills/**
+
 # mise writes a lockfile next to the repo-local mise.toml; the tracked
 # lockfile is home/.config/mise/mise.lock, so ignore this generated one.
 /mise.lock

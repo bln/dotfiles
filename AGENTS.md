@@ -3,8 +3,9 @@
 This is a single mise-based macOS dotfiles repo. Keep it simple: one home
 payload, a top-level install script, small mise tasks, and one global mise config.
 
-`home/` mirrors `$HOME` (symlinked by mise). Everything else is repo machinery,
-never symlinked: top-level `install.sh` and `tests/` run against the
+`home/` mirrors `$HOME`; most entries are symlinked by mise, while agent
+instructions and skills are explicitly copy-managed. The rest of the repository
+is machinery and is never symlinked: top-level `install.sh` and `tests/` run against the
 checkout; `tasks/setup/` holds mise file-tasks (run as `mise run setup:...`)
 that generate machine-local state. If you add repo-local helper scripts, put
 them in the top-level `scripts/` dir (not shipped), mirroring that split.
@@ -21,8 +22,8 @@ them in the top-level `scripts/` dir (not shipped), mirroring that split.
   without approval).
 - Do not add dependencies to `[tools]` or `[bootstrap.packages]`
   without explicit approval.
-- Do not create, edit, move, or delete files under `home/.agents/skills`
-  without explicit approval.
+- Do not create, edit, move, or delete files under `home/.config/skills` or
+  `home/.config/claude/skills` without explicit approval.
 - Personal identity stays out of tracked files. Use machine-local git identity
   files created by `mise run setup:git-identity`.
 
@@ -36,6 +37,7 @@ For dotfiles changes, prefer:
 ```bash
 mise -C ~/dotfiles run test    # lint (shellcheck) + script harness against mktemp sandboxes
 mise -C ~/dotfiles run verify  # the above, plus live machine-state checks
+mise -C ~/dotfiles dotfiles status --missing  # native agent-resource drift
 ```
 
 `test` is host-independent (this is what CI runs); `verify` layers on the

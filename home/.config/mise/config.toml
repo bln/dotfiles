@@ -14,17 +14,11 @@ minimum_release_age = "2d"
 minimum_release_age_excludes = ["claude-code", "codex", "pi"]
 
 [env]
-# User environment formerly split across .zshrc/.zshenv.
-SHELL_SESSIONS_DISABLE = "1"
-EDITOR = "nvim"
-VISUAL = "nvim"
-PAGER = "less -FRX"
-LANG = "en_US.UTF-8"
-ENABLE_PROMPT_CACHING_1H = "1"
-XDG_CONFIG_HOME = "{{env.HOME}}/.config"
-NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
+# These are mise/package-manager settings, not interactive shell state.
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
-_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin"]
+# ~/.local/bin is required for non-interactive mise tasks to resolve the
+# managed Python and helper commands; .zshenv deduplicates it for shells.
+_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
 
 [tools]
 node = "lts"
@@ -100,38 +94,6 @@ tap_to_click = true
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 
-# Interactive aliases. These require `mise activate zsh`; tasks/CI should use mise tasks.
-[shell_alias]
-".." = "cd .."
-"..." = "cd ../.."
-"...." = "cd ../../.."
-c = "clear"
-q = "exit"
-path = '''printf '%s\n' "${PATH//:/\n}"'''
-reload = "exec zsh"
-zshrc = '''nvim "$ZDOTDIR/.zshrc"'''
-vim = "nvim"
-cp = "cp -i"
-mv = "mv -i"
-rm = "rm -i"
-mkdir = "mkdir -p"
-l = "eza --icons=auto"
-ll = "eza -lh --icons=auto --git"
-la = "eza -lah --icons=auto --git"
-tree = "eza --tree --icons=auto"
-cat = "bat --style=plain"
-# Run dotfiles repo tasks from anywhere: dot run update, dot run verify, etc.
-dot = '''mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'''
-
-# directories
-dl = "cd ~/Downloads"
-dt = "cd ~/Desktop"
-dc = "cd ~/Documents"
-
-v = "nvim"
-vz = "NVIM_APPNAME=nvim-lazyvim nvim"   # LazyVim
-vk = "NVIM_APPNAME=nvim-kickstart nvim" # Kickstart
-
 [dotfiles]
 "~/.zshenv" = {}
 "~/.config/zsh/.zshrc" = {}
@@ -146,13 +108,16 @@ vk = "NVIM_APPNAME=nvim-kickstart nvim" # Kickstart
 "~/.config/nvim-lazyvim" = {}
 "~/.config/nvim-kickstart" = {}
 
-"~/.claude/CLAUDE.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
-"~/.claude/skills" = { source = "~/dotfiles/home/.agents/skills" }
-"~/.codex/AGENTS.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
-"~/.agents/skills" = { source = "~/dotfiles/home/.agents/skills" }
-
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
+# Agent instructions and skills are copy-managed because their consumers write
+# in place. The explicit sources keep agent runtime state outside the repo.
+"~/.config/pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.config/pi/agent/AGENTS.md", mode = "copy" }
+"~/.config/codex/AGENTS.md" = { source = "~/dotfiles/home/.config/codex/AGENTS.md", mode = "copy" }
+"~/.agents/skills" = { source = "~/dotfiles/home/.config/skills", mode = "copy", manifest = "git" }
+"~/.config/claude/CLAUDE.md" = { source = "~/dotfiles/home/.config/claude/CLAUDE.md", mode = "copy" }
+"~/.config/claude/skills" = { source = "~/dotfiles/home/.config/claude/skills", mode = "copy", manifest = "git" }
+
 # VS Code profile content (settings.json, keybindings.json, tasks.json,
 # snippets/, and per-profile extension lists) is NOT a [dotfiles] entry: VS Code
 # rewrites those files in place (orphaning symlinks) and named-profile files

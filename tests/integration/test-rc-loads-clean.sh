@@ -63,3 +63,28 @@ mkdir -p "$compdir"
 printf '#compdef faketool\n_faketool() { _message faked; }\n' >"$compdir/_faketool"
 zsh_startup -i "$sb" 'autoload -Uz +X _faketool 2>&1 && print AUTOLOAD_OK'
 assert_contains "repo fpath prepend makes a completion autoloadable" "$(cat "$RUN_STDOUT")" "AUTOLOAD_OK"
+
+# With optional tools absent, aliases must resolve to native commands.
+zsh_startup -i "$sb" 'alias l; alias ll; alias la; alias tree; alias cat'
+fallback_aliases="$(cat "$RUN_STDOUT")"
+assert_contains "eza fallback uses native ls" "$fallback_aliases" "l='command ls'"
+assert_contains "eza long fallback uses native ls" "$fallback_aliases" "ll='command ls -lh'"
+assert_contains "eza all fallback uses native ls" "$fallback_aliases" "la='command ls -lah'"
+assert_contains "tree fallback uses native ls" "$fallback_aliases" "tree='command ls -R'"
+assert_contains "bat fallback uses native cat" "$fallback_aliases" "cat='command cat'"
+
+# With fixture commands present, the same real rc selects enhanced aliases.
+fixture_bin="$sb/bin"
+mkdir -p "$fixture_bin"
+for tool in eza bat nvim codex claude mise; do
+  printf '#!/bin/sh\nexit 0\n' >"$fixture_bin/$tool"
+  chmod +x "$fixture_bin/$tool"
+done
+ZSH_STARTUP_EXTRA_PATH="$fixture_bin" zsh_startup -i "$sb" 'alias l; alias ll; alias la; alias tree; alias cat; alias v; alias cxyolo; alias ccyolo'
+enhanced_aliases="$(cat "$RUN_STDOUT")"
+assert_contains "eza alias is enabled when installed" "$enhanced_aliases" "l='eza --icons=auto'"
+assert_contains "eza long alias is enabled when installed" "$enhanced_aliases" "ll='eza -lh --icons=auto --git'"
+assert_contains "bat alias is enabled when installed" "$enhanced_aliases" "cat='bat --style=plain'"
+assert_contains "nvim alias is enabled when installed" "$enhanced_aliases" "v=nvim"
+assert_contains "Codex alias is enabled when installed" "$enhanced_aliases" "cxyolo='codex --dangerously-bypass-approvals-and-sandbox'"
+assert_contains "Claude alias is enabled when installed" "$enhanced_aliases" "ccyolo='claude --permission-mode auto'"

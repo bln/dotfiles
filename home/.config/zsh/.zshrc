@@ -2,6 +2,17 @@
 if command -v mise &>/dev/null; then
   eval "$(mise activate zsh)"
 fi
+# mise contributes its non-interactive task path; zsh's tied arrays make the
+# inherited .zshenv path and mise path a single ordered, duplicate-free PATH.
+typeset -gU path PATH
+
+# Interactive defaults belong to the interactive shell, not mise's global
+# machine declaration. Respect values supplied by the user or parent process.
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export PAGER="${PAGER:-less -FRX}"
+export LANG="${LANG:-en_US.UTF-8}"
+export ENABLE_PROMPT_CACHING_1H="${ENABLE_PROMPT_CACHING_1H:-1}"
 
 
 
@@ -129,6 +140,62 @@ fi
 # ── functions ─────────────────────────────────────────────────────────────────
 mkcd() { mkdir -p "$1" && cd "$1"; }
 serve() { python3 -m http.server "${1:-8000}"; }
+
+# ── aliases ───────────────────────────────────────────────────────────────────
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias c='clear'
+alias q='exit'
+alias reload='exec zsh'
+alias path='print -rl -- ${(s.:.)PATH}'
+alias cp='command cp -i'
+alias mv='command mv -i'
+alias rm='command rm -i'
+alias mkdir='command mkdir -p'
+alias zshrc='${EDITOR:-vi} "$ZDOTDIR/.zshrc"'
+
+if (( $+commands[eza] )); then
+  alias l='eza --icons=auto'
+  alias ll='eza -lh --icons=auto --git'
+  alias la='eza -lah --icons=auto --git'
+  alias tree='eza --tree --icons=auto'
+else
+  alias l='command ls'
+  alias ll='command ls -lh'
+  alias la='command ls -lah'
+  alias tree='command ls -R'
+fi
+
+if (( $+commands[bat] )); then
+  alias cat='bat --style=plain'
+else
+  alias cat='command cat'
+fi
+
+if (( $+commands[nvim] )); then
+  alias vim='nvim'
+  alias v='nvim'
+  alias vz='NVIM_APPNAME=nvim-lazyvim nvim'
+  alias vk='NVIM_APPNAME=nvim-kickstart nvim'
+else
+  alias vim='vi'
+  alias v='vi'
+fi
+
+if (( $+commands[codex] )); then
+  alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
+  alias cxfull='codex --sandbox danger-full-access'
+  alias cxauto='codex --ask-for-approval never'
+fi
+
+if (( $+commands[claude] )); then
+  alias ccyolo='claude --permission-mode auto'
+fi
+
+if (( $+commands[mise] )); then
+  alias dot='mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'
+fi
 
 # ── zsh plugins (loaded last for proper terminal rendering) ───────────────────
 # Plugins are installed via mise bootstrap packages (brew:zsh-autosuggestions,
