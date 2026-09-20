@@ -21,6 +21,7 @@
 
 [core]
 	editor = nvim
+	pager = delta
 	# no excludesFile needed: git reads ~/.config/git/ignore (XDG) natively
 	autocrlf = input
 	whitespace = -indent-with-non-tab,trailing-space,cr-at-eol
@@ -60,6 +61,27 @@
 	colorMoved = default
 	colorMovedWS = allow-indentation-change
 	renames = copies
+
+[delta]
+	features = unobtrusive-line-numbers decorations
+	whitespace-error-style = 22 reverse
+	syntax-theme = base16-256
+
+[delta "unobtrusive-line-numbers"]
+	line-numbers = true
+	line-numbers-left-format = "{nm:>4}┊"
+	line-numbers-right-format = "{np:>4}│"
+	line-numbers-left-style = blue
+	line-numbers-right-style = blue
+
+[delta "decorations"]
+	commit-decoration-style = bold yellow box ul
+	file-style = bold yellow ul
+	file-decoration-style = none
+	hunk-header-decoration-style = yellow box
+
+[interactive]
+	diffFilter = delta --color-only
 
 [commit]
 	verbose = true
