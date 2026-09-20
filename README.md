@@ -87,7 +87,9 @@ dotfiles/
         ├── mise/mise.lock
         ├── git/                # config + global ignore (identity is machine-local)
         ├── zsh/                # .zshrc, .zprofile
-        ├── nvim/init.lua
+        ├── nvim/init.lua       # default Neovim config
+        ├── nvim-lazyvim/       # LazyVim starter config
+        ├── nvim-kickstart/     # Kickstart.nvim config
         ├── ghostty/config
         ├── gitui/
         ├── vscode/             # VS Code profiles (settings + extension lists), owned by scripts/vscode-profiles
@@ -178,6 +180,22 @@ mise bootstrap --dry-run              # preview bootstrap without applying
 
 The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so
 `dot run verify` works from any directory.
+
+## Neovim configurations
+
+The default configuration remains available as nvim or the v alias. The
+additional configurations use Neovim's NVIM_APPNAME mechanism, so each one
+gets separate plugin, data, cache, and state directories:
+
+    v          # default dotfiles config
+    vz         # LazyVim
+    vk         # Kickstart.nvim
+
+The LazyVim starter snapshot comes from LazyVim/starter at commit
+803bc181d7c0d6d5eeba9274d9be49b287294d99; the Kickstart snapshot comes from
+nvim-lua/kickstart.nvim at commit 80743df53d8f7058fc5b60e41f1081d11df9c880.
+The first launch of each alternate config installs its plugins and requires
+network access.
 
 ## Testing and CI
 

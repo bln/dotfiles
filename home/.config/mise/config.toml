@@ -128,6 +128,8 @@ dt = "cd ~/Desktop"
 dc = "cd ~/Documents"
 
 v = "nvim"
+vz = "NVIM_APPNAME=nvim-lazyvim nvim"   # LazyVim
+vk = "NVIM_APPNAME=nvim-kickstart nvim" # Kickstart
 
 [dotfiles]
 "~/.zshenv" = {}
@@ -140,6 +142,8 @@ v = "nvim"
 "~/.config/uv/uv.toml" = {}
 "~/.config/ghostty" = {}
 "~/.config/nvim" = {}
+"~/.config/nvim-lazyvim" = {}
+"~/.config/nvim-kickstart" = {}
 
 "~/.claude/CLAUDE.md" = { source = "~/dotfiles/home/.agents/AGENTS.md" }
 "~/.claude/skills" = { source = "~/dotfiles/home/.agents/skills" }
