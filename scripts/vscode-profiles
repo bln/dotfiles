@@ -40,7 +40,15 @@
 # No-op discipline: every `code`-driven path exits 0 when `code` is absent
 # (Linux CI, macOS without VS Code). storage.json mutations are guarded against
 # a running VS Code (it rewrites storage.json on exit and would clobber us).
-set -euo pipefail
+#
+# Error policy: we deliberately do NOT use `set -e`/`pipefail`. This script
+# drives tools whose nonzero exits are NORMAL signals, not failures: `grep` (no
+# match), `code --list-extensions` (profile not registered yet), `cmp` (files
+# differ). Under errexit those would abort a whole multi-profile run mid-loop.
+# The few failures that MUST stop the run - the atomic storage.json rewrites -
+# are handled explicitly with `|| die`. We keep `set -u`: the `${var:-}` /
+# `${arr[@]+…}` idioms below rely on it and it catches genuine typos.
+set -u
 
 REPO="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 USER_DIR="${VSCODE_USER_DIR:-$HOME/Library/Application Support/Code/User}"
@@ -70,7 +78,7 @@ require_code_closed() {
   [ "$FORCE" = true ] && return 0
   code_available || return 0
   local out
-  out="$("$CODE_BIN" --status 2>&1 || true)"
+  out="$("$CODE_BIN" --status 2>&1)"
   if printf '%s' "$out" | grep -q 'can only be used if Code is already running'; then
     return 0
   fi
@@ -100,13 +108,16 @@ seed_profile() {
   require_code_closed
   loc="$(uuidgen | tr '[:upper:]' '[:lower:]')"
   sj="$(storage_json)"
-  mkdir -p "$(dirname "$sj")"
+  mkdir -p "$(dirname "$sj")" || die "cannot create $(dirname "$sj")"
   [ -f "$sj" ] || printf '{}\n' >"$sj"
-  tmp="$(mktemp)"
+  tmp="$(mktemp)" || die "mktemp failed"
+  # Atomic-or-die: without errexit a failed jq must NOT fall through to creating
+  # the profile dir / returning a location for an entry that was never written.
+  # shellcheck disable=SC2015 # die always exits: running it when mv fails is intended
   jq --arg n "$name" --arg l "$loc" \
     '.userDataProfiles = ((.userDataProfiles // []) + [{"location":$l,"name":$n}])' \
-    "$sj" >"$tmp" && mv "$tmp" "$sj"
-  mkdir -p "$USER_DIR/profiles/$loc"
+    "$sj" >"$tmp" && mv "$tmp" "$sj" || die "failed to write $sj"
+  mkdir -p "$USER_DIR/profiles/$loc" || die "cannot create profile dir for '$name'"
   printf '%s\n' "$loc"
 }
 
@@ -117,7 +128,11 @@ live_dir_for() {
   if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
     printf '%s\n' "$USER_DIR"; return 0
   fi
+  # seed_profile runs in this command substitution, so a die() inside it only
+  # kills the subshell; re-check that seeding actually produced a location before
+  # we build a path from it (an empty $loc would yield a bare "profiles/" dir).
   loc="$(seed_profile "$name")"
+  [ -n "$loc" ] || die "failed to seed profile '$name'"
   printf '%s/profiles/%s\n' "$USER_DIR" "$loc"
 }
 
@@ -156,7 +171,9 @@ declared_extensions() {
   local name="$1" f
   f="$(repo_dir_for "$name")/extensions.txt"
   [ -f "$f" ] || return 0
-  # strip comments/blank, lowercase, unique-sort.
+  # strip comments/blank, lowercase, unique-sort. A comment-only file (e.g. the
+  # go profile, whose only extension is the inherited global) makes `grep -v`
+  # match nothing and exit 1 - harmless without errexit; an empty set is valid.
   sed -e 's/#.*//' -e 's/[[:space:]]//g' "$f" \
     | grep -v '^$' | tr '[:upper:]' '[:lower:]' | sort -u
 }
@@ -174,7 +191,8 @@ effective_declared() {
 }
 
 # installed_extensions <name> -> ids `code` reports for this profile (normalized).
-# A not-yet-seeded named profile prints "Profile ... not found" -> treat as empty.
+# A not-yet-seeded named profile prints "Profile ... not found" and exits 1 -
+# harmless without errexit; the empty output normalizes to an empty set.
 installed_extensions() {
   local name="$1"
   local -a sel=()
@@ -188,6 +206,10 @@ sync_files() {
   local name="$1" src dst f
   src="$(repo_dir_for "$name")"
   dst="$(live_dir_for "$name")"
+  # live_dir_for seeds named profiles; a die() inside its command substitution
+  # only kills the subshell, so re-check here that seeding actually produced a
+  # location before we write into it.
+  [ -n "$dst" ] || die "could not resolve live dir for profile '$name'"
   mkdir -p "$dst"
   for f in $PROFILE_FILES; do
     [ -f "$src/$f" ] || continue
@@ -335,7 +357,7 @@ cmd_teardown() {
     while IFS= read -r ext; do
       [ -n "$ext" ] || continue
       if [ "$apply" = true ]; then
-        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" 2>/dev/null || true
+        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" 2>/dev/null
       else
         printf '  DRY RUN: would uninstall %s (%s)\n' "$ext" "$name"
       fi
@@ -349,10 +371,11 @@ cmd_teardown() {
       require_code_closed
       sj="$(storage_json)"
       if command -v jq >/dev/null 2>&1 && [ -f "$sj" ]; then
-        tmp="$(mktemp)"
+        tmp="$(mktemp)" || die "mktemp failed"
+        # shellcheck disable=SC2015 # die always exits: running it when mv fails is intended
         jq --arg n "$name" \
           '.userDataProfiles = ((.userDataProfiles // []) | map(select(.name != $n)))' \
-          "$sj" >"$tmp" && mv "$tmp" "$sj"
+          "$sj" >"$tmp" && mv "$tmp" "$sj" || die "failed to write $sj"
       fi
       rm -rf "${USER_DIR:?}/profiles/$loc"
     else
@@ -369,7 +392,8 @@ cmd_resolve() {
 }
 
 main() {
-  local sub="${1:-}"; shift || true
+  local sub="${1:-}"
+  [ $# -gt 0 ] && shift  # drop the subcommand; nothing to shift when no args
   # Parse shared flags out of the remaining args.
   local -a rest=()
   for arg in "$@"; do

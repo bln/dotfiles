@@ -167,6 +167,90 @@ EOF
   fi
 }
 
+# ── failing extension install mid-loop must NOT abort apply ───────────────────
+# `code --install-extension` can fail for one id (network, bad id) while others
+# succeed. That is a per-extension signal, not a fleet-fatal error: the run must
+# continue and still seed/serve every profile. This locks in the install/uninstall
+# call sites that were the last exposure to the whole-apply-abort class.
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud/globalStorage" "$bin" "$repo"
+  printf 'golang.go\n' >"$repo/extensions.txt"
+  for p in aaa bbb; do
+    mkdir -p "$repo/profiles/$p"; printf 'ext.%s\n' "$p" >"$repo/profiles/$p/extensions.txt"
+  done
+
+  # Fake code: --install-extension exits 1 for the FIRST profile's own id but 0
+  # otherwise; --list-extensions for a named profile returns empty (exit 0 here,
+  # the not-found path is covered by the regression block above).
+  cat >"$bin/code" <<'EOF'
+#!/usr/bin/env bash
+prof=""; args=("$@")
+for i in "${!args[@]}"; do
+  [ "${args[$i]}" = "--profile" ] && prof="${args[$((i+1))]}"
+done
+case "$1" in
+  --list-extensions) [ -n "$prof" ] || printf '%s\n' $PRESET ;;
+  --install-extension)
+    printf '%s\t%s\n' "$2" "$prof" >>"$CODE_INSTALL_LOG"
+    [ "$2" = "ext.aaa" ] && exit 1 ;;
+  --status) echo "Warning: can only be used if Code is already running." >&2 ;;
+esac
+exit 0
+EOF
+  chmod +x "$bin/code"
+  ilog="$sb/i.log"; : >"$ilog"
+
+  if command -v jq >/dev/null 2>&1 && command -v uuidgen >/dev/null 2>&1; then
+    run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" \
+      PRESET="" CODE_INSTALL_LOG="$ilog" bash "$CLI" apply
+    assert_eq "apply survives a failing install mid-loop" "0" "$RUN_STATUS"
+    # The failed install was attempted (aaa) AND the loop continued to bbb.
+    assert_contains "attempted the failing install (aaa)" "$(cut -f1 <"$ilog")" "ext.aaa"
+    assert_contains "continued past failure to bbb" "$(cut -f1 <"$ilog")" "ext.bbb"
+    for p in aaa bbb; do
+      assert_eq "profile $p seeded despite install failure" "1" \
+        "$(jq -r --arg n "$p" '[.userDataProfiles[]|select(.name==$n)]|length' "$ud/globalStorage/storage.json")"
+    done
+  else
+    skip "failing-install regression (jq/uuidgen not installed)"
+  fi
+}
+
+# ── a failing storage.json write IS fatal ─────────────────────────────────────
+# The one class errexit used to cover for us: without it, a failed `jq`/`mv` must
+# be caught by `|| die`, NOT fall through to registering a profile dir/location
+# for an entry that was never written. Force the write to fail by making
+# globalStorage a read-only directory (mktemp/jq write into it cannot complete)
+# and assert apply exits nonzero, emits the die message, and creates no profile dir.
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud/globalStorage" "$bin" "$repo"
+  make_code "$bin"
+  printf 'golang.go\n' >"$repo/extensions.txt"
+  mkdir -p "$repo/profiles/pyth"; printf 'ms-python.python\n' >"$repo/profiles/pyth/extensions.txt"
+
+  # Stub jq on PATH ahead of the real one so the storage rewrite fails. seed_profile
+  # gates on `command -v jq`, so jq must exist but fail when it runs the write.
+  cat >"$bin/jq" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+  chmod +x "$bin/jq"
+
+  # Only run where we can guarantee the stub jq wins (prepend $bin to PATH). uuidgen
+  # is still needed for the location; skip if absent.
+  if command -v uuidgen >/dev/null 2>&1; then
+    run_capture env PATH="$bin:$PATH" VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" \
+      VSCODE_CODE_BIN="$bin/code" PRESET="" bash "$CLI" apply
+    assert_eq "failing storage write aborts apply (nonzero)" "1" "$RUN_STATUS"
+    assert_contains "names the fatal write in the error" "$(cat "$RUN_STDERR")" "failed to write"
+    assert_not_exists "no profile dir left for an unwritten entry" "$ud/profiles/pyth"
+  else
+    skip "fatal-write test (uuidgen not installed)"
+  fi
+}
+
 # ── check: match / drift / missing / symlink ─────────────────────────────────
 {
   sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"
