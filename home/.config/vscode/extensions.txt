@@ -1,6 +1,7 @@
 # VS Code extensions for the GLOBAL profile (available in every profile).
 # One extension id per line; # starts a comment. Synced by
-# `scripts/vscode-profiles apply`. Python extensions live in profiles/pyth/.
+# `scripts/vscode-profiles apply`. Per-language/writing extensions live in the
+# named profiles under profiles/ (python, go, doc, node).
 
 # language support
 golang.go

@@ -32,12 +32,25 @@ description = "lint and test all shell scripts"
 dir = "{{ config_root }}"
 run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
 
+# ── sync:vscode ──────────────────────────────────────────────────────────────
+# Run from anywhere: dot run sync:vscode  (add --prune to remove undeclared exts)
+# Single entry point for applying VS Code profiles (seed named profiles, push
+# profile files, install declared extensions). bootstrap and update call this so
+# the apply invocation lives in one place. Seeding mutates storage.json, so it
+# refuses to run while VS Code is open (pass --force via the env seam to override).
+
+[tasks."sync:vscode"]
+description = "sync VS Code profiles: seed, push files, install extensions (--prune removes undeclared)"
+dir = "{{ config_root }}"
+usage = 'flag "--prune" help="Uninstall extensions installed but not declared"'
+run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--prune}'
+
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
-  'bash "{{ config_root }}/scripts/vscode-profiles" apply',
+  "mise run sync:vscode",
   # `--default` creates the unversioned ~/.local/bin/python symlink; a plain
   # install does not. Guard on that so re-runs stay quiet and idempotent.
   "uv python find python >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
@@ -75,7 +88,7 @@ run = [
   # VS Code: update all installed extensions, then sync declared profiles
   # (install missing, prune undeclared).
   "NODE_NO_WARNINGS=1 code --update-extensions",
-  'bash "{{ config_root }}/scripts/vscode-profiles" apply --prune',
+  "mise run sync:vscode --prune",
   "mise bootstrap dotfiles apply",
   "uv python upgrade",
 ]

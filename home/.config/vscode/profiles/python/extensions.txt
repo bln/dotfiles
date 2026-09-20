@@ -1,0 +1,14 @@
+# VS Code extensions for the "python" profile. Installed into python ONLY;
+# named profiles also inherit every global extension ("globals expected
+# everywhere"), so golang.go, tombi-toml, themes, etc. are present here too and
+# are NOT re-listed. One id per line; # starts a comment.
+#
+# Curated from VS Code's built-in "Python" profile template. Dropped as heavy or
+# redundant: Remote Development pack, Container Tools, autoDocstring, and
+# even-better-toml (global already ships tombi-toml.tombi).
+
+ms-python.python
+ms-python.vscode-pylance
+ms-python.debugpy
+ms-python.vscode-python-envs
+charliermarsh.ruff

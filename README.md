@@ -137,8 +137,10 @@ home/.config/vscode/
 ├── settings.json          # global profile
 ├── extensions.txt         # global extension ids
 └── profiles/
-    └── pyth/
-        └── extensions.txt # pyth's own ids (the Python extensions)
+    ├── python/            # extensions.txt + settings.json (curated Python template)
+    ├── go/                # settings.json (golang.go is global; native test explorer)
+    ├── doc/               # extensions.txt + settings.json (curated Doc Writer template)
+    └── node/              # extensions.txt + settings.json (curated Node.js template)
 ```
 
 - **Add / remove an extension**: edit the profile's `extensions.txt`, then run

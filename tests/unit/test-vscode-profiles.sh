@@ -167,6 +167,64 @@ EOF
   fi
 }
 
+# ── regression: empty/comment-only extensions.txt must NOT abort apply ────────
+# A named profile may declare no ids of its own (e.g. the go profile: its only
+# extension is the inherited global). Its extensions.txt is comment-only, so the
+# `grep -v '^$'` in declared_extensions matches nothing and exits 1. Also covers
+# the sibling case: `code --list-extensions --profile X` exiting 1 ("not found")
+# for a freshly-seeded profile VS Code has not registered yet. Both are normal
+# nonzero signals the script must tolerate. This asserts the observable contract
+# (apply exits 0 and seeds EVERY named profile), not any particular error-policy
+# implementation, so it holds whether the tolerance comes from `|| true` hatches
+# or from dropping errexit outright.
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud/globalStorage" "$bin" "$repo"
+  printf 'golang.go\n' >"$repo/extensions.txt"
+  # aaa: comment-only (no ids) - the declared_extensions grep-exits-1 trigger.
+  mkdir -p "$repo/profiles/aaa"; printf '# only inherits the global\n' >"$repo/profiles/aaa/extensions.txt"
+  # bbb, ccc: normal, must still be reached and seeded after aaa.
+  for p in bbb ccc; do
+    mkdir -p "$repo/profiles/$p"; printf 'ext.%s\n' "$p" >"$repo/profiles/$p/extensions.txt"
+  done
+
+  # Fake code: --list-extensions for a named profile exits 1 ("not found"), like
+  # the real binary for a profile it has not registered yet. Global list is 0.
+  cat >"$bin/code" <<'EOF'
+#!/usr/bin/env bash
+prof=""; args=("$@")
+for i in "${!args[@]}"; do
+  [ "${args[$i]}" = "--profile" ] && prof="${args[$((i+1))]}"
+done
+case "$1" in
+  --list-extensions)
+    if [ -n "$prof" ]; then echo "Profile '$prof' not found."; exit 1; fi
+    printf '%s\n' $PRESET ;;
+  --install-extension)   printf '%s\t%s\n' "$2" "$prof" >>"$CODE_INSTALL_LOG" ;;
+  --uninstall-extension) : ;;
+  --status) echo "Warning: The --status argument can only be used if Code is already running." >&2 ;;
+esac
+exit 0
+EOF
+  chmod +x "$bin/code"
+  ilog="$sb/i.log"; : >"$ilog"
+
+  if command -v jq >/dev/null 2>&1 && command -v uuidgen >/dev/null 2>&1; then
+    run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" \
+      PRESET="" CODE_INSTALL_LOG="$ilog" bash "$CLI" apply
+    assert_eq "apply survives comment-only + not-found" "0" "$RUN_STATUS"
+    for p in aaa bbb ccc; do
+      assert_eq "profile $p seeded past the abort point" "1" \
+        "$(jq -r --arg n "$p" '[.userDataProfiles[]|select(.name==$n)]|length' "$ud/globalStorage/storage.json")"
+    done
+    # aaa (comment-only) still inherits the global into its own profile.
+    assert_contains "comment-only aaa still gets global golang.go" \
+      "$(awk -F'\t' '$2=="aaa"' "$ilog")" "golang.go"
+  else
+    skip "empty-extensions/not-found regression (jq/uuidgen not installed)"
+  fi
+}
+
 # ── failing extension install mid-loop must NOT abort apply ───────────────────
 # `code --install-extension` can fail for one id (network, bad id) while others
 # succeed. That is a per-extension signal, not a fleet-fatal error: the run must

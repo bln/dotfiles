@@ -1,0 +1,17 @@
+# VS Code extensions for the "node" profile (Node.js / web development).
+# Named profiles inherit every global extension ("globals expected everywhere"),
+# so globals are present here too and are NOT re-listed. One id per line.
+#
+# Curated from VS Code's built-in "Node.js" profile template. Dropped as heavy:
+# Container Tools, Dev Containers, and Edge DevTools (parallel to the
+# remote/container extras omitted from the python profile).
+
+dbaeumer.vscode-eslint
+esbenp.prettier-vscode
+EditorConfig.EditorConfig
+mikestead.dotenv
+christian-kohler.npm-intellisense
+xabikos.JavaScriptSnippets
+Orta.vscode-jest
+humao.rest-client
+redhat.vscode-yaml

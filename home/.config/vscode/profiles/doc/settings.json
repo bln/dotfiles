@@ -1,0 +1,10 @@
+{
+  "editor.wordWrap": "on",
+  "breadcrumbs.enabled": false,
+  "editor.quickSuggestions": {
+    "comments": false,
+    "strings": false,
+    "other": false
+  },
+  "markdown.validate.enabled": true
+}

@@ -1,0 +1,9 @@
+# VS Code extensions for the "go" profile. Named profiles inherit every global
+# extension ("globals expected everywhere"), and golang.go is already global -
+# so it is NOT re-listed here and is present in this profile automatically.
+#
+# There is no built-in VS Code "Go" profile template. This profile is hand-built.
+# It is intentionally settings-only (see settings.json): the official golang.go
+# extension ships a native Testing-view test explorer (go.testExplorer.enable),
+# which supersedes third-party test-runner extensions, so no extra extension is
+# declared. Add Go-specific extension ids below if a real need arises.

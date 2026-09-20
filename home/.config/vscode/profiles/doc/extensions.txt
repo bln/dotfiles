@@ -1,0 +1,16 @@
+# VS Code extensions for the "doc" profile (documentation / Markdown writing).
+# Named profiles inherit every global extension ("globals expected everywhere"),
+# so globals are present here too and are NOT re-listed. One id per line.
+#
+# Curated from VS Code's built-in "Doc Writer" profile template.
+
+streetsidesoftware.code-spell-checker
+DavidAnson.vscode-markdownlint
+bierner.markdown-checkbox
+bierner.markdown-emoji
+bierner.markdown-footnotes
+bierner.markdown-mermaid
+bierner.markdown-preview-github-styles
+bierner.markdown-yaml-preamble
+ms-vscode.wordcount
+johnpapa.read-time

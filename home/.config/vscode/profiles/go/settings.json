@@ -1,0 +1,12 @@
+{
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+  "go.useLanguageServer": true,
+  "go.formatTool": "goimports",
+  "go.inlayHints.parameterNames": true,
+  "go.testExplorer.enable": true,
+  "gopls": {
+    "ui.semanticTokens": true
+  }
+}
