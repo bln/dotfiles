@@ -46,14 +46,25 @@ The strategy for how each config file is installed depends on who writes it:
 | Mostly the tool | **Copy once** - repo file seeds it, then tool owns it | VS Code settings (if symlink breaks) |
 | Machine-specific | **Generate** - task prompts for local input, writes untracked files | git identity |
 
-VS Code extensions are declared as `[tools]` entries under a no-op local backend
-plugin (`vscode-ext:<id>` in `config.toml`), so the extension set lives in machine
-state alongside tools. The plugin (`home/.config/mise/plugins/vscode-ext`) only
-makes the keys legal; `scripts/apply-vscode-extensions.sh` reads them back
-(`mise ls -c --json`) and drives `code` to install missing and prune undeclared
-(`--prune`, opt-in). `mise run update` runs `code --update-extensions` to upgrade
-installed extensions. The plugin's `BackendInstall` hook can later grow into a real
-installer without changing how extensions are declared.
+VS Code profiles are owned on disk under `home/.config/vscode/` and driven by
+the `scripts/vscode-profiles` mini-CLI, not by mise. Extensions are
+profile-scoped state (like Neovim plugins), not global tools, so `code` owns
+their lifecycle - mise does not shim, version, or health-check them. The repo is
+the source of truth for the full profile content (settings, keybindings,
+snippets, tasks, and a plain-text `extensions.txt` id list per profile): the
+`vscode/` root is the global profile, each `profiles/<name>/` a named profile.
+`apply` seeds missing named profiles headlessly (a `storage.json`
+`userDataProfiles` entry + dir), copies profile files live, and installs
+declared-missing extensions (prune undeclared with `--prune`); named profiles
+inherit the global extension set ("globals expected everywhere"). `check`
+reports live-vs-repo drift, `pull` captures live files back into the repo, and
+`teardown` uninstalls extensions and deletes seeded named profiles. Paths that
+mutate `storage.json` refuse to run while VS Code is open (it rewrites that file
+on exit and would clobber the change); `code`-driven paths no-op when `code` is
+absent (Linux CI, macOS without VS Code). The CLI is self-contained and
+extractable - all state paths route through `VSCODE_*` env seams so tests point
+it at a sandbox and can drive a fully isolated real `code` instance
+(`--user-data-dir`/`--extensions-dir`).
 
 Never symlink a file that a tool rewrites. `git config --global` in particular
 writes through a symlink and would put machine-local values in the repo.

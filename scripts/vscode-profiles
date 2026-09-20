@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+# vscode-profiles: a self-contained mini-CLI for managing VS Code profiles from
+# this dotfiles repo. The repo owns the full content of each profile (settings,
+# keybindings, snippets, tasks, and the extension id list); this CLI syncs that
+# on-disk source of truth into VS Code's live user-data dir and drives `code` to
+# install/prune extensions per profile.
+#
+# It replaces the old `vscode-ext:<id>` [tools] scheme (a no-op mise backend
+# plugin). Extensions are profile-scoped state, not global tools, so mise no
+# longer shims them.
+#
+# Subcommands:
+#   apply [--prune]   sync repo -> live for every profile: seed missing named
+#                     profiles, push profile files, install declared extensions
+#                     (prune undeclared only with --prune, else warn).
+#   check             report drift between live and repo for every managed file.
+#   pull              capture live -> repo for every managed file (deliberate).
+#   teardown [--apply]  uninstall declared extensions and delete seeded named
+#                     profiles (dry-run without --apply).
+#   list              list profiles the repo declares (global + named).
+#   resolve <name>    print the live storage location id for a named profile.
+#
+# Repo layout (VSCODE_REPO_DIR, default <repo>/home/.config/vscode):
+#   settings.json keybindings.json tasks.json snippets/  -> GLOBAL profile
+#   extensions.txt                                       -> GLOBAL extension ids
+#   profiles/<name>/{...same files..., extensions.txt}   -> a named profile
+#
+# Live layout (VSCODE_USER_DIR, default the macOS "Code/User" dir):
+#   <User>/settings.json ...                     -> GLOBAL profile
+#   <User>/profiles/<location>/...               -> a named profile, keyed by an
+#     opaque `location` id registered in <User>/globalStorage/storage.json.
+#
+# Env seams (default to production; overridden by tests):
+#   VSCODE_USER_DIR   live "User" dir
+#   VSCODE_REPO_DIR   repo source dir
+#   VSCODE_CODE_BIN   the `code` binary (a wrapper in tests)
+#   VSCODE_PROFILES_PRUNE=true   same as --prune
+#   VSCODE_PROFILES_FORCE=true   same as --force (skip the running-VS-Code guard)
+#
+# No-op discipline: every `code`-driven path exits 0 when `code` is absent
+# (Linux CI, macOS without VS Code). storage.json mutations are guarded against
+# a running VS Code (it rewrites storage.json on exit and would clobber us).
+set -euo pipefail
+
+REPO="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+USER_DIR="${VSCODE_USER_DIR:-$HOME/Library/Application Support/Code/User}"
+REPO_DIR="${VSCODE_REPO_DIR:-$REPO/home/.config/vscode}"
+CODE_BIN="${VSCODE_CODE_BIN:-code}"
+PRUNE="${VSCODE_PROFILES_PRUNE:-false}"
+FORCE="${VSCODE_PROFILES_FORCE:-false}"
+
+# Files (besides extensions.txt and snippets/) mirrored per profile.
+PROFILE_FILES="settings.json keybindings.json tasks.json"
+
+die() { printf 'vscode-profiles: %s\n' "$1" >&2; exit "${2:-1}"; }
+warn() { printf 'vscode-profiles: %s\n' "$1" >&2; }
+
+code_available() { command -v "$CODE_BIN" >/dev/null 2>&1; }
+
+# require_code_closed: refuse to mutate storage.json while VS Code runs, because
+# VS Code holds that file in memory and rewrites it on exit - our change would be
+# silently lost. Detection is by the TEXT of `code --status`, not its exit code:
+# `code --status` exits 0 whether or not an instance is running, but when nothing
+# is running it prints "can only be used if Code is already running" (to stderr).
+# So: that warning present => closed; absent => a live instance answered. Because
+# --status uses CODE_BIN's own data dir, an isolated test instance (its own
+# --user-data-dir) is naturally distinguished from the user's.
+# --force / VSCODE_PROFILES_FORCE overrides.
+require_code_closed() {
+  [ "$FORCE" = true ] && return 0
+  code_available || return 0
+  local out
+  out="$("$CODE_BIN" --status 2>&1 || true)"
+  if printf '%s' "$out" | grep -q 'can only be used if Code is already running'; then
+    return 0
+  fi
+  die "VS Code appears to be running; close it and re-run (or pass --force). Profile changes made while it runs are lost when it exits." 3
+}
+
+storage_json() { printf '%s/globalStorage/storage.json' "$USER_DIR"; }
+
+# resolve_location <name> -> prints the opaque location id, or empty if unknown.
+resolve_location() {
+  local name="$1" sj
+  sj="$(storage_json)"
+  [ -f "$sj" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  jq -r --arg n "$name" \
+    '(.userDataProfiles // [])[] | select(.name == $n) | .location' \
+    "$sj" 2>/dev/null | head -n1
+}
+
+# seed_profile <name> -> ensure a named profile exists live; prints its location.
+# Idempotent: if the name already resolves, returns that location unchanged.
+seed_profile() {
+  local name="$1" loc sj tmp
+  loc="$(resolve_location "$name")"
+  if [ -n "$loc" ]; then printf '%s\n' "$loc"; return 0; fi
+  command -v jq >/dev/null 2>&1 || die "jq required to create profile '$name'"
+  require_code_closed
+  loc="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+  sj="$(storage_json)"
+  mkdir -p "$(dirname "$sj")"
+  [ -f "$sj" ] || printf '{}\n' >"$sj"
+  tmp="$(mktemp)"
+  jq --arg n "$name" --arg l "$loc" \
+    '.userDataProfiles = ((.userDataProfiles // []) + [{"location":$l,"name":$n}])' \
+    "$sj" >"$tmp" && mv "$tmp" "$sj"
+  mkdir -p "$USER_DIR/profiles/$loc"
+  printf '%s\n' "$loc"
+}
+
+# live_dir_for <name> -> the live directory holding this profile's files.
+# Global profile ("_" or empty) is the User dir root; named profiles seed first.
+live_dir_for() {
+  local name="$1" loc
+  if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
+    printf '%s\n' "$USER_DIR"; return 0
+  fi
+  loc="$(seed_profile "$name")"
+  printf '%s/profiles/%s\n' "$USER_DIR" "$loc"
+}
+
+# repo_dir_for <name> -> the repo source directory for this profile.
+repo_dir_for() {
+  local name="$1"
+  if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
+    printf '%s\n' "$REPO_DIR"; return 0
+  fi
+  printf '%s/profiles/%s\n' "$REPO_DIR" "$name"
+}
+
+# profile_code_args <name> -> selector for `code`: empty (global) or --profile.
+profile_code_args() {
+  local name="$1"
+  if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then return 0; fi
+  printf -- '--profile\n%s\n' "$name"
+}
+
+# GLOBAL is the sentinel repo name for the default profile.
+GLOBAL="_"
+
+# profiles -> print every declared profile name, global first.
+profiles() {
+  printf '%s\n' "$GLOBAL"
+  [ -d "$REPO_DIR/profiles" ] || return 0
+  local d
+  for d in "$REPO_DIR/profiles"/*/; do
+    [ -d "$d" ] || continue
+    basename "$d"
+  done
+}
+
+# declared_extensions <name> -> this profile's own declared ids (normalized).
+declared_extensions() {
+  local name="$1" f
+  f="$(repo_dir_for "$name")/extensions.txt"
+  [ -f "$f" ] || return 0
+  # strip comments/blank, lowercase, unique-sort.
+  sed -e 's/#.*//' -e 's/[[:space:]]//g' "$f" \
+    | grep -v '^$' | tr '[:upper:]' '[:lower:]' | sort -u
+}
+
+# effective_declared <name> -> ids expected present in this profile. Named
+# profiles inherit the global set ("globals expected everywhere") so a global
+# extension is never pruned from a named profile.
+effective_declared() {
+  local name="$1"
+  if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
+    declared_extensions "$GLOBAL"
+  else
+    { declared_extensions "$GLOBAL"; declared_extensions "$name"; } | sort -u
+  fi
+}
+
+# installed_extensions <name> -> ids `code` reports for this profile (normalized).
+# A not-yet-seeded named profile prints "Profile ... not found" -> treat as empty.
+installed_extensions() {
+  local name="$1"
+  local -a sel=()
+  while IFS= read -r a; do [ -n "$a" ] && sel+=("$a"); done < <(profile_code_args "$name")
+  "$CODE_BIN" --list-extensions "${sel[@]+"${sel[@]}"}" 2>/dev/null \
+    | tr '[:upper:]' '[:lower:]' | sort -u
+}
+
+# sync_files <name>: copy repo -> live for the managed files present in the repo.
+sync_files() {
+  local name="$1" src dst f
+  src="$(repo_dir_for "$name")"
+  dst="$(live_dir_for "$name")"
+  mkdir -p "$dst"
+  for f in $PROFILE_FILES; do
+    [ -f "$src/$f" ] || continue
+    cp "$src/$f" "$dst/$f"
+  done
+  if [ -d "$src/snippets" ]; then
+    mkdir -p "$dst/snippets"
+    cp -R "$src/snippets/." "$dst/snippets/"
+  fi
+}
+
+# sync_extensions <name> [--prune]: install declared-but-missing; prune undeclared
+# (against effective_declared) only when pruning, else warn.
+sync_extensions() {
+  local name="$1" declared installed ext
+  local -a sel=()
+  while IFS= read -r a; do [ -n "$a" ] && sel+=("$a"); done < <(profile_code_args "$name")
+  declared="$(effective_declared "$name")"
+  installed="$(installed_extensions "$name")"
+
+  while IFS= read -r ext; do
+    [ -n "$ext" ] || continue
+    if ! grep -Fxq "$ext" <<<"$installed"; then
+      printf 'Installing %s (%s)\n' "$ext" "${name:-$GLOBAL}"
+      "$CODE_BIN" --install-extension "$ext" "${sel[@]+"${sel[@]}"}"
+    fi
+  done <<<"$(declared_extensions_effective_for_install "$name")"
+
+  while IFS= read -r ext; do
+    [ -n "$ext" ] || continue
+    if ! grep -Fxq "$ext" <<<"$declared"; then
+      if [ "$PRUNE" = true ]; then
+        printf 'Pruning untracked %s (%s)\n' "$ext" "${name:-$GLOBAL}"
+        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}"
+      else
+        warn "installed extension not declared: $ext (${name:-$GLOBAL}) (pass --prune to remove)"
+      fi
+    fi
+  done <<<"$installed"
+}
+
+# For install we only install the profile's effective set (own + globals for a
+# named profile). Kept separate so a future policy could diverge install from
+# prune; today both use effective_declared.
+declared_extensions_effective_for_install() { effective_declared "$1"; }
+
+# ── subcommands ───────────────────────────────────────────────────────────────
+
+cmd_apply() {
+  code_available || { warn "code not found; skipping extension sync"; }
+  # If any named profile is not yet created live, apply must seed it - which
+  # mutates storage.json. Check the running-VS-Code guard once, up front, so we
+  # fail fast before making any change (seed_profile runs inside command
+  # substitution where a die() would only exit the subshell).
+  local name loc need_seed=false
+  while IFS= read -r name; do
+    [ "$name" = "$GLOBAL" ] && continue
+    [ -n "$name" ] || continue
+    loc="$(resolve_location "$name")"
+    [ -n "$loc" ] || need_seed=true
+  done < <(profiles)
+  [ "$need_seed" = true ] && require_code_closed
+
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    sync_files "$name"
+    if code_available; then sync_extensions "$name"; fi
+  done < <(profiles)
+}
+
+cmd_check() {
+  local rc=0 name src dst f live repo
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    src="$(repo_dir_for "$name")"
+    # For check we must not seed; resolve live dir read-only.
+    if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
+      dst="$USER_DIR"
+    else
+      local loc; loc="$(resolve_location "$name")"
+      if [ -z "$loc" ]; then
+        warn "profile '$name' not created live yet - run 'vscode-profiles apply'"
+        continue
+      fi
+      dst="$USER_DIR/profiles/$loc"
+    fi
+    for f in $PROFILE_FILES; do
+      [ -f "$src/$f" ] || continue
+      live="$dst/$f"; repo="$src/$f"
+      if [ ! -e "$live" ]; then
+        warn "$live missing - run 'vscode-profiles apply' to seed it."
+      elif [ -L "$live" ]; then
+        warn "$live is a symlink; profile files are managed in copy mode."
+        warn "  Fix: rm the link, then 'vscode-profiles apply'."
+        rc=1
+      elif ! cmp -s "$live" "$repo"; then
+        warn "live $f differs from repo ($name)."
+        warn "  Capture app changes:  vscode-profiles pull"
+        warn "  Or push the repo out: vscode-profiles apply"
+      fi
+    done
+  done < <(profiles)
+  if [ "$rc" -eq 0 ]; then echo "OK: VS Code profile files match the repo copy."; fi
+  return "$rc"
+}
+
+cmd_pull() {
+  local name src dst f loc
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    src="$(repo_dir_for "$name")"
+    if [ -z "$name" ] || [ "$name" = "$GLOBAL" ]; then
+      dst="$USER_DIR"
+    else
+      loc="$(resolve_location "$name")"
+      [ -n "$loc" ] || { warn "profile '$name' not created live; nothing to pull"; continue; }
+      dst="$USER_DIR/profiles/$loc"
+    fi
+    for f in $PROFILE_FILES; do
+      [ -f "$src/$f" ] && [ -f "$dst/$f" ] || continue
+      cp "$dst/$f" "$src/$f"
+    done
+    if [ -d "$src/snippets" ] && [ -d "$dst/snippets" ]; then
+      cp -R "$dst/snippets/." "$src/snippets/"
+    fi
+  done < <(profiles)
+  echo "OK: pulled live VS Code profile files into the repo."
+}
+
+# cmd_teardown [--apply]: uninstall declared extensions from every profile and
+# delete seeded named profiles. Dry-run unless APPLY/--apply. No-op when code
+# absent. Deleting a named profile mutates storage.json -> guarded.
+cmd_teardown() {
+  local apply="${APPLY:-false}"
+  for arg in "$@"; do
+    case "$arg" in --apply) apply=true ;; esac
+  done
+  code_available || { warn "code not found; skipping extension removal"; return 0; }
+
+  local name ext loc sj tmp
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    local -a sel=()
+    while IFS= read -r a; do [ -n "$a" ] && sel+=("$a"); done < <(profile_code_args "$name")
+    while IFS= read -r ext; do
+      [ -n "$ext" ] || continue
+      if [ "$apply" = true ]; then
+        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" 2>/dev/null || true
+      else
+        printf '  DRY RUN: would uninstall %s (%s)\n' "$ext" "$name"
+      fi
+    done < <(declared_extensions "$name")
+
+    # Delete seeded named profiles (never the global shell).
+    [ "$name" = "$GLOBAL" ] && continue
+    loc="$(resolve_location "$name")"
+    [ -n "$loc" ] || continue
+    if [ "$apply" = true ]; then
+      require_code_closed
+      sj="$(storage_json)"
+      if command -v jq >/dev/null 2>&1 && [ -f "$sj" ]; then
+        tmp="$(mktemp)"
+        jq --arg n "$name" \
+          '.userDataProfiles = ((.userDataProfiles // []) | map(select(.name != $n)))' \
+          "$sj" >"$tmp" && mv "$tmp" "$sj"
+      fi
+      rm -rf "${USER_DIR:?}/profiles/$loc"
+    else
+      printf '  DRY RUN: would delete profile %s (location %s)\n' "$name" "$loc"
+    fi
+  done < <(profiles)
+}
+
+cmd_list() { profiles; }
+
+cmd_resolve() {
+  [ $# -ge 1 ] || die "resolve requires a profile name"
+  resolve_location "$1"
+}
+
+main() {
+  local sub="${1:-}"; shift || true
+  # Parse shared flags out of the remaining args.
+  local -a rest=()
+  for arg in "$@"; do
+    case "$arg" in
+      --prune) PRUNE=true ;;
+      --force) FORCE=true ;;
+      *) rest+=("$arg") ;;
+    esac
+  done
+  set -- "${rest[@]+"${rest[@]}"}"
+  case "$sub" in
+    apply)    cmd_apply "$@" ;;
+    check)    cmd_check "$@" ;;
+    pull)     cmd_pull "$@" ;;
+    teardown) cmd_teardown "$@" ;;
+    list)     cmd_list "$@" ;;
+    resolve)  cmd_resolve "$@" ;;
+    ""|-h|--help) die "usage: vscode-profiles {apply [--prune]|check|pull|teardown [--apply]|list|resolve <name>}" 2 ;;
+    *) die "unknown subcommand: $sub" 2 ;;
+  esac
+}
+
+main "$@"

@@ -23,7 +23,7 @@ run = [
   "bash tests/run.sh verify",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
-  'bash "{{ config_root }}/scripts/check-vscode-settings.sh"',
+  'bash "{{ config_root }}/scripts/vscode-profiles" check',
   "echo 'OK: dotfiles verification passed.'",
 ]
 
@@ -37,7 +37,7 @@ run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
-  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh"',
+  'bash "{{ config_root }}/scripts/vscode-profiles" apply',
   # `--default` creates the unversioned ~/.local/bin/python symlink; a plain
   # install does not. Guard on that so re-runs stay quiet and idempotent.
   "uv python find python >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
@@ -55,7 +55,7 @@ usage = 'flag "--apply" help="Execute removals (default: dry-run preview)"'
 # are printed as manual next steps instead.
 run = [
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-dotfiles.sh"',
-  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-vscode.sh"',
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/vscode-profiles" teardown',
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-local.sh"',
   'printf "\n== teardown %s ==\n  Then finish manually (removes mise itself):\n    mise uninstall --all --yes\n    mise implode --config --yes\n" "$([ "${usage_apply:-false}" = true ] && echo COMPLETE || echo PREVIEW)"',
 ]
@@ -69,15 +69,13 @@ interactive = true
 run = [
   "mise self-update --yes",
   # tools: re-resolve `latest`, bump versions in config.toml, rewrite mise.lock.
-  # vscode-ext is a local symlink plugin, not a remote — exclude it to suppress
-  # the "is a symlink, not updating" warning; extensions are handled below.
-  "mise upgrade --bump --yes --exclude vscode-ext",
+  "mise upgrade --bump --yes",
   # packages: refresh metadata + converge brew/brew-cask/mas.
   "mise bootstrap --update --only packages",
-  # VS Code: update all installed extensions, install missing declared ones,
-  # and prune undeclared ones.
+  # VS Code: update all installed extensions, then sync declared profiles
+  # (install missing, prune undeclared).
   "NODE_NO_WARNINGS=1 code --update-extensions",
-  'bash "{{ config_root }}/scripts/apply-vscode-extensions.sh" --prune',
+  'bash "{{ config_root }}/scripts/vscode-profiles" apply --prune',
   "mise bootstrap dotfiles apply",
   "uv python upgrade",
 ]

@@ -26,12 +26,6 @@ NPM_CONFIG_USERCONFIG = "{{env.XDG_CONFIG_HOME}}/npm/npmrc"
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 _.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin"]
 
-[plugins]
-# No-op local backend so VS Code extensions can be declared as [tools] entries
-# below (vscode-ext:<id>). mise auto-links this on `mise install`.
-# Uses env.HOME for portability - no hardcoded username.
-vscode-ext = "{{env.HOME}}/.config/mise/plugins/vscode-ext"
-
 [tools]
 node = "lts"
 uv = "latest"
@@ -55,27 +49,6 @@ shellcheck = "latest"
 claude-code = "latest"
 codex = "latest"
 pi = "latest"
-
-# VS Code extensions (declared here, synced by apply-vscode-extensions.sh).
-# language support
-"vscode-ext:golang.go" = "latest"
-"vscode-ext:ms-python.debugpy" = "latest"
-"vscode-ext:ms-python.python" = "latest"
-"vscode-ext:ms-python.vscode-pylance" = "latest"
-"vscode-ext:ms-python.vscode-python-envs" = "latest"
-"vscode-ext:ms-vscode.makefile-tools" = "latest"
-"vscode-ext:tombi-toml.tombi" = "latest"
-"vscode-ext:mechatroner.rainbow-csv" = "latest"
-# AI
-"vscode-ext:anthropic.claude-code" = "latest"
-"vscode-ext:openai.chatgpt" = "latest"
-# tooling
-"vscode-ext:hverlin.mise-vscode" = "latest"
-"vscode-ext:typora.typora-open-in-typora" = "latest"
-# themes and icons
-"vscode-ext:github.github-vscode-theme" = "latest"
-"vscode-ext:pkief.material-icon-theme" = "latest"
-"vscode-ext:zhuangtongfa.material-theme" = "latest"
 
 [bootstrap.packages]
 "brew:git" = "latest"
@@ -175,8 +148,9 @@ v = "nvim"
 
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
-# VS Code rewrites settings.json in place (Settings UI, extensions), so a
-# symlink gets orphaned into a divorced regular file. Manage it in copy mode
-# instead: apply seeds the live file from the repo, and app-written changes are
-# pulled back with `mise dotfiles add --changed` (or `dot run update`).
-"~/Library/Application Support/Code/User/settings.json" = { source = "~/dotfiles/home/.config/vscode/settings.json", mode = "copy" }
+# VS Code profile content (settings.json, keybindings.json, tasks.json,
+# snippets/, and per-profile extension lists) is NOT a [dotfiles] entry: VS Code
+# rewrites those files in place (orphaning symlinks) and named-profile files
+# live under an opaque storage location that this table cannot express. The
+# `scripts/vscode-profiles` mini-CLI owns the whole tree in copy mode instead -
+# `apply` pushes repo->live, `pull` captures live->repo, `check` reports drift.

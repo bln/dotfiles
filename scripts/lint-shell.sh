@@ -4,7 +4,8 @@
 #
 # Script collection strategy:
 #   - Top-level *.sh and scripts/*.sh: matched by extension.
-#   - mise file-tasks under tasks/: matched by shebang (no .sh extension).
+#   - Extensionless shebang scripts under scripts/ (mini-CLIs) and mise
+#     file-tasks under tasks/: matched by shebang.
 #   - Excludes .d/ template dirs (JSON/gitconfig, not shell).
 set -euo pipefail
 
@@ -17,6 +18,8 @@ done < <(
   {
     find "$REPO" -maxdepth 1 -type f -name '*.sh' -not -path '*/.git/*'
     find "$REPO/scripts" -type f -name '*.sh' -not -path '*/.git/*' 2>/dev/null || true
+    find "$REPO/scripts" -type f ! -name '*.sh' -not -path '*/.git/*' \
+      -exec sh -c 'head -1 "$1" | grep -qE "^#!.*(bash|zsh|sh)([[:space:]]|$)"' _ {} \; -print 2>/dev/null || true
     find "$REPO/tasks" -type f -not -path '*/*.d/*' \
       -exec sh -c 'head -1 "$1" | grep -qE "^#!.*(bash|zsh|sh)([[:space:]]|$)"' _ {} \; -print 2>/dev/null || true
   } | sort -u

@@ -1,0 +1,22 @@
+# VS Code extensions for the GLOBAL profile (available in every profile).
+# One extension id per line; # starts a comment. Synced by
+# `scripts/vscode-profiles apply`. Python extensions live in profiles/pyth/.
+
+# language support
+golang.go
+ms-vscode.makefile-tools
+tombi-toml.tombi
+mechatroner.rainbow-csv
+
+# AI
+anthropic.claude-code
+openai.chatgpt
+
+# tooling
+hverlin.mise-vscode
+typora.typora-open-in-typora
+
+# themes and icons
+github.github-vscode-theme
+pkief.material-icon-theme
+zhuangtongfa.material-theme

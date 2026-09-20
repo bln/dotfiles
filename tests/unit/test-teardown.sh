@@ -5,13 +5,14 @@
 # run without a live install. Asserts:
 #   - dry run (default) changes nothing on disk
 #   - --apply removes local files and uninstalls declared extensions
-#   - teardown-vscode strips the vscode-ext: prefix and skips non-extension tools
+#   - vscode-profiles teardown uninstalls declared ids per profile and deletes
+#     seeded named profiles (never the global shell)
 #   - teardown-local's safe_under_home guard refuses "/", "$HOME", non-HOME paths
 
 echo "== teardown =="
 
 DOTFILES="$REPO/scripts/teardown-dotfiles.sh"
-VSCODE="$REPO/scripts/teardown-vscode.sh"
+VSCODE="$REPO/scripts/vscode-profiles"
 LOCAL="$REPO/scripts/teardown-local.sh"
 
 # ── teardown-local: dry run vs --apply, HOME-scoped ───────────────────────────
@@ -58,41 +59,58 @@ LOCAL="$REPO/scripts/teardown-local.sh"
   assert_eq "guard accepts under HOME"    "ok"   "$(run_guard "$fakeHome/.config")"
 }
 
-# ── teardown-vscode: strips prefix, skips non-extensions, dry vs apply ────────
+# ── vscode-profiles teardown: uninstall per profile, delete named profiles ────
 {
-  home="$(sandbox)"
-  fbin="$home/bin"; mkdir -p "$fbin"
-  ulog="$home/uninstall.log"; : >"$ulog"
+  sb="$(sandbox)"
+  ud="$sb/User"; repo="$sb/repo"; fbin="$sb/bin"
+  mkdir -p "$ud/globalStorage" "$repo/profiles/pyth" "$fbin"
+  ulog="$sb/uninstall.log"; : >"$ulog"
+  # Global + pyth extension lists.
+  printf 'golang.go\n' >"$repo/extensions.txt"
+  printf 'ms-python.python\n' >"$repo/profiles/pyth/extensions.txt"
+  # Pre-seed pyth in storage.json so teardown can delete it.
+  printf '{"userDataProfiles":[{"location":"pyth0001","name":"pyth"}]}\n' \
+    >"$ud/globalStorage/storage.json"
+  mkdir -p "$ud/profiles/pyth0001"
+  # Fake code: log uninstalls, report closed for --status (emit the warning that
+  # the real binary prints when no instance is running).
   cat >"$fbin/code" <<'EOF'
 #!/usr/bin/env bash
-[ "$1" = "--uninstall-extension" ] && printf '%s\n' "$2" >>"$CODE_UNINSTALL_LOG"
+case "$1" in
+  --uninstall-extension) printf '%s\n' "$2" >>"$CODE_UNINSTALL_LOG" ;;
+  --status) echo "Warning: The --status argument can only be used if Code is already running. Please run it again after Code has started." >&2 ;;
+esac
 exit 0
 EOF
   chmod +x "$fbin/code"
-  # Inject a fixed declared list via the documented seam (no mise/jq needed).
-  src='printf "golang.go\nesbenp.prettier-vscode\n"'
 
-  # dry run: previews, uninstalls nothing
-  run_capture env PATH="$fbin:/usr/bin:/bin" HOME="$home" \
-    VSCODE_EXTENSIONS_SOURCE="$src" CODE_UNINSTALL_LOG="$ulog" \
-    bash "$VSCODE"
+  common=(env PATH="$fbin:/usr/bin:/bin"
+    VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo"
+    VSCODE_CODE_BIN="$fbin/code" CODE_UNINSTALL_LOG="$ulog")
+
+  # dry run: previews, uninstalls nothing, leaves the profile in place
+  run_capture "${common[@]}" bash "$VSCODE" teardown
   assert_eq "vscode dry run exits 0" "0" "$RUN_STATUS"
   assert_contains "vscode dry run names extension" "$(cat "$RUN_STDOUT")" "golang.go"
   assert_eq "vscode dry run uninstalls nothing" "" "$(cat "$ulog")"
+  assert_dir "vscode dry run keeps pyth profile dir" "$ud/profiles/pyth0001"
 
-  # --apply: uninstalls the declared ids
+  # --apply: uninstalls per profile and deletes the seeded named profile
   : >"$ulog"
-  run_capture env PATH="$fbin:/usr/bin:/bin" HOME="$home" \
-    VSCODE_EXTENSIONS_SOURCE="$src" CODE_UNINSTALL_LOG="$ulog" \
-    bash "$VSCODE" --apply
+  run_capture "${common[@]}" bash "$VSCODE" teardown --apply
   assert_eq "vscode --apply exits 0" "0" "$RUN_STATUS"
   uout="$(cat "$ulog")"
-  assert_contains "apply uninstalls golang.go" "$uout" "golang.go"
-  assert_contains "apply uninstalls prettier" "$uout" "esbenp.prettier-vscode"
+  assert_contains "apply uninstalls global golang.go" "$uout" "golang.go"
+  assert_contains "apply uninstalls pyth ms-python.python" "$uout" "ms-python.python"
+  assert_not_exists "apply deletes pyth profile dir" "$ud/profiles/pyth0001"
+  if command -v jq >/dev/null 2>&1; then
+    left="$(jq -r '(.userDataProfiles // []) | length' "$ud/globalStorage/storage.json")"
+    assert_eq "apply removes pyth from storage.json" "0" "$left"
+  fi
 
   # code absent -> no-op exit 0
-  run_capture env PATH="/usr/bin:/bin" HOME="$home" \
-    VSCODE_EXTENSIONS_SOURCE="$src" bash "$VSCODE" --apply
+  run_capture env PATH="/usr/bin:/bin" VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" \
+    bash "$VSCODE" teardown --apply
   assert_eq "vscode no-op when code absent" "0" "$RUN_STATUS"
 }
 

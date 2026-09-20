@@ -1,0 +1,9 @@
+# VS Code extensions for the "pyth" profile. These install into pyth ONLY;
+# the global profile does not get them. Because named profiles inherit the
+# global set ("globals expected everywhere"), pyth also has every global
+# extension. One id per line; # starts a comment.
+
+ms-python.debugpy
+ms-python.python
+ms-python.vscode-pylance
+ms-python.vscode-python-envs

@@ -61,14 +61,12 @@ dotfiles/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── ISSUE_TEMPLATE/
 ├── scripts/
-│   ├── apply-vscode-extensions.sh
 │   ├── check-git-identity.sh
-│   ├── check-vscode-settings.sh
 │   ├── lint-shell.sh
 │   ├── reset-codex.sh
 │   ├── teardown-dotfiles.sh    # teardown step: mise dotfiles unapply
-│   ├── teardown-vscode.sh      # teardown step: uninstall declared extensions
-│   └── teardown-local.sh       # teardown step: remove machine-local files
+│   ├── teardown-local.sh       # teardown step: remove machine-local files
+│   └── vscode-profiles         # mini-CLI: apply/check/pull/teardown VS Code profiles
 ├── tasks/
 │   └── setup/
 │       └── git-identity        # prompted machine-local git identity
@@ -92,7 +90,7 @@ dotfiles/
         ├── nvim/init.lua
         ├── ghostty/config
         ├── gitui/
-        ├── vscode/             # settings.json (extensions declared in mise [tools])
+        ├── vscode/             # VS Code profiles (settings + extension lists), owned by scripts/vscode-profiles
         ├── starship.toml
         ├── npm/npmrc
         └── uv/uv.toml
@@ -106,7 +104,7 @@ dotfiles/
 | Packages (formulae, casks, fonts, MAS apps) | `home/.config/mise/config.toml` `[bootstrap.packages]` | `mise bootstrap packages apply` |
 | Dotfile symlinks | `home/` + `[dotfiles]` table | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
-| VS Code extensions | `config.toml` `[tools]` `vscode-ext:*` | `bash scripts/apply-vscode-extensions.sh` |
+| VS Code profiles (settings + extensions) | `home/.config/vscode/` (per-profile `extensions.txt` + files) | `scripts/vscode-profiles apply` |
 | Environment and aliases | `[env]` and `[shell_alias]` | `mise activate zsh` |
 | Git identity | machine-local, routed by remote host (untracked) | `mise run setup:git-identity` |
 
@@ -122,23 +120,40 @@ dotfiles/
 
 See `docs/ARCHITECTURE.md` for the full backend preference order and package policy.
 
-### Managing VS Code extensions
+### Managing VS Code profiles
 
-Extensions are declared in `home/.config/mise/config.toml` `[tools]` as
-`vscode-ext:<id>` entries (a no-op mise backend plugin makes the keys legal):
+VS Code profiles are owned on disk under `home/.config/vscode/`, driven by the
+`scripts/vscode-profiles` mini-CLI. Extensions are profile-scoped state (like
+Neovim plugins), not global tools, so `code` owns their lifecycle - mise no
+longer shims or versions them.
 
-```toml
-"vscode-ext:esbenp.prettier-vscode" = "latest"
+Layout: the `vscode/` root is the **global** profile; each `profiles/<name>/`
+is a **named** profile. Extensions are plain-text id lists (one per line, `#`
+comments); other profile files (`settings.json`, `keybindings.json`,
+`tasks.json`, `snippets/`) are synced in copy mode when present.
+
+```
+home/.config/vscode/
+├── settings.json          # global profile
+├── extensions.txt         # global extension ids
+└── profiles/
+    └── pyth/
+        └── extensions.txt # pyth's own ids (the Python extensions)
 ```
 
-- **Add / remove**: edit the `vscode-ext:*` entries, then run
-  `bash scripts/apply-vscode-extensions.sh` (or `dot run update`).
-- **Sync behavior**: the script installs declared-but-missing extensions (so an
-  extension you deleted in the VS Code UI is reinstalled). Run `dot run update`
-  to also upgrade all installed extensions via `code --update-extensions`.
-- **Prune** (extensions installed but not declared, e.g. added via the VS Code
-  UI): warned by default, not removed. Pass `--prune` (or
-  `VSCODE_EXTENSIONS_PRUNE=true`) to uninstall them. `dot run update` prunes.
+- **Add / remove an extension**: edit the profile's `extensions.txt`, then run
+  `scripts/vscode-profiles apply` (or `dot run update`). Named profiles inherit
+  the global set ("globals expected everywhere").
+- **Sync behavior**: `apply` installs declared-but-missing extensions per
+  profile and seeds a missing named profile headlessly. Prune (installed but
+  not declared) is warned by default; pass `--prune` (or `dot run update`,
+  which prunes and runs `code --update-extensions`) to uninstall them.
+- **Drift / capture**: `vscode-profiles check` reports live-vs-repo drift;
+  `vscode-profiles pull` captures live profile files back into the repo after
+  UI edits (copy mode - pull or lose them).
+- **Safety**: seeding/deleting a profile mutates VS Code's `storage.json`, which
+  a running VS Code rewrites on exit. Those paths refuse to run while VS Code is
+  open (`--force` overrides). Extension installs and file copies are unguarded.
 - Find an extension's ID with `code --list-extensions`.
 
 ## Configuration ownership
@@ -168,14 +183,15 @@ The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so
 host-independent suites - static, unit, integration - which is exactly what CI
 runs. `mise run verify` additionally runs the host-only behavioral checks
 (tools on PATH, plugins loaded) and checks mise health, declared-state drift,
-git identity, and the VS Code settings link on a converged macOS host. See
+git identity, and VS Code profile drift on a converged macOS host. See
 CONTRIBUTING.md for the suites and how to add a test.
 
 ## Teardown
 
 `mise run teardown` (or `dot run teardown`) defaults to a dry run. With `--apply`
 it removes repository-owned state: dotfile symlinks (via `mise dotfiles unapply`),
-declared VS Code extensions, and machine-local files (git identity, uv cache).
+declared VS Code extensions and seeded named profiles, and machine-local files
+(git identity, uv cache).
 It then prints the two commands to finish manually - these can't be task steps
 (`mise uninstall` re-shims the runner mid-task; `mise implode` deletes mise
 itself):
