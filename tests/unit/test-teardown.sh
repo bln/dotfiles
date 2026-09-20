@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2153 # REPO is exported by tests/run.sh, which sources this file
 # Unit: the teardown-*.sh scripts remove only repository-owned state, safely.
 #
 # Runs the REAL scripts against a sandbox HOME. mise/code/jq are shimmed so tests
@@ -38,25 +39,31 @@ LOCAL="$REPO/scripts/teardown-local.sh"
   assert_eq "every removed path under sandbox HOME" "0" "$outside"
 }
 
-# ── teardown-local: safe_under_home guard (source the function directly) ───────
+# ── teardown-local: safe_under_home guard (the REAL shipped function) ──────────
+# Source the actual script (its bottom guard makes sourcing a no-op) so we test
+# the shipped safe_under_home, never a copy. Run each check in a subshell with a
+# sandbox HOME so a per-case HOME override cannot leak.
 {
-  fakeHome="/tmp/test-teardown-home-$$"
-  run_guard() {
-    env HOME="$fakeHome" bash -c '
-      set -euo pipefail
-      safe_under_home() {
-        local path="$1"
-        [ -n "$path" ] && [ "$path" != "/" ] && [ "$path" != "$HOME" ] && \
-          case "$path" in "$HOME/"*) return 0 ;; esac
-        return 1
-      }
-      safe_under_home "$1" && echo ok || echo fail' _ "$1"
+  guard_says() {  # guard_says <HOME> <path> -> prints "ok" | "fail"
+    ( HOME="$1"
+      # shellcheck source=/dev/null
+      source "$LOCAL"
+      safe_under_home "$2" && echo ok || echo fail )
   }
-  assert_eq "guard refuses /"             "fail" "$(run_guard '/')"
-  assert_eq "guard refuses HOME"          "fail" "$(run_guard "$fakeHome")"
-  assert_eq "guard refuses empty"         "fail" "$(run_guard '')"
-  assert_eq "guard refuses non-HOME path" "fail" "$(run_guard '/etc/passwd')"
-  assert_eq "guard accepts under HOME"    "ok"   "$(run_guard "$fakeHome/.config")"
+  h="$(sandbox)"
+  assert_eq "guard refuses /"             "fail" "$(guard_says "$h" '/')"
+  assert_eq "guard refuses HOME"          "fail" "$(guard_says "$h" "$h")"
+  assert_eq "guard refuses empty"         "fail" "$(guard_says "$h" '')"
+  assert_eq "guard refuses non-HOME path" "fail" "$(guard_says "$h" '/etc/passwd')"
+  assert_eq "guard accepts under HOME"    "ok"   "$(guard_says "$h" "$h/.config")"
+
+  # Symlink escape: a path that is lexically under HOME but resolves outside it
+  # must be refused (finding: the old lexical guard accepted this).
+  escape_root="$(sandbox)"          # outside HOME
+  mkdir -p "$escape_root/real"
+  ln -s "$escape_root" "$h/link-out"   # $h/link-out -> escape_root (outside HOME)
+  assert_eq "guard refuses symlink escaping HOME" "fail" \
+    "$(guard_says "$h" "$h/link-out/real")"
 }
 
 # ── vscode-profiles teardown: uninstall per profile, delete named profiles ────
