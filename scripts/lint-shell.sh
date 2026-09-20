@@ -6,6 +6,8 @@
 #   - Top-level *.sh and scripts/*.sh: matched by extension.
 #   - Extensionless shebang scripts under scripts/ (mini-CLIs) and mise
 #     file-tasks under tasks/: matched by shebang.
+#   - The test harness under tests/ (*.sh; all shebang bash): the tests are
+#     shipped repo machinery and must lint like everything else.
 #   - Excludes .d/ template dirs (JSON/gitconfig, not shell).
 set -euo pipefail
 
@@ -22,6 +24,7 @@ done < <(
       -exec sh -c 'head -1 "$1" | grep -qE "^#!.*(bash|zsh|sh)([[:space:]]|$)"' _ {} \; -print 2>/dev/null || true
     find "$REPO/tasks" -type f -not -path '*/*.d/*' \
       -exec sh -c 'head -1 "$1" | grep -qE "^#!.*(bash|zsh|sh)([[:space:]]|$)"' _ {} \; -print 2>/dev/null || true
+    find "$REPO/tests" -type f -name '*.sh' -not -path '*/.git/*' 2>/dev/null || true
   } | sort -u
 )
 
@@ -32,7 +35,9 @@ bash -n "${scripts[@]}"
 
 if command -v shellcheck >/dev/null 2>&1; then
   echo "==> shellcheck"
-  shellcheck "${scripts[@]}"
+  # -x: follow `source` directives (tests/run.sh sources lib/testlib.sh) so
+  # sourced-symbol checks resolve instead of emitting SC1091.
+  shellcheck -x "${scripts[@]}"
 else
   echo "WARNING: shellcheck not installed; skipped (CI enforces it)" >&2
 fi

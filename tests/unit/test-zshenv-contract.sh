@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2088 # ~ appears only in human-readable pass/fail labels, not as a path
 # Unit: .zshenv establishes the XDG + ZDOTDIR + PATH contract every other rc
 # file depends on.
 #

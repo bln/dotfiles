@@ -28,7 +28,8 @@ else
   bad "git/config parses" "git config --list failed on $gitcfg"
 fi
 
-# Shell syntax
+# Shell syntax. Listed explicitly (bash 3.2, no arrays needed for one entry).
+# shellcheck disable=SC2066 # intentional single-element literal list
 for f in "$REPO/home/.zshenv"; do
   label="$(basename "$f") bash syntax"
   if bash -n "$f" 2>/dev/null; then ok "$label"; else bad "$label" "bash -n failed"; fi
