@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034 # RUN_STATUS/RUN_STDOUT/RUN_STDERR are read by sourcing tests
 # Shared test library for the dotfiles test harness.
 #
 # Provides assertion helpers, sandbox management, and run_capture for separating
@@ -13,19 +14,37 @@ pass=0
 fail=0
 
 # ── sandbox management ───────────────────────────────────────────────────────
+# Two registration paths, both drained here:
+#   - sandbox() runs in command substitution (a subshell) so it records dirs in a
+#     manifest FILE, not the array: a `sandboxes+=(...)` inside the subshell (and
+#     likewise an `export` of a new var) updates only the subshell's copy, which
+#     the parent's EXIT trap never sees - that is the leak this replaces. The
+#     manifest path is fixed HERE, in the parent, at source time, so every
+#     subshell appends to the same file.
+#   - run_capture/zsh_startup run in the parent shell and append RUN_STDOUT/ERR
+#     temp files to the `sandboxes` array directly.
 sandboxes=()
+SANDBOX_MANIFEST="$(mktemp)"
 cleanup() {
   for d in "${sandboxes[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
+  if [ -f "$SANDBOX_MANIFEST" ]; then
+    while IFS= read -r d; do
+      [ -n "$d" ] && rm -rf "$d"
+    done <"$SANDBOX_MANIFEST"
+    rm -f "$SANDBOX_MANIFEST"
+  fi
   return 0
 }
 trap cleanup EXIT
 
+# sandbox: create a temp dir and register it (via the parent-owned manifest file,
+# see above) for cleanup on EXIT. Safe to call inside command substitution.
 sandbox() {
   local d
   d="$(mktemp -d)"
-  sandboxes+=("$d")
+  printf '%s\n' "$d" >>"$SANDBOX_MANIFEST"
   printf '%s\n' "$d"
 }
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154 # pass/fail counters are defined in the sourced testlib.sh
 # Test harness for this repo's shell scripts.
 #
 # Plain bash (no bats/framework, per AGENTS.md). Each test exercises the REAL
@@ -15,6 +16,7 @@ export REPO
 TEST_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── load test library ─────────────────────────────────────────────────────────
+# shellcheck source-path=SCRIPTDIR
 # shellcheck source=lib/testlib.sh
 source "$TEST_ROOT/lib/testlib.sh"
 
@@ -29,7 +31,14 @@ run_suite() {
   for test_file in "$suite_dir"/test-*.sh; do
     [ -f "$test_file" ] || continue
     found=true
-    source "$test_file"
+    # Tests accumulate results in $pass/$fail; a test file's own exit status is
+    # not the suite verdict. Under `set -e`, a sourced file whose last statement
+    # returns nonzero (e.g. a trailing `[ x -eq 0 ] && ok ...` that fell through)
+    # would abort this loop and skip every later suite. Isolate that: never let a
+    # sourced file's exit status propagate. The real verdict is $fail, checked at
+    # the summary.
+    # shellcheck disable=SC1090 # test files are discovered by glob, not a constant path
+    source "$test_file" || true
   done
   if [ "$found" = false ]; then
     printf 'warning: no test-*.sh files in %s/\n' "$suite" >&2
