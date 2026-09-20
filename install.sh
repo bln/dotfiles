@@ -16,7 +16,7 @@ set -euo pipefail
 # MISE_VERSION is pinned; keep it byte-identical to config.toml min_version and
 # .github/workflows/ci.yml (enforced by tests/static/test-version-consistency.sh).
 if ! command -v mise >/dev/null 2>&1; then
-  curl -fsSL https://mise.run | MISE_VERSION="2026.9.9" sh
+  curl -fsSL https://mise.run | MISE_VERSION="2026.9.12" sh
 fi
 export PATH="$HOME/.local/bin:$PATH"
 command -v mise >/dev/null 2>&1 || { printf 'ERROR: mise not found after install.\n' >&2; exit 1; }

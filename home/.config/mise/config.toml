@@ -1,7 +1,7 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
-min_version = "2026.9.9"
+min_version = "2026.9.12"
 
 [settings]
 lockfile = true

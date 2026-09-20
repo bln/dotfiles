@@ -14,7 +14,7 @@ Homebrew workflow. There is no Brewfile.
 ## Quick start
 
 ```sh
-curl -fsSL https://mise.run | MISE_VERSION=2026.9.9 sh
+curl -fsSL https://mise.run | MISE_VERSION=2026.9.12 sh
 curl -fsSL https://raw.githubusercontent.com/bln/dotfiles/main/install.sh | bash
 exec zsh -l
 ```

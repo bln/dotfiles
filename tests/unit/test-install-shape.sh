@@ -18,7 +18,7 @@ MISETOML="$REPO/mise.toml"
 
 install_src="$(cat "$INSTALL")"
 assert_contains "install.sh uses mise bootstrap --from" "$install_src" "mise bootstrap --from"
-assert_contains "install.sh pins MISE_VERSION"          "$install_src" 'MISE_VERSION="2026.9.9"'
+assert_contains "install.sh pins MISE_VERSION"          "$install_src" 'MISE_VERSION="2026.9.12"'
 assert_not_contains "install.sh drops MISE_GLOBAL_CONFIG_FILE bridge" "$install_src" "MISE_GLOBAL_CONFIG_FILE"
 assert_not_contains "install.sh drops manual mise trust" "$install_src" "mise trust"
 assert_contains "install.sh calls git-identity in foreground" "$install_src" "mise run setup:git-identity"
