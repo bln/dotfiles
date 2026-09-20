@@ -24,7 +24,15 @@ resolve_phys() {
     p="$(dirname "$p")"
   done
   if [ -d "$p" ]; then
-    printf '%s%s\n' "$( cd "$p" && pwd -P )" "$tail"
+    local base
+    base="$( cd "$p" && pwd -P )"
+    # Avoid a leading "//" when the deepest existing ancestor is root, which
+    # would defeat the prefix match in safe_under_home.
+    if [ "$base" = "/" ]; then
+      printf '%s\n' "$tail"
+    else
+      printf '%s%s\n' "$base" "$tail"
+    fi
   else
     printf '%s\n' "$1"
   fi

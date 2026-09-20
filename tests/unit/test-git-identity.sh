@@ -63,16 +63,24 @@ GITCFG="$REPO/home/.config/git/config"
   assert_not_exists "bad email writes no identity" "$home/.config/git/identity-personal"
 }
 
-# Edge case: shell metacharacters in name values are preserved literally.
+# Edge case: shell metacharacters in name values round-trip through git config.
+# Assert not just that the bytes landed but that `git config` reads each value
+# back as one intact field (git-config has its own quoting/escaping rules, so a
+# `$`, apostrophe, or `&` could tokenize wrong on read even if the file looks ok).
 {
   home="$(sandbox)"
   printf "O'Brien & Sons\nwork@x.co\nPlay \$User\nplay@x.co\n" \
     | HOME="$home" bash "$GIT_IDENTITY" >/dev/null 2>&1
   personal="$home/.config/git/identity-personal"
-  if [ -f "$personal" ]; then
-    assert_contains "apostrophe/ampersand preserved" "$(cat "$personal")" "O'Brien & Sons"
+  work="$home/.config/git/identity-work"
+  if [ -f "$personal" ] && [ -f "$work" ]; then
+    assert_eq "apostrophe/ampersand round-trips through git config" \
+      "O'Brien & Sons" "$(git config --file "$personal" user.name)"
+    # shellcheck disable=SC2016 # literal $User is the expected value, not an expansion
+    assert_eq "literal \$ round-trips through git config" \
+      'Play $User' "$(git config --file "$work" user.name)"
   else
-    bad "metachar test: identity created" "identity-personal missing"
+    bad "metachar test: identities created" "identity file missing"
   fi
 }
 

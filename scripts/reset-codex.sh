@@ -10,6 +10,23 @@ set -euo pipefail
 # no-override default keeps production behavior unchanged.
 codex_home="${CODEX_HOME:-$HOME/.codex}"
 
+# Parse args before the CODEX_HOME safety guard so --help/--dry-run are always
+# answerable regardless of env (the guard only needs to fire before any delete,
+# which happens later). Also honour USAGE_DRY_RUN for test compatibility.
+dry_run="${USAGE_DRY_RUN:-false}"
+for arg in "$@"; do
+  case "$arg" in
+    -n|--dry-run) dry_run=true ;;
+    -h|--help)
+      echo "usage: reset-codex.sh [--dry-run]" >&2
+      echo "  Clears Codex CLI and ChatGPT app state while retaining configuration." >&2
+      exit 0
+      ;;
+    *) echo "ERROR: unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+
+
 # Guard: this script rm -rf's nearly everything under $codex_home, so a bad
 # CODEX_HOME is data loss. Production only ever uses $HOME/.codex; the seam may
 # point at a mktemp sandbox (NOT under $HOME), so the guard cannot require $HOME.
@@ -28,7 +45,16 @@ resolve_phys() {
     p="$(dirname "$p")"
   done
   if [ -d "$p" ]; then
-    printf '%s%s\n' "$( cd "$p" && pwd -P )" "$tail"
+    local base
+    base="$( cd "$p" && pwd -P )"
+    # base is "/" when the deepest existing ancestor is root; concatenating the
+    # "/…"-prefixed tail would then yield a leading "//" that the prefix-based
+    # denylist below silently fails to match. Emit the tail alone in that case.
+    if [ "$base" = "/" ]; then
+      printf '%s\n' "$tail"
+    else
+      printf '%s%s\n' "$base" "$tail"
+    fi
   else
     printf '%s\n' "$1"
   fi
@@ -59,20 +85,6 @@ if ! safe_codex_home "$codex_home"; then
   echo "  It must be a non-root path at least two levels below /." >&2
   exit 2
 fi
-
-# Accept --dry-run flag; also honour USAGE_DRY_RUN for test compatibility.
-dry_run="${USAGE_DRY_RUN:-false}"
-for arg in "$@"; do
-  case "$arg" in
-    -n|--dry-run) dry_run=true ;;
-    -h|--help)
-      echo "usage: reset-codex.sh [--dry-run]" >&2
-      echo "  Clears Codex CLI and ChatGPT app state while retaining configuration." >&2
-      exit 0
-      ;;
-    *) echo "ERROR: unknown argument: $arg" >&2; exit 2 ;;
-  esac
-done
 
 [ -d "$codex_home" ] || { echo "nothing to clear: $codex_home does not exist"; exit 0; }
 
