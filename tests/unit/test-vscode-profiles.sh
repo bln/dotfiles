@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2153 # REPO is exported by tests/run.sh, which sources this file
 # Unit: scripts/vscode-profiles apply/check logic against a sandbox, with a fake
 # `code` (no live VS Code) and the VSCODE_* seams. Runs the REAL shipped CLI.
 # Asserts:
@@ -225,11 +226,11 @@ EOF
   fi
 }
 
-# ── failing extension install mid-loop must NOT abort apply ───────────────────
+# ── failing extension install mid-loop: continue, but exit nonzero ────────────
 # `code --install-extension` can fail for one id (network, bad id) while others
-# succeed. That is a per-extension signal, not a fleet-fatal error: the run must
-# continue and still seed/serve every profile. This locks in the install/uninstall
-# call sites that were the last exposure to the whole-apply-abort class.
+# succeed. That is not fleet-fatal: the run must continue and still seed/serve
+# every profile. But it IS a real failure, so apply aggregates it and returns
+# nonzero. This locks in both halves: no mid-loop abort, no silently-swallowed error.
 {
   sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
   mkdir -p "$ud/globalStorage" "$bin" "$repo"
@@ -262,10 +263,14 @@ EOF
   if command -v jq >/dev/null 2>&1 && command -v uuidgen >/dev/null 2>&1; then
     run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" \
       PRESET="" CODE_INSTALL_LOG="$ilog" bash "$CLI" apply
-    assert_eq "apply survives a failing install mid-loop" "0" "$RUN_STATUS"
+    # Contract: apply finishes every profile even when one install fails, but
+    # aggregates the failure and exits nonzero (a failed install is a real error,
+    # not an ignorable tool signal).
+    assert_eq "apply reports the failing install (nonzero)" "1" "$RUN_STATUS"
     # The failed install was attempted (aaa) AND the loop continued to bbb.
     assert_contains "attempted the failing install (aaa)" "$(cut -f1 <"$ilog")" "ext.aaa"
     assert_contains "continued past failure to bbb" "$(cut -f1 <"$ilog")" "ext.bbb"
+    assert_contains "names the failed install in output" "$(cat "$RUN_STDERR")" "failed to install ext.aaa"
     for p in aaa bbb; do
       assert_eq "profile $p seeded despite install failure" "1" \
         "$(jq -r --arg n "$p" '[.userDataProfiles[]|select(.name==$n)]|length' "$ud/globalStorage/storage.json")"
@@ -309,35 +314,150 @@ EOF
   fi
 }
 
-# ── check: match / drift / missing / symlink ─────────────────────────────────
+# ── check: file match / drift / missing / symlink ────────────────────────────
+# Focuses on profile-FILE drift; code is absent (VSCODE_CODE_BIN points nowhere)
+# so extension drift is out of scope here - it has its own block below.
 {
   sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"
   mkdir -p "$ud" "$repo"
   printf 'x\n' >"$repo/settings.json"
   printf 'a\n' >"$repo/extensions.txt"
+  nocode=(env PATH="/usr/bin:/bin" VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo"
+    VSCODE_CODE_BIN="definitely-not-code")
 
-  # missing live -> warn to apply, exit 0
-  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" check
-  assert_eq "check missing exits 0" "0" "$RUN_STATUS"
+  # missing live -> drift: warn to apply, exit 1 (gates verify)
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "check missing exits 1" "1" "$RUN_STATUS"
   assert_contains "check missing warns apply" "$(cat "$RUN_STDERR")" "vscode-profiles apply"
 
   # matching -> OK exit 0
   printf 'x\n' >"$ud/settings.json"
-  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" check
+  run_capture "${nocode[@]}" bash "$CLI" check
   assert_eq "check match exits 0" "0" "$RUN_STATUS"
   assert_contains "check match says OK" "$(cat "$RUN_STDOUT")" "match the repo copy"
 
-  # drift -> warn with pull path, exit 0
+  # drift -> warn with pull path, exit 1 (gates verify)
   printf 'y\n' >"$ud/settings.json"
-  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" check
-  assert_eq "check drift exits 0" "0" "$RUN_STATUS"
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "check drift exits 1" "1" "$RUN_STATUS"
   assert_contains "check drift names pull" "$(cat "$RUN_STDERR")" "vscode-profiles pull"
 
   # symlink -> error exit 1
   rm -f "$ud/settings.json"; ln -s "$repo/settings.json" "$ud/settings.json"
-  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" check
+  run_capture "${nocode[@]}" bash "$CLI" check
   assert_eq "check symlink exits 1" "1" "$RUN_STATUS"
   assert_contains "check symlink flags copy mode" "$(cat "$RUN_STDERR")" "copy mode"
+}
+
+# ── malformed profile .location is never trusted as a path (teardown rm -rf) ───
+# A hand-edited or corrupt storage.json whose .location contains "../.." must not
+# let teardown escape the profiles dir. resolve_location rejects it (so resolve
+# prints nothing and warns) and teardown never builds a deletion path from it.
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud/globalStorage" "$repo/profiles/evil" "$bin"
+  printf 'golang.go\n' >"$repo/extensions.txt"
+  printf 'ms-python.python\n' >"$repo/profiles/evil/extensions.txt"
+  make_code "$bin"
+  # A canary OUTSIDE the profiles dir that a "../../canary" escape would delete.
+  mkdir -p "$ud/canary"; printf 'keep\n' >"$ud/canary/keep.txt"
+
+  if command -v jq >/dev/null 2>&1; then
+    printf '{"userDataProfiles":[{"name":"evil","location":"../../canary"}]}\n' \
+      >"$ud/globalStorage/storage.json"
+
+    run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" \
+      bash "$CLI" resolve evil
+    assert_eq "resolve rejects malformed location (empty)" "" "$(cat "$RUN_STDOUT")"
+    assert_contains "resolve warns on malformed location" "$(cat "$RUN_STDERR")" "malformed profile location"
+
+    # teardown --apply must not delete the canary via the malformed location.
+    run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" \
+      APPLY=true VSCODE_PROFILES_FORCE=true bash "$CLI" teardown --apply
+    assert_file "canary survives malformed-location teardown" "$ud/canary/keep.txt"
+  else
+    skip "malformed-location guard (jq not installed)"
+  fi
+}
+
+# ── check: snippet drift (missing / differing / repo-only) ────────────────────
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"
+  mkdir -p "$ud/snippets" "$repo/snippets"
+  printf 'x\n' >"$repo/settings.json"; printf 'x\n' >"$ud/settings.json"
+  printf '{"a":1}\n' >"$repo/snippets/py.json"
+  nocode=(env PATH="/usr/bin:/bin" VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo"
+    VSCODE_CODE_BIN="definitely-not-code")
+
+  # repo snippet missing live -> drift
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "snippet missing live -> exit 1" "1" "$RUN_STATUS"
+  assert_contains "names the missing snippet" "$(cat "$RUN_STDERR")" "snippet missing live: py.json"
+
+  # present and identical -> OK
+  printf '{"a":1}\n' >"$ud/snippets/py.json"
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "matching snippet -> exit 0" "0" "$RUN_STATUS"
+
+  # differing content -> drift
+  printf '{"a":2}\n' >"$ud/snippets/py.json"
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "snippet differs -> exit 1" "1" "$RUN_STATUS"
+  assert_contains "names the differing snippet" "$(cat "$RUN_STDERR")" "snippet differs: py.json"
+
+  # a live snippet not declared in the repo -> drift
+  printf '{"a":1}\n' >"$ud/snippets/py.json"     # re-sync the shared one
+  printf '{"b":1}\n' >"$ud/snippets/extra.json"  # live-only
+  run_capture "${nocode[@]}" bash "$CLI" check
+  assert_eq "live-only snippet -> exit 1" "1" "$RUN_STATUS"
+  assert_contains "names the live-only snippet" "$(cat "$RUN_STDERR")" "live snippet not in repo: extra.json"
+}
+
+# ── check: extension drift (declared-not-installed / installed-not-declared) ──
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud" "$repo" "$bin"
+  printf 'x\n' >"$repo/settings.json"; printf 'x\n' >"$ud/settings.json"
+  printf 'esbenp.prettier-vscode\n' >"$repo/extensions.txt"
+  make_code "$bin"
+  common=(env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code")
+
+  # installed matches declared -> OK
+  run_capture "${common[@]}" PRESET="esbenp.prettier-vscode" bash "$CLI" check
+  assert_eq "extensions match -> exit 0" "0" "$RUN_STATUS"
+
+  # declared but not installed -> drift
+  run_capture "${common[@]}" PRESET="" bash "$CLI" check
+  assert_eq "declared-not-installed -> exit 1" "1" "$RUN_STATUS"
+  assert_contains "names the missing extension" "$(cat "$RUN_STDERR")" "declared but not installed: esbenp.prettier-vscode"
+
+  # installed but not declared -> drift
+  run_capture "${common[@]}" PRESET="esbenp.prettier-vscode ms-python.python" bash "$CLI" check
+  assert_eq "installed-not-declared -> exit 1" "1" "$RUN_STATUS"
+  assert_contains "names the undeclared extension" "$(cat "$RUN_STDERR")" "installed but not declared: ms-python.python"
+}
+
+# ── pull: capture a newly-present managed file + mirror/prune snippets ─────────
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"
+  mkdir -p "$ud/snippets" "$repo/snippets"
+  # Repo tracks only settings; live has settings + a NEW keybindings the repo
+  # never tracked, and snippet churn (new live one, stale repo one).
+  printf 'old\n' >"$repo/settings.json"
+  printf 'new\n' >"$ud/settings.json"
+  printf 'keys\n' >"$ud/keybindings.json"      # live-only managed file
+  printf '{"live":1}\n' >"$ud/snippets/live.json"   # live-only snippet
+  printf '{"stale":1}\n' >"$repo/snippets/stale.json" # repo-only snippet (deleted upstream)
+  nocode=(env PATH="/usr/bin:/bin" VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo"
+    VSCODE_CODE_BIN="definitely-not-code")
+
+  run_capture "${nocode[@]}" bash "$CLI" pull
+  assert_eq "pull exits 0" "0" "$RUN_STATUS"
+  assert_eq "pull updates existing settings" "new" "$(cat "$repo/settings.json")"
+  assert_file "pull captures the new managed file" "$repo/keybindings.json"
+  assert_eq "captured file has live content" "keys" "$(cat "$repo/keybindings.json")"
+  assert_file "pull captures the new live snippet" "$repo/snippets/live.json"
+  assert_not_exists "pull prunes the stale repo snippet" "$repo/snippets/stale.json"
 }
 
 # ── code absent -> apply no-op exit 0; unknown subcommand -> exit 2 ───────────

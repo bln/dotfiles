@@ -14,7 +14,11 @@
 #                     profiles, push profile files, install declared extensions
 #                     (prune undeclared only with --prune, else warn).
 #   check             report drift between live and repo for every managed file.
-#   pull              capture live -> repo for every managed file (deliberate).
+#                     Exits nonzero if ANY profile drifts (missing, differing, a
+#                     symlink, or not yet created live), so it gates `verify`.
+#   pull              capture live -> repo for every managed file (deliberate):
+#                     creates newly-present managed files and mirrors snippets
+#                     (adds new, prunes repo-only stale ones).
 #   teardown [--apply]  uninstall declared extensions and delete seeded named
 #                     profiles (dry-run without --apply).
 #   list              list profiles the repo declares (global + named).
@@ -48,7 +52,21 @@
 # The few failures that MUST stop the run - the atomic storage.json rewrites -
 # are handled explicitly with `|| die`. We keep `set -u`: the `${var:-}` /
 # `${arr[@]+…}` idioms below rely on it and it catches genuine typos.
+#
+# But "continue past a failure" must NOT become "hide it". Real operational
+# failures - a failed extension install/uninstall, an uncopyable file - are
+# recorded via note_failure so apply/teardown finish every profile AND still
+# exit nonzero. That is the difference between an expected tool signal (ignored)
+# and a genuine error (surfaced) under a no-errexit design.
 set -u
+
+# Sticky failure flag: any recoverable-but-real error sets it; apply/teardown
+# return nonzero at the end if it was ever set. Reset per top-level invocation.
+RUN_FAILED=false
+note_failure() {  # note_failure <message>
+  RUN_FAILED=true
+  warn "$1"
+}
 
 REPO="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 USER_DIR="${VSCODE_USER_DIR:-$HOME/Library/Application Support/Code/User}"
@@ -87,15 +105,41 @@ require_code_closed() {
 
 storage_json() { printf '%s/globalStorage/storage.json' "$USER_DIR"; }
 
-# resolve_location <name> -> prints the opaque location id, or empty if unknown.
+# valid_location <loc>: a location id is an opaque token VS Code stores in
+# storage.json and we join under $USER_DIR/profiles to build a path we later
+# rm -rf. Never trust it blindly: reject anything that is not a single safe path
+# segment (letters/digits/dot/underscore/hyphen), so a hand-edited or corrupt
+# ".location" containing "/", "..", or absolute paths can never escape the
+# profiles dir. Empty is "unknown" and handled by callers, not here.
+valid_location() {
+  local loc="$1"
+  [ -n "$loc" ] || return 1
+  case "$loc" in
+    .|..|*/*) return 1 ;;                    # no path separators, no dot-dirs
+  esac
+  case "$loc" in
+    *[!A-Za-z0-9._-]*) return 1 ;;           # only safe segment chars (also bars '\')
+  esac
+  return 0
+}
+
+# resolve_location <name> -> prints the opaque location id, or empty if unknown
+# or malformed. A stored .location that fails validation is treated as unknown
+# (empty) AND warned about, so it never flows into a filesystem path.
 resolve_location() {
-  local name="$1" sj
+  local name="$1" sj loc
   sj="$(storage_json)"
   [ -f "$sj" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
-  jq -r --arg n "$name" \
+  loc="$(jq -r --arg n "$name" \
     '(.userDataProfiles // [])[] | select(.name == $n) | .location' \
-    "$sj" 2>/dev/null | head -n1
+    "$sj" 2>/dev/null | head -n1)"
+  [ -n "$loc" ] || return 0
+  if ! valid_location "$loc"; then
+    warn "ignoring malformed profile location for '$name': $loc"
+    return 0
+  fi
+  printf '%s\n' "$loc"
 }
 
 # seed_profile <name> -> ensure a named profile exists live; prints its location.
@@ -210,14 +254,14 @@ sync_files() {
   # only kills the subshell, so re-check here that seeding actually produced a
   # location before we write into it.
   [ -n "$dst" ] || die "could not resolve live dir for profile '$name'"
-  mkdir -p "$dst"
+  mkdir -p "$dst" || { note_failure "cannot create live dir $dst ($name)"; return; }
   for f in $PROFILE_FILES; do
     [ -f "$src/$f" ] || continue
-    cp "$src/$f" "$dst/$f"
+    cp "$src/$f" "$dst/$f" || note_failure "failed to copy $f into $dst ($name)"
   done
   if [ -d "$src/snippets" ]; then
-    mkdir -p "$dst/snippets"
-    cp -R "$src/snippets/." "$dst/snippets/"
+    mkdir -p "$dst/snippets" || { note_failure "cannot create $dst/snippets ($name)"; return; }
+    cp -R "$src/snippets/." "$dst/snippets/" || note_failure "failed to copy snippets ($name)"
   fi
 }
 
@@ -234,7 +278,8 @@ sync_extensions() {
     [ -n "$ext" ] || continue
     if ! grep -Fxq "$ext" <<<"$installed"; then
       printf 'Installing %s (%s)\n' "$ext" "${name:-$GLOBAL}"
-      "$CODE_BIN" --install-extension "$ext" "${sel[@]+"${sel[@]}"}"
+      "$CODE_BIN" --install-extension "$ext" "${sel[@]+"${sel[@]}"}" \
+        || note_failure "failed to install $ext (${name:-$GLOBAL})"
     fi
   done <<<"$(declared_extensions_effective_for_install "$name")"
 
@@ -243,7 +288,8 @@ sync_extensions() {
     if ! grep -Fxq "$ext" <<<"$declared"; then
       if [ "$PRUNE" = true ]; then
         printf 'Pruning untracked %s (%s)\n' "$ext" "${name:-$GLOBAL}"
-        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}"
+        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" \
+          || note_failure "failed to prune $ext (${name:-$GLOBAL})"
       else
         warn "installed extension not declared: $ext (${name:-$GLOBAL}) (pass --prune to remove)"
       fi
@@ -278,6 +324,67 @@ cmd_apply() {
     sync_files "$name"
     if code_available; then sync_extensions "$name"; fi
   done < <(profiles)
+
+  if [ "$RUN_FAILED" = true ]; then
+    warn "apply completed with errors (see above); some profiles may be partial."
+    return 1
+  fi
+}
+
+# check_snippets <name> <src> <dst>: compare the repo's snippets/ against live.
+# The repo owns the full snippets set, so drift is: a repo snippet missing or
+# differing live, OR a live snippet the repo no longer declares (a stale file
+# apply won't remove today - pull would capture it, or it should be deleted).
+# Returns nonzero on any drift. No-op if the repo declares no snippets dir.
+check_snippets() {
+  local name="$1" src="$2" dst="$3" rc=0 rel
+  [ -d "$src/snippets" ] || return 0
+  # repo -> live: each repo snippet must exist and match live.
+  while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    if [ ! -e "$dst/snippets/$rel" ]; then
+      warn "snippet missing live: $rel ($name) - run 'vscode-profiles apply'."
+      rc=1
+    elif ! cmp -s "$src/snippets/$rel" "$dst/snippets/$rel"; then
+      warn "snippet differs: $rel ($name)."
+      rc=1
+    fi
+  done < <(cd "$src/snippets" 2>/dev/null && find . -type f | sed 's|^\./||')
+  # live -> repo: a live snippet the repo does not declare is drift.
+  if [ -d "$dst/snippets" ]; then
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      if [ ! -e "$src/snippets/$rel" ]; then
+        warn "live snippet not in repo: $rel ($name) - 'pull' to capture or delete it."
+        rc=1
+      fi
+    done < <(cd "$dst/snippets" 2>/dev/null && find . -type f | sed 's|^\./||')
+  fi
+  return "$rc"
+}
+
+# check_extensions <name>: compare the profile's effective declared extension
+# set against what `code` reports installed. Missing (declared, not installed)
+# and undeclared (installed, not declared) are both drift. Requires `code`.
+check_extensions() {
+  local name="$1" declared installed ext rc=0
+  declared="$(effective_declared "$name")"
+  installed="$(installed_extensions "$name")"
+  while IFS= read -r ext; do
+    [ -n "$ext" ] || continue
+    grep -Fxq "$ext" <<<"$installed" || {
+      warn "extension declared but not installed: $ext (${name:-$GLOBAL}) - run 'vscode-profiles apply'."
+      rc=1
+    }
+  done <<<"$declared"
+  while IFS= read -r ext; do
+    [ -n "$ext" ] || continue
+    grep -Fxq "$ext" <<<"$declared" || {
+      warn "extension installed but not declared: $ext (${name:-$GLOBAL}) - 'apply --prune' to remove or declare it."
+      rc=1
+    }
+  done <<<"$installed"
+  return "$rc"
 }
 
 cmd_check() {
@@ -292,6 +399,7 @@ cmd_check() {
       local loc; loc="$(resolve_location "$name")"
       if [ -z "$loc" ]; then
         warn "profile '$name' not created live yet - run 'vscode-profiles apply'"
+        rc=1
         continue
       fi
       dst="$USER_DIR/profiles/$loc"
@@ -301,6 +409,7 @@ cmd_check() {
       live="$dst/$f"; repo="$src/$f"
       if [ ! -e "$live" ]; then
         warn "$live missing - run 'vscode-profiles apply' to seed it."
+        rc=1
       elif [ -L "$live" ]; then
         warn "$live is a symlink; profile files are managed in copy mode."
         warn "  Fix: rm the link, then 'vscode-profiles apply'."
@@ -309,15 +418,31 @@ cmd_check() {
         warn "live $f differs from repo ($name)."
         warn "  Capture app changes:  vscode-profiles pull"
         warn "  Or push the repo out: vscode-profiles apply"
+        rc=1
       fi
     done
+    check_snippets "$name" "$src" "$dst" || rc=1
+    if code_available; then check_extensions "$name" || rc=1; fi
   done < <(profiles)
-  if [ "$rc" -eq 0 ]; then echo "OK: VS Code profile files match the repo copy."; fi
+  if [ "$rc" -eq 0 ]; then
+    echo "OK: VS Code profile files match the repo copy."
+  else
+    warn "VS Code profiles drift from the repo (see above)."
+  fi
   return "$rc"
 }
 
+# cmd_pull: capture live -> repo for every managed file (deliberate). Unlike
+# apply, pull makes the repo mirror the live profile:
+#   - each managed file (PROFILE_FILES) present live is copied into the repo,
+#     CREATING it if the repo did not track it yet (so a newly-added live
+#     settings/keybindings/tasks file is captured, not skipped);
+#   - snippets/ is mirrored fully: new live snippets are copied in AND repo
+#     snippets no longer present live are pruned, so the repo reflects exactly
+#     what the profile has. A profile with a live snippets dir gets one in the
+#     repo even if it had none before.
 cmd_pull() {
-  local name src dst f loc
+  local name src dst f loc rel
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     src="$(repo_dir_for "$name")"
@@ -328,14 +453,27 @@ cmd_pull() {
       [ -n "$loc" ] || { warn "profile '$name' not created live; nothing to pull"; continue; }
       dst="$USER_DIR/profiles/$loc"
     fi
+    mkdir -p "$src" || { note_failure "cannot create repo dir $src ($name)"; continue; }
+    # Capture each managed file that exists live, creating it in the repo.
     for f in $PROFILE_FILES; do
-      [ -f "$src/$f" ] && [ -f "$dst/$f" ] || continue
-      cp "$dst/$f" "$src/$f"
+      [ -f "$dst/$f" ] || continue
+      cp "$dst/$f" "$src/$f" || note_failure "failed to pull $f into repo ($name)"
     done
-    if [ -d "$src/snippets" ] && [ -d "$dst/snippets" ]; then
-      cp -R "$dst/snippets/." "$src/snippets/"
+    # Mirror snippets live -> repo (add/update new, prune repo-only stale files).
+    if [ -d "$dst/snippets" ]; then
+      mkdir -p "$src/snippets" || { note_failure "cannot create $src/snippets ($name)"; continue; }
+      cp -R "$dst/snippets/." "$src/snippets/" || note_failure "failed to pull snippets ($name)"
+      # Prune repo snippets that no longer exist live.
+      while IFS= read -r rel; do
+        [ -n "$rel" ] || continue
+        [ -e "$dst/snippets/$rel" ] || rm -f "$src/snippets/$rel"
+      done < <(cd "$src/snippets" 2>/dev/null && find . -type f | sed 's|^\./||')
     fi
   done < <(profiles)
+  if [ "$RUN_FAILED" = true ]; then
+    warn "pull completed with errors (see above)."
+    return 1
+  fi
   echo "OK: pulled live VS Code profile files into the repo."
 }
 
@@ -357,7 +495,8 @@ cmd_teardown() {
     while IFS= read -r ext; do
       [ -n "$ext" ] || continue
       if [ "$apply" = true ]; then
-        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" 2>/dev/null
+        "$CODE_BIN" --uninstall-extension "$ext" "${sel[@]+"${sel[@]}"}" 2>/dev/null \
+          || note_failure "failed to uninstall $ext ($name)"
       else
         printf '  DRY RUN: would uninstall %s (%s)\n' "$ext" "$name"
       fi
@@ -377,11 +516,24 @@ cmd_teardown() {
           '.userDataProfiles = ((.userDataProfiles // []) | map(select(.name != $n)))' \
           "$sj" >"$tmp" && mv "$tmp" "$sj" || die "failed to write $sj"
       fi
-      rm -rf "${USER_DIR:?}/profiles/$loc"
+      # Defence in depth: resolve_location already rejects malformed ids, but the
+      # rm -rf target is destructive enough to re-verify the id and confirm the
+      # resolved path stays under $USER_DIR/profiles before deleting.
+      valid_location "$loc" || die "refusing to delete profile with unsafe location: $loc"
+      local target="$USER_DIR/profiles/$loc"
+      case "$target" in
+        "$USER_DIR/profiles/"*) rm -rf "${USER_DIR:?}/profiles/$loc" ;;
+        *) die "refusing to delete path outside profiles dir: $target" ;;
+      esac
     else
       printf '  DRY RUN: would delete profile %s (location %s)\n' "$name" "$loc"
     fi
   done < <(profiles)
+
+  if [ "$RUN_FAILED" = true ]; then
+    warn "teardown completed with errors (see above)."
+    return 1
+  fi
 }
 
 cmd_list() { profiles; }

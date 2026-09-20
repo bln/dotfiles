@@ -50,7 +50,10 @@ run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--p
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
-  "mise run sync:vscode",
+  # apply is best-effort here: a transient extension-install failure returns
+  # nonzero but must not abort the rest of the converge (verify's `check` is the
+  # strict gate). It still prints the failure.
+  "mise run sync:vscode || echo 'WARNING: VS Code sync reported errors; continuing bootstrap' >&2",
   # `--default` creates the unversioned ~/.local/bin/python symlink; a plain
   # install does not. Guard on that so re-runs stay quiet and idempotent.
   "uv python find python >/dev/null 2>&1 || uv python install --default --preview-features python-install-default",
@@ -68,7 +71,9 @@ usage = 'flag "--apply" help="Execute removals (default: dry-run preview)"'
 # are printed as manual next steps instead.
 run = [
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-dotfiles.sh"',
-  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/vscode-profiles" teardown',
+  # vscode teardown is best-effort: a failed uninstall returns nonzero but must
+  # not stop the remaining teardown steps (identity/uv cleanup below).
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/vscode-profiles" teardown || echo "WARNING: VS Code teardown reported errors; continuing" >&2',
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-local.sh"',
   'printf "\n== teardown %s ==\n  Then finish manually (removes mise itself):\n    mise uninstall --all --yes\n    mise implode --config --yes\n" "$([ "${usage_apply:-false}" = true ] && echo COMPLETE || echo PREVIEW)"',
 ]
@@ -86,9 +91,10 @@ run = [
   # packages: refresh metadata + converge brew/brew-cask/mas.
   "mise bootstrap --update --only packages",
   # VS Code: update all installed extensions, then sync declared profiles
-  # (install missing, prune undeclared).
+  # (install missing, prune undeclared). Best-effort: a transient extension
+  # failure warns but must not abort the remaining upgrade steps.
   "NODE_NO_WARNINGS=1 code --update-extensions",
-  "mise run sync:vscode --prune",
+  "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
   "mise bootstrap dotfiles apply",
   "uv python upgrade",
 ]

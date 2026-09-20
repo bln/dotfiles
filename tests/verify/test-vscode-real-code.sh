@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2153 # REPO is exported by tests/run.sh, which sources this file
 # Verify-tier (host only): exercise scripts/vscode-profiles against a REAL,
 # fully isolated `code` instance - never the user's live VS Code. Isolation is
 # via `code --user-data-dir <tmp> --extensions-dir <tmp>`, so installs, profile
