@@ -1,13 +1,13 @@
-# mise: activate tools + shims for interactive shells (PATH is set in .zshenv)
+# ── mise ──────────────────────────────────────────────────────────────────────
+# Activate tools and shims for interactive shells (PATH bootstrapped in .zshenv).
 if command -v mise &>/dev/null; then
   eval "$(mise activate zsh)"
 fi
-# mise contributes its non-interactive task path; zsh's tied arrays make the
-# inherited .zshenv path and mise path a single ordered, duplicate-free PATH.
+# Deduplicate PATH after mise adds its entries (zsh tied-array feature).
 typeset -gU path PATH
 
-# Interactive defaults belong to the interactive shell, not mise's global
-# machine declaration. Respect values supplied by the user or parent process.
+# ── environment ───────────────────────────────────────────────────────────────
+# Interactive defaults; honour values already set by the parent process.
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export PAGER="${PAGER:-less -FRX}"
@@ -19,84 +19,90 @@ HISTFILE="$XDG_CACHE_HOME/zsh/history"
 HISTSIZE=50000
 SAVEHIST=50000
 
-setopt HIST_IGNORE_ALL_DUPS   # remove older duplicate entries from history
-setopt HIST_IGNORE_SPACE      # lines starting with space are not recorded
-setopt HIST_FIND_NO_DUPS      # don't display duplicates when searching
-setopt HIST_REDUCE_BLANKS     # remove superfluous blanks from history items
-setopt HIST_VERIFY            # show command from history before executing
-# SHARE_HISTORY and INC_APPEND_HISTORY are set only when atuin is absent;
-# atuin owns history sync and search when present and would double-write otherwise.
-if ! command -v atuin &>/dev/null; then
-  setopt SHARE_HISTORY
-  setopt INC_APPEND_HISTORY
+setopt HIST_IGNORE_ALL_DUPS   # drop older duplicate entries
+setopt HIST_IGNORE_SPACE      # exclude lines starting with a space
+setopt HIST_FIND_NO_DUPS      # skip duplicates when searching
+setopt HIST_REDUCE_BLANKS     # strip superfluous blanks
+setopt HIST_VERIFY            # show expanded history line before executing
+
+# atuin replaces zsh history sync when present; enabling both double-writes.
+if command -v atuin &>/dev/null; then
+  _use_atuin=1
+  eval "$(atuin init zsh)"
+else
+  _use_atuin=0
+  setopt SHARE_HISTORY        # share history across sessions
+  setopt INC_APPEND_HISTORY   # write each command immediately
 fi
 
-# ── completion ────────────────────────────────────────────────────────────────
-# Tools installed by mise ship their zsh completion via stdout (not a file on
-# $fpath), so generate them into a cache dir and put that dir on $fpath BEFORE
-# compinit. Without this, a stale zcompdump can fail to autoload generated
-# tool completions with "function definition file not found".
-_zcompdir="$XDG_CACHE_HOME/zsh/completions"
-mkdir -p "$_zcompdir"
-# (tool, subcommand/flag) pairs - only tools present get regenerated. Cheap: a
-# handful of `--completion` calls, cached to files that compinit then indexes.
-_gen_completion() {  # $1=binary  $2=file  $3+=args to emit zsh completion
+# ── options ───────────────────────────────────────────────────────────────────
+setopt AUTO_CD                # bare directory name cds into it
+setopt AUTO_PUSHD             # cd pushes old dir onto the stack
+setopt PUSHD_IGNORE_DUPS      # no duplicate dirs on the stack
+setopt NO_BEEP                # silence
+
+# ── completions ───────────────────────────────────────────────────────────────
+# mise-managed tools emit their zsh completions to stdout rather than shipping
+# a file on $fpath. Generate them into a cache dir and prepend it to $fpath
+# before compinit so the dump includes them. Regenerate only when the tool's
+# version changes (version stamp file sits alongside the completion file).
+_compdir="$XDG_CACHE_HOME/zsh/completions"
+mkdir -p "$_compdir"
+
+_cache_completion() {  # usage: _cache_completion <bin> <outfile> <cmd…>
   local bin=$1 out=$2; shift 2
-  command -v "$bin" &>/dev/null || return
-  # Regenerate when: output missing OR version string has changed since last run.
-  # Version files live alongside the completion file (e.g. _bat.version).
-  local ver_file="${out}.version"
-  local cur_ver
-  cur_ver="$("$bin" --version 2>/dev/null | head -1)" || return
-  if [[ ! -s $out || ! -f $ver_file || "$(<"$ver_file")" != "$cur_ver" ]]; then
-    local tmp="${out}.tmp.$$"
-    if "$bin" "$@" >"$tmp" 2>/dev/null; then
-      mv -f "$tmp" "$out"
-      printf '%s\n' "$cur_ver" >"$ver_file"
-    fi
-    rm -f "$tmp"
-  fi
+  command -v "$bin" &>/dev/null || return 0
+  local stamp="${out}.version"
+  local ver; ver="$("$bin" --version 2>/dev/null | head -1)" || return 0
+  [[ -s $out && -f $stamp && "$(<$stamp)" == "$ver" ]] && return 0
+  local tmp="${out}.tmp.$$"
+  "$bin" "$@" >"$tmp" 2>/dev/null && mv -f "$tmp" "$out" && printf '%s\n' "$ver" >"$stamp"
+  rm -f "$tmp"
 }
-_gen_completion bat      "$_zcompdir/_bat"      --completion zsh
-_gen_completion gh       "$_zcompdir/_gh"       completion -s zsh
-_gen_completion mise     "$_zcompdir/_mise"     completion zsh
-_gen_completion starship "$_zcompdir/_starship" completions zsh
-_gen_completion uv       "$_zcompdir/_uv"       generate-shell-completion zsh
-_gen_completion atuin    "$_zcompdir/_atuin"    gen-completions --shell zsh
-fpath=("$_zcompdir" "${fpath[@]}")
-unfunction _gen_completion; unset _zcompdir
+
+_cache_completion atuin    "$_compdir/_atuin"    gen-completions --shell zsh
+_cache_completion bat      "$_compdir/_bat"      --completion zsh
+_cache_completion gh       "$_compdir/_gh"       completion -s zsh
+_cache_completion mise     "$_compdir/_mise"     completion zsh
+_cache_completion starship "$_compdir/_starship" completions zsh
+_cache_completion uv       "$_compdir/_uv"       generate-shell-completion zsh
+
+fpath=("$_compdir" "${fpath[@]}")
+unset _compdir
 
 autoload -Uz compinit
-# Rebuild the dump (full compinit) when it is stale, else use the fast path.
+# Full rebuild when the dump is missing, the completions dir is newer, or the
+# dump is older than 7 days. Otherwise use the fast cached path (-C skips audit).
 _zdump="$XDG_CACHE_HOME/zsh/zcompdump-${ZSH_VERSION}"
 _stale=( $_zdump(Nmh+168) )
-if [[ ! -s $_zdump
-   || $XDG_CACHE_HOME/zsh/completions -nt $_zdump
-   || -n $_stale ]]; then
-  compinit -i -d "$_zdump"       # full: audit + rebuild index
+if [[ ! -s $_zdump || $XDG_CACHE_HOME/zsh/completions -nt $_zdump || -n $_stale ]]; then
+  compinit -i -d "$_zdump"
 else
-  compinit -C -d "$_zdump"       # fast: reuse existing dump
+  compinit -C -d "$_zdump"
 fi
 unset _zdump _stale
 
-setopt MENU_COMPLETE          # auto-select first completion match
-setopt COMPLETE_IN_WORD       # complete from both ends of a word
-setopt ALWAYS_TO_END          # move cursor to end of word after completion
+setopt MENU_COMPLETE          # select first match immediately; Tab cycles
+setopt COMPLETE_IN_WORD       # complete from either end of a word
+setopt ALWAYS_TO_END          # move cursor to end after completion
+
+# LS_COLORS is unset on stock macOS (only LSCOLORS exists for BSD ls).
+# Provide a minimal ANSI default so completion list-colors work everywhere.
+: "${LS_COLORS:=di=34:ln=36:ex=32:pi=33:so=35:bd=33;01:cd=33;01:su=31;01:sg=31;01:tw=34;01:ow=34;01}"
 
 zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # case-insensitive
-# LS_COLORS is unset on stock macOS; provide a minimal ANSI default so
-# completion list-colors work on both macOS and Linux without GNU coreutils.
-: "${LS_COLORS:=di=34:ln=36:ex=32:pi=33:so=35:bd=33;01:cd=33;01:su=31;01:sg=31;01:tw=34;01:ow=34;01}"
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'        # case-insensitive
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*:descriptions' format '%B%d%b'
-zstyle ':completion:*:warnings' format 'No matches for: %d'
+zstyle ':completion:*:warnings'     format 'No matches for: %d'
 
-# ── options ───────────────────────────────────────────────────────────────────
-setopt AUTO_CD                # type a directory name to cd into it
-setopt AUTO_PUSHD             # cd pushes old directory to stack
-setopt PUSHD_IGNORE_DUPS      # don't push duplicates onto the stack
-setopt NO_BEEP                # silence
+# ── key bindings ──────────────────────────────────────────────────────────────
+bindkey -e                             # emacs bindings (standard macOS feel)
+bindkey '^[[A' history-search-backward # up arrow   — prefix search back
+bindkey '^[[B' history-search-forward  # down arrow — prefix search forward
+bindkey '^[[H' beginning-of-line       # Home
+bindkey '^[[F' end-of-line             # End
+bindkey '^[[3~' delete-char            # Delete
 
 # ── prompt ────────────────────────────────────────────────────────────────────
 if command -v starship &>/dev/null; then
@@ -109,24 +115,14 @@ else
   PROMPT='%F{cyan}%~%f%F{yellow}${vcs_info_msg_0_}%f %# '
 fi
 
-# ── key bindings ──────────────────────────────────────────────────────────────
-bindkey -e                                # emacs key bindings (default macOS feel)
-bindkey '^[[A' history-search-backward    # up arrow: search history by prefix
-bindkey '^[[B' history-search-forward     # down arrow
-bindkey '^[[H' beginning-of-line          # Home
-bindkey '^[[F' end-of-line                # End
-bindkey '^[[3~' delete-char               # Delete key
-
-# ── zoxide (smart cd replacement) ─────────────────────────────────────────────
+# ── tools ─────────────────────────────────────────────────────────────────────
 if command -v zoxide &>/dev/null; then
   eval "$(zoxide init zsh)"
   alias dc='z'
 fi
 
-# ── fzf (fuzzy finder) ────────────────────────────────────────────────────────
 if command -v fzf &>/dev/null; then
   source <(fzf --zsh)
-
   export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind='ctrl-/:toggle-preview'"
 
   if command -v fd &>/dev/null; then
@@ -148,17 +144,7 @@ if command -v fzf &>/dev/null; then
   fi
 fi
 
-# ── ripgrep ───────────────────────────────────────────────────────────────────
 [[ -f "$HOME/.ripgreprc" ]] && export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
-
-# ── atuin (shell history) ─────────────────────────────────────────────────────
-if command -v atuin &>/dev/null; then
-  eval "$(atuin init zsh)"
-fi
-
-# ── functions ─────────────────────────────────────────────────────────────────
-mkcd() { mkdir -p "$1" && cd "$1"; }
-serve() { python3 -m http.server "${1:-8000}"; }
 
 # ── aliases ───────────────────────────────────────────────────────────────────
 alias ..='cd ..'
@@ -171,70 +157,43 @@ alias path='print -rl -- ${(s.:.)PATH}'
 alias mkdir='command mkdir -p'
 alias zshrc='${EDITOR:-vi} "$ZDOTDIR/.zshrc"'
 
-if (( $+commands[eza] )); then
-  alias l='eza --icons=auto'
-  alias ll='eza -lh --icons=auto --git'
-  alias la='eza -lah --icons=auto --git'
-else
-  alias l='command ls'
-  alias ll='command ls -lh'
-  alias la='command ls -lah'
-fi
+(( $+commands[eza]    )) && alias l='eza --icons=auto' ll='eza -lh --icons=auto --git' la='eza -lah --icons=auto --git' \
+                         || alias l='command ls'       ll='command ls -lh'              la='command ls -lah'
+(( $+commands[nvim]   )) && alias vim='nvim' v='nvim' vz='NVIM_APPNAME=nvim-lazyvim nvim' vk='NVIM_APPNAME=nvim-kickstart nvim' \
+                         || alias vim='vi'   v='vi'
+(( $+commands[gitui]  )) && alias gg='gitui'
+(( $+commands[codex]  )) && alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox' \
+                                   cxfull='codex --sandbox danger-full-access' \
+                                   cxauto='codex --ask-for-approval never'
+(( $+commands[claude] )) && alias ccyolo='claude --permission-mode auto'
+(( $+commands[mise]   )) && alias dot='mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'
 
-if (( $+commands[nvim] )); then
-  alias vim='nvim'
-  alias v='nvim'
-  alias vz='NVIM_APPNAME=nvim-lazyvim nvim'
-  alias vk='NVIM_APPNAME=nvim-kickstart nvim'
-else
-  alias vim='vi'
-  alias v='vi'
-fi
+# ── functions ─────────────────────────────────────────────────────────────────
+mkcd()  { mkdir -p "$1" && cd "$1"; }
+serve() { python3 -m http.server "${1:-8000}"; }
 
-if (( $+commands[gitui] )); then
-  alias gg='gitui'
-fi
+# ── plugins ───────────────────────────────────────────────────────────────────
+# Both plugins are installed by brew (brew:zsh-autosuggestions,
+# brew:zsh-syntax-highlighting). Must load after completions and aliases for
+# correct highlighting. Syntax-highlighting must be last.
+_brew_share=""
+[[ -d /opt/homebrew/share ]] && _brew_share="/opt/homebrew/share"
+[[ -z $_brew_share && -d /usr/local/share ]] && _brew_share="/usr/local/share"
 
-if (( $+commands[codex] )); then
-  alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
-  alias cxfull='codex --sandbox danger-full-access'
-  alias cxauto='codex --ask-for-approval never'
+if [[ -n $_brew_share ]]; then
+  _p="$_brew_share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  if [[ -f $_p ]]; then
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
+    source "$_p"
+  fi
+  _p="$_brew_share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  [[ -f $_p ]] && source "$_p"
+  unset _p
 fi
+unset _brew_share
 
-if (( $+commands[claude] )); then
-  alias ccyolo='claude --permission-mode auto'
-fi
-
-if (( $+commands[mise] )); then
-  alias dot='mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'
-fi
-
-# ── zsh plugins (loaded last for proper terminal rendering) ───────────────────
-# Plugins are installed via mise bootstrap packages (brew:zsh-autosuggestions,
-# brew:zsh-syntax-highlighting). Check both Homebrew prefix locations directly
-# rather than spawning `brew --prefix` on every startup.
-_plugin_prefix=""
-if [[ -d /opt/homebrew/share ]]; then
-  _plugin_prefix="/opt/homebrew/share"
-elif [[ -d /usr/local/share ]]; then
-  _plugin_prefix="/usr/local/share"
-fi
-
-if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
-  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
-  source "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh"
-fi
-
-if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
-  source "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-fi
-unset _plugin_prefix
-
-# ── machine-local overrides (never committed) ─────────────────────────────────
-# Per-machine tweaks live in $ZDOTDIR/.zshrc.local (gitignored). Sourced last so
-# it can override anything above. Absent on a fresh machine - that is fine.
-# Use a full `if` (not `&& source`) so an absent file does not leave the shell
-# with a nonzero $? at the first prompt.
+# ── local overrides ───────────────────────────────────────────────────────────
+# ~/.config/zsh/.zshrc.local is machine-local and never committed.
 if [[ -r "${ZDOTDIR:-$HOME}/.zshrc.local" ]]; then
   source "${ZDOTDIR:-$HOME}/.zshrc.local"
 fi
