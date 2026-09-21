@@ -35,14 +35,6 @@ contributor process (code rules, tests, commit style) see `CONTRIBUTING.md`.
 To discover tools that mise can install, run mise registry; declare approved
 tools directly under [tools] using the registry's supported name and version.
 
-# RTK (when installed)
-
-When `rtk` is available (`command -v rtk >/dev/null 2>&1`), prefix every shell
-command with `rtk`: `rtk git status`, `rtk ls src/`, and so on. Keep the prefix
-inside command chains. Commands without an RTK filter are still prefixed; use
-`rtk proxy <cmd>` only when filtered output is unusable. If `rtk` is unavailable,
-run commands normally without the prefix.
-
 ## Verification
 
 For dotfiles changes, prefer:

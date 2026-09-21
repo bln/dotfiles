@@ -65,4 +65,11 @@ task. After work, report only outcome, verification result, and blockers. Show
 diffs or changed lines, not whole files, unless I ask. No em dashes - use a
 hyphen. Conventional Commits.
 
+## Pi-specific behavior
+
+Pi's RTK extension at `~/.config/pi/agent/extensions/rtk.ts` automatically calls
+`rtk rewrite` for eligible Bash tool calls. Do not manually prefix Pi commands
+with `rtk`; let the extension perform the rewrite and fail open when no rewrite
+is available.
+
 

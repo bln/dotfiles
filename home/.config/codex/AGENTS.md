@@ -65,7 +65,12 @@ task. After work, report only outcome, verification result, and blockers. Show
 diffs or changed lines, not whole files, unless I ask. No em dashes - use a
 hyphen. Conventional Commits.
 
-# RTK (when installed)
+# RTK for Codex only
+
+This section applies only to Codex's shell commands. Pi uses its
+`~/.config/pi/agent/extensions/rtk.ts` extension to call `rtk rewrite`
+automatically for eligible Bash tool calls; Pi should not manually prefix commands
+with `rtk`.
 
 When `rtk` is available (`command -v rtk >/dev/null 2>&1`), prefix every shell
 command with `rtk`: `rtk git status`, `rtk ls src/`, and so on. Keep the prefix
