@@ -7,12 +7,6 @@ if ! command -v rtk >/dev/null 2>&1; then
   exit 1
 fi
 
-# Persist the opt-out once; `rtk telemetry disable` refreshes its consent
-# timestamp, so avoid rewriting the machine-local config on every setup run.
-if ! rtk telemetry status | grep -q '^  consent:       no$'; then
-  rtk telemetry disable
-fi
-
 # Claude's hook is transparent, so avoid modifying the copy-managed CLAUDE.md.
 rtk init -g --hook-only --auto-patch
 

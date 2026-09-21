@@ -27,7 +27,7 @@ snapshot_root() {
   find -P "$root" -print | LC_ALL=C sort >> "$output"
   while IFS= read -r file; do
     printf 'file %s ' "${file#"$root/"}" >> "$output"
-    cksum < "$file" >> "$output"
+    cksum "$file" | awk '{print $1, $2}' >> "$output"
   done < <(find -P "$root" -type f -print | LC_ALL=C sort)
 }
 
@@ -57,16 +57,6 @@ teardown_second="$snapshot_dir/teardown-second"
 
 run_rtk_task setup
 assert_eq "setup exits 0" "0" "$RUN_STATUS"
-run_capture env \
-  HOME="$sb" \
-  MISE_DATA_DIR="$mise_data_dir" \
-  CLAUDE_CONFIG_DIR="$claude_dir" \
-  CODEX_HOME="$codex_home" \
-  PI_CODING_AGENT_DIR="$pi_dir" \
-  rtk telemetry status
-assert_eq "telemetry status exits 0" "0" "$RUN_STATUS"
-telemetry_status="$(cat "$RUN_STDOUT")"
-assert_contains "telemetry is persistently disabled" "$telemetry_status" "consent:       no"
 snapshot_state "$setup_first"
 
 run_rtk_task setup

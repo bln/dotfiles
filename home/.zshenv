@@ -23,6 +23,7 @@ export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export PI_CODING_AGENT_DIR="${PI_CODING_AGENT_DIR:-$XDG_CONFIG_HOME/pi/agent}"
 export CODEX_HOME="${CODEX_HOME:-$XDG_CONFIG_HOME/codex}"
 export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$XDG_CONFIG_HOME/claude}"
+export ENABLE_PROMPT_CACHING_1H="${ENABLE_PROMPT_CACHING_1H:-1}"
 
 # ~/.local/bin holds script-installed mise and uv-managed python/python3. It must
 # be on PATH before .zprofile (mise shims) and .zshrc (mise activate) run, so it
@@ -31,3 +32,5 @@ case ":$PATH:" in
   *:"$HOME/.local/bin":*) ;;
   *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
+
+export RTK_TELEMETRY_DISABLED=1

@@ -12,9 +12,6 @@ export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export PAGER="${PAGER:-less -FRX}"
 export LANG="${LANG:-en_US.UTF-8}"
-export ENABLE_PROMPT_CACHING_1H="${ENABLE_PROMPT_CACHING_1H:-1}"
-
-
 
 # ── history ───────────────────────────────────────────────────────────────────
 mkdir -p "$XDG_CACHE_HOME/zsh"
@@ -27,8 +24,12 @@ setopt HIST_IGNORE_SPACE      # lines starting with space are not recorded
 setopt HIST_FIND_NO_DUPS      # don't display duplicates when searching
 setopt HIST_REDUCE_BLANKS     # remove superfluous blanks from history items
 setopt HIST_VERIFY            # show command from history before executing
-setopt SHARE_HISTORY          # share history across all sessions
-setopt INC_APPEND_HISTORY     # write to history file immediately
+# SHARE_HISTORY and INC_APPEND_HISTORY are set only when atuin is absent;
+# atuin owns history sync and search when present and would double-write otherwise.
+if ! command -v atuin &>/dev/null; then
+  setopt SHARE_HISTORY
+  setopt INC_APPEND_HISTORY
+fi
 
 # ── completion ────────────────────────────────────────────────────────────────
 # Tools installed by mise ship their zsh completion via stdout (not a file on
@@ -61,7 +62,8 @@ _gen_completion gh       "$_zcompdir/_gh"       completion -s zsh
 _gen_completion mise     "$_zcompdir/_mise"     completion zsh
 _gen_completion starship "$_zcompdir/_starship" completions zsh
 _gen_completion uv       "$_zcompdir/_uv"       generate-shell-completion zsh
-fpath=("$_zcompdir" $fpath)
+_gen_completion atuin    "$_zcompdir/_atuin"    gen-completions --shell zsh
+fpath=("$_zcompdir" "${fpath[@]}")
 unfunction _gen_completion; unset _zcompdir
 
 autoload -Uz compinit
@@ -78,12 +80,14 @@ fi
 unset _zdump _stale
 
 setopt MENU_COMPLETE          # auto-select first completion match
-setopt AUTO_LIST              # automatically list choices on ambiguous completion
 setopt COMPLETE_IN_WORD       # complete from both ends of a word
 setopt ALWAYS_TO_END          # move cursor to end of word after completion
 
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # case-insensitive
+# LS_COLORS is unset on stock macOS; provide a minimal ANSI default so
+# completion list-colors work on both macOS and Linux without GNU coreutils.
+: "${LS_COLORS:=di=34:ln=36:ex=32:pi=33:so=35:bd=33;01:cd=33;01:su=31;01:sg=31;01:tw=34;01:ow=34;01}"
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*:descriptions' format '%B%d%b'
 zstyle ':completion:*:warnings' format 'No matches for: %d'
@@ -116,7 +120,7 @@ bindkey '^[[3~' delete-char               # Delete key
 # ── zoxide (smart cd replacement) ─────────────────────────────────────────────
 if command -v zoxide &>/dev/null; then
   eval "$(zoxide init zsh)"
-  alias cd='z'
+  alias dc='z'
 fi
 
 # ── fzf (fuzzy finder) ────────────────────────────────────────────────────────
@@ -136,6 +140,11 @@ fi
 
 # ── ripgrep ───────────────────────────────────────────────────────────────────
 [[ -f "$HOME/.ripgreprc" ]] && export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+
+# ── atuin (shell history) ─────────────────────────────────────────────────────
+if command -v atuin &>/dev/null; then
+  eval "$(atuin init zsh)"
+fi
 
 # ── functions ─────────────────────────────────────────────────────────────────
 mkcd() { mkdir -p "$1" && cd "$1"; }
@@ -172,6 +181,10 @@ else
   alias v='vi'
 fi
 
+if (( $+commands[gitui] )); then
+  alias gg='gitui'
+fi
+
 if (( $+commands[codex] )); then
   alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
   alias cxfull='codex --sandbox danger-full-access'
@@ -188,20 +201,18 @@ fi
 
 # ── zsh plugins (loaded last for proper terminal rendering) ───────────────────
 # Plugins are installed via mise bootstrap packages (brew:zsh-autosuggestions,
-# brew:zsh-syntax-highlighting). Detect the native package share prefix once
-# rather than hard-coding /opt/homebrew (which is Apple Silicon only).
+# brew:zsh-syntax-highlighting). Check both Homebrew prefix locations directly
+# rather than spawning `brew --prefix` on every startup.
 _plugin_prefix=""
-if command -v brew &>/dev/null; then
-  _plugin_prefix="$(brew --prefix)/share"
-elif [[ -d /opt/homebrew/share ]]; then
+if [[ -d /opt/homebrew/share ]]; then
   _plugin_prefix="/opt/homebrew/share"
 elif [[ -d /usr/local/share ]]; then
   _plugin_prefix="/usr/local/share"
 fi
 
 if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
-  source "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh"
   ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
+  source "$_plugin_prefix/zsh-autosuggestions/zsh-autosuggestions.zsh"
 fi
 
 if [[ -n "$_plugin_prefix" && -f "$_plugin_prefix/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then

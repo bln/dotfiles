@@ -65,8 +65,6 @@ task. After work, report only outcome, verification result, and blockers. Show
 diffs or changed lines, not whole files, unless I ask. No em dashes - use a
 hyphen. Conventional Commits.
 
-# RTK setup is machine-local and converged by mise run setup:rtk.
-
 # RTK (when installed)
 
 When `rtk` is available (`command -v rtk >/dev/null 2>&1`), prefix every shell

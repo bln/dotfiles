@@ -17,26 +17,8 @@ APPLY="${APPLY:-false}"
 # symlinks physically first so an intermediate symlink cannot point a
 # nominally-under-$HOME path at a target outside it. Resolves the deepest
 # existing ancestor when the path itself is absent (nothing to remove then).
-resolve_phys() {
-  local p="$1" tail=""
-  while [ -n "$p" ] && [ "$p" != "/" ] && [ ! -d "$p" ]; do
-    tail="/$(basename "$p")$tail"
-    p="$(dirname "$p")"
-  done
-  if [ -d "$p" ]; then
-    local base
-    base="$( cd "$p" && pwd -P )"
-    # Avoid a leading "//" when the deepest existing ancestor is root, which
-    # would defeat the prefix match in safe_under_home.
-    if [ "$base" = "/" ]; then
-      printf '%s\n' "$tail"
-    else
-      printf '%s%s\n' "$base" "$tail"
-    fi
-  else
-    printf '%s\n' "$1"
-  fi
-}
+# shellcheck source=scripts/lib/resolve-phys.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/resolve-phys.sh"
 safe_under_home() {
   local path="$1" phys home_phys
   [ -n "$path" ] && [ "$path" != "/" ] && [ "$path" != "$HOME" ] || return 1

@@ -34,31 +34,8 @@ done
 # empty, /, $HOME itself, and any shallow path (a top-level system dir like /etc,
 # /usr, /var). Resolve symlinks physically first so an intermediate symlink
 # cannot smuggle the real target up to one of those.
-resolve_phys() {
-  # Resolve symlinks physically. If the path itself does not exist yet, resolve
-  # its deepest existing ancestor and re-append the missing tail, so a target
-  # under a symlinked parent (e.g. macOS mktemp's /var -> /private/var) is judged
-  # by its real location rather than the unresolved literal.
-  local p="$1" tail=""
-  while [ -n "$p" ] && [ "$p" != "/" ] && [ ! -d "$p" ]; do
-    tail="/$(basename "$p")$tail"
-    p="$(dirname "$p")"
-  done
-  if [ -d "$p" ]; then
-    local base
-    base="$( cd "$p" && pwd -P )"
-    # base is "/" when the deepest existing ancestor is root; concatenating the
-    # "/…"-prefixed tail would then yield a leading "//" that the prefix-based
-    # denylist below silently fails to match. Emit the tail alone in that case.
-    if [ "$base" = "/" ]; then
-      printf '%s\n' "$tail"
-    else
-      printf '%s%s\n' "$base" "$tail"
-    fi
-  else
-    printf '%s\n' "$1"
-  fi
-}
+# shellcheck source=scripts/lib/resolve-phys.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/resolve-phys.sh"
 safe_codex_home() {
   local raw="$1" phys depth
   [ -n "$raw" ] || return 1
