@@ -67,9 +67,10 @@ hyphen. Conventional Commits.
 
 # RTK setup is machine-local and converged by mise run setup:rtk.
 
-# RTK
+# RTK (when installed)
 
-Prefix every shell command with `rtk`: `rtk git status`, `rtk ls src/`,
-and so on. Keep the prefix inside command chains. Commands without an RTK
-filter are still prefixed; use `rtk proxy <cmd>` only when filtered output is
-unusable.
+When `rtk` is available (`command -v rtk >/dev/null 2>&1`), prefix every shell
+command with `rtk`: `rtk git status`, `rtk ls src/`, and so on. Keep the prefix
+inside command chains. Commands without an RTK filter are still prefixed; use
+`rtk proxy <cmd>` only when filtered output is unusable. If `rtk` is unavailable,
+run commands normally without the prefix.

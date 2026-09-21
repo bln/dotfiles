@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="remove RTK integrations for Claude Code, Codex, and Pi"
+set -euo pipefail
+
+if ! command -v rtk >/dev/null 2>&1; then
+  echo "ERROR: rtk is not installed; run teardown:rtk before removing rtk." >&2
+  exit 1
+fi
+
+rtk init -g --hook-only --uninstall
+rtk init -g --codex --uninstall
+rtk init -g --agent pi --uninstall
