@@ -118,6 +118,7 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 # Agent instructions and skills are copy-managed because their consumers write
 # in place. The explicit sources keep agent runtime state outside the repo.
 "~/.config/pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.config/pi/agent/AGENTS.md", mode = "copy" }
+"~/.config/pi/agent/extensions/friendly-footer.ts" = {}
 "~/.config/codex/AGENTS.md" = { source = "~/dotfiles/home/.config/codex/AGENTS.md", mode = "copy" }
 "~/.agents/skills" = { source = "~/dotfiles/home/.config/skills", mode = "copy", manifest = "git" }
 "~/.config/claude/CLAUDE.md" = { source = "~/dotfiles/home/.config/claude/CLAUDE.md", mode = "copy" }

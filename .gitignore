@@ -38,13 +38,16 @@ home/.config/git/config.local
 home/.config/zsh/.zshrc.local
 home/mise.local.toml
 
-# Agent runtime roots are machine-local. Only the explicit instruction files
-# and skill trees below are repository resources. Credentials, settings,
-# sessions, databases, caches, plugins, and other agent state stay local.
+# Agent runtime roots are machine-local. Only the explicit instruction file,
+# repo-owned extension, and skill trees below are repository resources.
+# Credentials, settings, sessions, databases, caches, plugins, and other agent
+# state stay local.
 home/.agents/
 home/.config/pi/**
 !home/.config/pi/agent/
 !home/.config/pi/agent/AGENTS.md
+!home/.config/pi/agent/extensions/
+!home/.config/pi/agent/extensions/friendly-footer.ts
 home/.config/codex/**
 !home/.config/codex/AGENTS.md
 home/.config/skills/**
