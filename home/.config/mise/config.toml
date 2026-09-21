@@ -47,6 +47,7 @@ shellcheck = "latest"
 claude-code = "latest"
 codex = "latest"
 pi = "latest"
+rtk = "latest"
 
 [bootstrap.packages]
 "brew:git" = "latest"

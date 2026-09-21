@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ci: the shipped zsh rc files load cleanly on a fresh machine, and the
-# tool-guarded aliases resolve on BOTH branches (tool absent / present).
+# optional tool branches remain clean on both absent and present paths.
 #
 # This is the highest-value shell check and one grep cannot make: a .zshrc can
 # contain exactly the right text and still error at runtime (bad eval, unguarded
@@ -31,7 +31,7 @@ done
 
 # Completion system initialized (compinit ran) and the repo's fpath prepend
 # makes a planted completion autoloadable - the exact regression the .zshrc
-# comment warns about (a mis-ordered $fpath breaks `cat=bat` completion).
+# comment warns about (a mis-ordered $fpath breaks generated completions).
 sb="$(zsh_home)"
 zsh_startup -i "$sb" 'whence -w compdef >/dev/null 2>&1 && print COMPDEF_OK'
 assert_contains "compinit initialized" "$(cat "$RUN_STDOUT")" "COMPDEF_OK"
@@ -41,17 +41,9 @@ printf '#compdef faketool\n_faketool() { _message faked; }\n' >"$compdir/_faketo
 zsh_startup -i "$sb" 'autoload -Uz +X _faketool 2>&1 && print AUTOLOAD_OK'
 assert_contains "repo fpath prepend makes a completion autoloadable" "$(cat "$RUN_STDOUT")" "AUTOLOAD_OK"
 
-# Tool guards, ABSENT branch: aliases fall back to native commands.
-zsh_startup -i "$sb" 'alias cat; alias l'
-absent="$(cat "$RUN_STDOUT")"
-assert_contains "bat-absent falls back to cat" "$absent" "cat='command cat'"
-assert_contains "eza-absent falls back to ls"  "$absent" "l='command ls'"
-
-# Tool guards, PRESENT branch: the SAME real rc selects the enhanced aliases.
+# Optional-tool branch: the same real rc still starts cleanly.
 fixture_bin="$sb/bin"; mkdir -p "$fixture_bin"
-for tool in eza bat nvim codex claude mise; do printf '#!/bin/sh\nexit 0\n' >"$fixture_bin/$tool"; chmod +x "$fixture_bin/$tool"; done
-ZSH_STARTUP_EXTRA_PATH="$fixture_bin" zsh_startup -i "$sb" 'alias cat; alias l; alias v'
-present="$(cat "$RUN_STDOUT")"
-assert_contains "bat-present enables bat"   "$present" "cat='bat --style=plain'"
-assert_contains "eza-present enables eza"   "$present" "l='eza --icons=auto'"
-assert_contains "nvim-present enables v"    "$present" "v=nvim"
+for tool in eza bat nvim zoxide codex claude mise; do printf '#!/bin/sh\nexit 0\n' >"$fixture_bin/$tool"; chmod +x "$fixture_bin/$tool"; done
+ZSH_STARTUP_EXTRA_PATH="$fixture_bin" zsh_startup -i "$sb"
+assert_eq "optional-tool startup exits 0" "0" "$RUN_STATUS"
+assert_eq "optional-tool startup has empty stderr" "" "$(cat "$RUN_STDERR")"

@@ -33,8 +33,8 @@ setopt INC_APPEND_HISTORY     # write to history file immediately
 # ── completion ────────────────────────────────────────────────────────────────
 # Tools installed by mise ship their zsh completion via stdout (not a file on
 # $fpath), so generate them into a cache dir and put that dir on $fpath BEFORE
-# compinit. Without this, an alias like `cat=bat` triggers `_bat` autoload from
-# a stale zcompdump and fails with "function definition file not found".
+# compinit. Without this, a stale zcompdump can fail to autoload generated
+# tool completions with "function definition file not found".
 _zcompdir="$XDG_CACHE_HOME/zsh/completions"
 mkdir -p "$_zcompdir"
 # (tool, subcommand/flag) pairs - only tools present get regenerated. Cheap: a
@@ -149,9 +149,6 @@ alias c='clear'
 alias q='exit'
 alias reload='exec zsh'
 alias path='print -rl -- ${(s.:.)PATH}'
-alias cp='command cp -i'
-alias mv='command mv -i'
-alias rm='command rm -i'
 alias mkdir='command mkdir -p'
 alias zshrc='${EDITOR:-vi} "$ZDOTDIR/.zshrc"'
 
@@ -159,18 +156,10 @@ if (( $+commands[eza] )); then
   alias l='eza --icons=auto'
   alias ll='eza -lh --icons=auto --git'
   alias la='eza -lah --icons=auto --git'
-  alias tree='eza --tree --icons=auto'
 else
   alias l='command ls'
   alias ll='command ls -lh'
   alias la='command ls -lah'
-  alias tree='command ls -R'
-fi
-
-if (( $+commands[bat] )); then
-  alias cat='bat --style=plain'
-else
-  alias cat='command cat'
 fi
 
 if (( $+commands[nvim] )); then

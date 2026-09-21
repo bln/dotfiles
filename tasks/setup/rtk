@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="configure RTK integrations for Claude Code, Codex, and Pi"
+set -euo pipefail
+
+claude_config_dir="$(printenv CLAUDE_CONFIG_DIR || true)"
+codex_home="$(printenv CODEX_HOME || true)"
+pi_coding_agent_dir="$(printenv PI_CODING_AGENT_DIR || true)"
+[ -n "$claude_config_dir" ] || claude_config_dir="$HOME/.config/claude"
+[ -n "$codex_home" ] || codex_home="$HOME/.config/codex"
+[ -n "$pi_coding_agent_dir" ] || pi_coding_agent_dir="$HOME/.config/pi/agent"
+export CLAUDE_CONFIG_DIR="$claude_config_dir"
+export CODEX_HOME="$codex_home"
+export PI_CODING_AGENT_DIR="$pi_coding_agent_dir"
+export RTK_TELEMETRY_DISABLED=1
+
+if ! command -v rtk >/dev/null 2>&1; then
+  echo "ERROR: rtk is not installed; run 'mise install rtk' first." >&2
+  exit 1
+fi
+
+# Claude's hook is transparent, so avoid modifying the copy-managed CLAUDE.md.
+rtk init -g --hook-only --auto-patch
+
+# Codex's global reference must be absolute because it resolves @ files from
+# the current working directory. This intentionally updates the machine-local
+# copy-managed AGENTS.md after mise applies the tracked source.
+rtk init -g --codex
+
+# Pi's extension is machine-local and transparent; it is safe to refresh.
+rtk init -g --agent pi --auto-patch

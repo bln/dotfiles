@@ -20,6 +20,8 @@ them in the top-level `scripts/` dir (not shipped), mirroring that split.
   scripts live in `scripts/` with test seams that `tests/run.sh` exercises.
   The test harness stays plain bash in `tests/` (no bats or other framework
   without approval).
+- Before adding, removing, or strengthening tests, read `docs/TESTING.md`
+  and follow its testing philosophy.
 - Do not add dependencies to `[tools]` or `[bootstrap.packages]`
   without explicit approval.
 - Do not create, edit, move, or delete files under `home/.config/skills` or
@@ -29,6 +31,16 @@ them in the top-level `scripts/` dir (not shipped), mirroring that split.
 
 For the design rationale behind these rules see `docs/ARCHITECTURE.md`; for
 contributor process (code rules, tests, commit style) see `CONTRIBUTING.md`.
+
+To discover tools that mise can install, run mise registry; declare approved
+tools directly under [tools] using the registry's supported name and version.
+
+# RTK
+
+Prefix every shell command with `rtk`: `rtk git status`, `rtk ls src/`,
+and so on. Keep the prefix inside command chains. Commands without an RTK
+filter are still prefixed; use `rtk proxy <cmd>` only when filtered output is
+unusable.
 
 ## Verification
 
