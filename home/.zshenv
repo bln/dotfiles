@@ -24,6 +24,7 @@ export PI_CODING_AGENT_DIR="${PI_CODING_AGENT_DIR:-$XDG_CONFIG_HOME/pi/agent}"
 export CODEX_HOME="${CODEX_HOME:-$XDG_CONFIG_HOME/codex}"
 export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$XDG_CONFIG_HOME/claude}"
 export ENABLE_PROMPT_CACHING_1H="${ENABLE_PROMPT_CACHING_1H:-1}"
+export PI_CACHE_RETENTION="${PI_CACHE_RETENTION:-long}"
 
 # ~/.local/bin holds script-installed mise and uv-managed python/python3. It must
 # be on PATH before .zprofile (mise shims) and .zshrc (mise activate) run, so it
