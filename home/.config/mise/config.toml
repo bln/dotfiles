@@ -62,9 +62,9 @@ rtk = "latest"
 
 "mas:1365531024" = { os = "macos" }  # 1Blocker
 "mas:6739955340" = { os = "macos" }  # Markdown Preview
-"mas:1592917505" = { os = "macos" }  # Noir
-"mas:6720708363" = { os = "macos" }  # Obsidian Web Clipper
-"mas:6471380298" = { os = "macos" }  # StopTheMadness Pro
+# "mas:1592917505" = { os = "macos" }  # Noir
+# "mas:6720708363" = { os = "macos" }  # Obsidian Web Clipper
+# "mas:6471380298" = { os = "macos" }  # StopTheMadness Pro
 
 [bootstrap.macos.dock]
 tilesize = 48
