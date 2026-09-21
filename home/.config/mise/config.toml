@@ -39,7 +39,6 @@ jq = "latest"
 ripgrep = "latest"
 superfile = "latest"
 gh = "latest"
-lazygit = "latest"
 gitui = "latest"
 neovim = "latest"
 tree-sitter = "latest"
@@ -108,12 +107,14 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/.config/npm/npmrc" = {}
 "~/.config/uv/uv.toml" = {}
 "~/.config/ghostty" = {}
+"~/.config/gitui" = {}
 "~/.config/nvim" = {}
 "~/.config/nvim-lazyvim" = {}
 "~/.config/nvim-kickstart" = {}
 
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
+"~/.config/atuin/config.toml" = {}
 # Agent instructions and skills are copy-managed because their consumers write
 # in place. The explicit sources keep agent runtime state outside the repo.
 "~/.config/pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.config/pi/agent/AGENTS.md", mode = "copy" }

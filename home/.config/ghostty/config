@@ -25,7 +25,6 @@ shell-integration-features = cursor,sudo,title
 copy-on-select = clipboard
 clipboard-trim-trailing-spaces = true
 clipboard-read = allow
-clipboard-paste-protection = false
 
 # ── behaviour ─────────────────────────────────────────────────────────────────
 mouse-hide-while-typing = true

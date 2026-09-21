@@ -32,7 +32,7 @@
   // ── workbench & theme ──────────────────────────────────────────────────────
   "window.autoDetectColorScheme": true,
   "workbench.preferredDarkColorTheme": "One Dark Pro",
-  "workbench.preferredLightColorTheme": "One Dark Pro",
+  "workbench.preferredLightColorTheme": "Default Light Modern",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.startupEditor": "none",
   "workbench.editor.enablePreview": false,
@@ -43,7 +43,7 @@
     "*.md": "vscode.markdown.editor",
     "*.html": "workbench.editor.browser"
   },
-  // ── window & security ──────────────────────────────────────────────────────
+  // ── markdown ──────────────────────────────────────────────────────────────
   "markdown.preview.doubleClickToSwitchToEditor": true,
   "markdown.preview.scrollEditorWithPreview": true,
   "markdown.preview.scrollPreviewWithEditor": true,
@@ -86,11 +86,11 @@
   "diffEditor.ignoreTrimWhitespace": true,
   // ── language-specific configurations ────────────────────────────────────────
   // Python (Pylance + debugpy)
-  "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.typeCheckingMode": "basic",
   "python.analysis.indexing": true,
   "python.analysis.autoImportCompletions": true,
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true
   },
   // Go (golang.go)
@@ -119,6 +119,5 @@
   // ── telemetry & updates ────────────────────────────────────────────────────
   "telemetry.telemetryLevel": "off",
   "extensions.autoCheckUpdates": false,
-  "makefile.configureOnOpen": false,
-  "python.languageServer": "Default"
+  "makefile.configureOnOpen": false
 }

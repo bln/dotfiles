@@ -30,7 +30,9 @@
 	# macOS updates ctime on reads; don't use it as a proxy for modifications
 	trustctime = false
 
-[credential]
+[credential "https://github.com"]
+	helper = osxkeychain
+[credential "https://github.tools.sap"]
 	helper = osxkeychain
 
 [init]

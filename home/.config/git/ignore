@@ -36,11 +36,6 @@ Session.vim
 .netrwhist
 tags
 
-# Emacs
-\#*\#
-.#*
-TAGS
-
 # Environment / secrets
 .env
 .env.*
@@ -69,8 +64,6 @@ out/
 .next/
 .nuxt/
 .output/
-*.min.js
-*.min.css
 
 # Python
 __pycache__/
@@ -88,8 +81,7 @@ venv/
 .bundle/
 vendor/bundle/
 
-# Go
-vendor/
+# Go - vendor/ intentionally NOT globally ignored; go modules vendor is legitimately committed
 
 # Terraform
 .terraform/
