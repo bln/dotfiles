@@ -127,6 +127,8 @@ fi
 if command -v fzf &>/dev/null; then
   source <(fzf --zsh)
 
+  export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind='ctrl-/:toggle-preview'"
+
   if command -v fd &>/dev/null; then
     export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -134,7 +136,15 @@ if command -v fzf &>/dev/null; then
   fi
 
   if command -v bat &>/dev/null; then
-    export FZF_CTRL_T_OPTS="--preview 'bat --style=numbers --color=always --line-range :500 {}'"
+    export FZF_CTRL_T_OPTS="--select-1 --exit-0 --preview 'bat --style=numbers --color=always --line-range :500 {}'"
+  else
+    export FZF_CTRL_T_OPTS="--select-1 --exit-0"
+  fi
+
+  if command -v eza &>/dev/null; then
+    export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'eza --tree --icons=auto --level=2 {} 2>/dev/null'"
+  else
+    export FZF_ALT_C_OPTS="--select-1 --exit-0 --preview 'ls {}'"
   fi
 fi
 
