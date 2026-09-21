@@ -42,6 +42,7 @@ snapshot_state() {
 run_rtk_task() {
   local task="$1"
   run_capture env \
+    -u RTK_TELEMETRY_DISABLED \
     HOME="$sb" \
     MISE_DATA_DIR="$mise_data_dir" \
     CLAUDE_CONFIG_DIR="$claude_dir" \
@@ -57,6 +58,10 @@ teardown_second="$snapshot_dir/teardown-second"
 
 run_rtk_task setup
 assert_eq "setup exits 0" "0" "$RUN_STATUS"
+setup_output="$(cat "$RUN_STDOUT" "$RUN_STDERR")"
+assert_not_contains "setup does not prompt for telemetry" "$setup_output" "Enable anonymous telemetry?"
+assert_eq "Codex instructions remain copy-managed" "# sentinel" "$(cat "$codex_home/AGENTS.md")"
+assert_not_exists "setup does not create Codex RTK instructions" "$codex_home/RTK.md"
 snapshot_state "$setup_first"
 
 run_rtk_task setup

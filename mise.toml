@@ -51,7 +51,7 @@ run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--p
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
-  "mise dotfiles apply",
+  "mise dotfiles apply --yes",
   "mise run setup:rtk",
   # apply is best-effort here: a transient extension-install failure returns
   # nonzero but must not abort the rest of the converge (verify's `check` is the
@@ -92,13 +92,13 @@ run = [
   # tools: re-resolve `latest`, bump versions in config.toml, rewrite mise.lock.
   "mise upgrade --bump --yes",
   # packages: refresh metadata + converge brew/brew-cask/mas.
-  "mise bootstrap --update --only packages",
+  "mise bootstrap --update --only packages --yes",
   # VS Code: update all installed extensions, then sync declared profiles
   # (install missing, prune undeclared). Best-effort: a transient extension
   # failure warns but must not abort the remaining upgrade steps.
   "NODE_NO_WARNINGS=1 code --update-extensions",
   "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
-  "mise dotfiles apply",
+  "mise dotfiles apply --yes",
   "mise run setup:rtk",
   "uv python upgrade",
 ]
