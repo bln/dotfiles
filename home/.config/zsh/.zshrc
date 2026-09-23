@@ -166,7 +166,7 @@ alias zshrc='${EDITOR:-vi} "$ZDOTDIR/.zshrc"'
                                    cxfull='codex --sandbox danger-full-access' \
                                    cxauto='codex --ask-for-approval never'
 (( $+commands[claude] )) && alias ccyolo='claude --permission-mode auto'
-(( $+commands[mise]   )) && alias dot='mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"'
+(( $+commands[mise]   )) && alias dot='mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"' mcode='mise run vscode'
 
 # ── functions ─────────────────────────────────────────────────────────────────
 mkcd()  { mkdir -p "$1" && cd "$1"; }

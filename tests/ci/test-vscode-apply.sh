@@ -39,7 +39,8 @@ if ! command -v jq >/dev/null 2>&1; then skip "vscode apply (jq not installed)";
   sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
   mkdir -p "$ud/globalStorage" "$repo" "$bin"; make_code "$bin"
   printf 'esbenp.prettier-vscode\nms-python.python\n' >"$repo/extensions.txt"
-  printf '{"editor.tabSize":2}\n' >"$repo/settings.json"
+  printf '%s\n' '{"editor.fontSize":16,"editor.codeActionsOnSave":{"source.fixAll":"explicit"}}' >"$repo/settings.base.json"
+  printf '%s\n' '{"editor.tabSize":2,"editor.codeActionsOnSave":{"source.organizeImports":"explicit"}}' >"$repo/settings.json"
   ilog="$sb/i.log"; ulog="$sb/u.log"; : >"$ilog"; : >"$ulog"
   common=(env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code"
     PRESET="esbenp.prettier-vscode ms-toolsai.jupyter" CODE_INSTALL_LOG="$ilog" CODE_UNINSTALL_LOG="$ulog")
@@ -50,7 +51,8 @@ if ! command -v jq >/dev/null 2>&1; then skip "vscode apply (jq not installed)";
   assert_not_contains "skips already-present prettier" "$(cut -f1 <"$ilog")" "esbenp.prettier-vscode"
   assert_eq "default prunes nothing" "" "$(cat "$ulog")"
   assert_contains "warns undeclared jupyter" "$(cat "$RUN_STDERR")" "ms-toolsai.jupyter"
-  assert_eq "settings.json copied repo->live" "$(cat "$repo/settings.json")" "$(cat "$ud/settings.json")"
+  expected="$(jq -S -s '.[0] * .[1]' "$repo/settings.base.json" "$repo/settings.json")"
+  assert_eq "settings.json receives rendered base plus override" "$expected" "$(jq -S . "$ud/settings.json")"
 
   : >"$ulog"
   run_capture "${common[@]}" bash "$CLI" apply --prune
@@ -63,6 +65,8 @@ if ! command -v jq >/dev/null 2>&1; then skip "vscode apply (jq not installed)";
   sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
   mkdir -p "$ud/globalStorage" "$repo/profiles/pyth" "$bin"; make_code "$bin"
   printf 'golang.go\n' >"$repo/extensions.txt"
+  printf '%s\n' '{"editor.fontFamily":"JetBrains Mono","editor.codeActionsOnSave":{"source.fixAll":"explicit"}}' >"$repo/settings.base.json"
+  printf '%s\n' '{"python.analysis.typeCheckingMode":"basic","editor.codeActionsOnSave":{"source.organizeImports":"always"}}' >"$repo/profiles/pyth/settings.json"
   printf 'ms-python.python\n' >"$repo/profiles/pyth/extensions.txt"
   ilog="$sb/i.log"; : >"$ilog"
   common=(env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code"
@@ -77,6 +81,10 @@ if ! command -v jq >/dev/null 2>&1; then skip "vscode apply (jq not installed)";
     assert_not_contains "global lacks python" "$(awk -F'\t' '$2==""' "$ilog")" "ms-python.python"
     assert_eq "exactly one pyth entry in storage.json" "1" \
       "$(jq -r '[.userDataProfiles[]|select(.name=="pyth")]|length' "$ud/globalStorage/storage.json")"
+    loc="$(jq -r '.userDataProfiles[]|select(.name=="pyth")|.location' "$ud/globalStorage/storage.json")"
+    expected="$(jq -S -s '.[0] * .[1]' "$repo/settings.base.json" "$repo/profiles/pyth/settings.json")"
+    assert_eq "named profile receives rendered settings" "$expected" \
+      "$(jq -S . "$ud/profiles/$loc/settings.json")"
 
     # Idempotent: re-apply must not append a duplicate entry.
     run_capture "${common[@]}" bash "$CLI" apply
@@ -85,6 +93,19 @@ if ! command -v jq >/dev/null 2>&1; then skip "vscode apply (jq not installed)";
   else
     skip "seed test (uuidgen not installed)"
   fi
+}
+
+# ── pull: live settings become only the profile delta from the shared base ───
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"
+  mkdir -p "$ud" "$repo"
+  printf '%s\n' '{"editor.fontSize":16,"editor.codeActionsOnSave":{"source.fixAll":"explicit","source.organizeImports":"explicit"}}' >"$repo/settings.base.json"
+  printf '%s\n' '{"editor.fontSize":18,"editor.codeActionsOnSave":{"source.fixAll":"explicit","source.organizeImports":"always"},"rust-analyzer.check.command":"clippy"}' >"$ud/settings.json"
+  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" pull
+  assert_eq "pull exits 0" "0" "$RUN_STATUS"
+  assert_eq "pull stores only settings overrides" \
+    '{"editor.codeActionsOnSave":{"source.organizeImports":"always"},"editor.fontSize":18,"rust-analyzer.check.command":"clippy"}' \
+    "$(jq -S -c . "$repo/settings.json")"
 }
 
 # ── running-VS-Code guard aborts BEFORE any change; --force overrides ─────────

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # vscode-profiles: a self-contained mini-CLI for managing VS Code profiles from
-# this dotfiles repo. The repo owns the full content of each profile (settings,
-# keybindings, snippets, tasks, and the extension id list); this CLI syncs that
-# on-disk source of truth into VS Code's live user-data dir and drives `code` to
-# install/prune extensions per profile.
+# this dotfiles repo. The repo owns a shared settings base, per-profile settings
+# overrides, keybindings, snippets, tasks, and extension id lists; this CLI
+# renders that source of truth into VS Code's live user-data dir and drives
+# `code` to install/prune extensions per profile.
 #
 # It replaces the old `vscode-ext:<id>` [tools] scheme (a no-op mise backend
 # plugin). Extensions are profile-scoped state, not global tools, so mise no
@@ -25,9 +25,10 @@
 #   resolve <name>    print the live storage location id for a named profile.
 #
 # Repo layout (VSCODE_REPO_DIR, default <repo>/home/.config/vscode):
-#   settings.json keybindings.json tasks.json snippets/  -> GLOBAL profile
+#   settings.base.json                                   -> shared settings
+#   settings.json keybindings.json tasks.json snippets/  -> GLOBAL overrides/files
 #   extensions.txt                                       -> GLOBAL extension ids
-#   profiles/<name>/{...same files..., extensions.txt}   -> a named profile
+#   profiles/<name>/{settings.json,...,extensions.txt}  -> named overrides/files
 #
 # Live layout (VSCODE_USER_DIR, default the macOS "Code/User" dir):
 #   <User>/settings.json ...                     -> GLOBAL profile
@@ -75,8 +76,9 @@ CODE_BIN="${VSCODE_CODE_BIN:-code}"
 PRUNE="${VSCODE_PROFILES_PRUNE:-false}"
 FORCE="${VSCODE_PROFILES_FORCE:-false}"
 
-# Files (besides extensions.txt and snippets/) mirrored per profile.
-PROFILE_FILES="settings.json keybindings.json tasks.json"
+# Files (besides settings, extensions.txt, and snippets/) mirrored per profile.
+PROFILE_FILES="keybindings.json tasks.json"
+SETTINGS_BASE_FILE="settings.base.json"
 
 die() { printf 'vscode-profiles: %s\n' "$1" >&2; exit "${2:-1}"; }
 warn() { printf 'vscode-profiles: %s\n' "$1" >&2; }
@@ -199,6 +201,75 @@ repo_dir_for() {
   printf '%s/profiles/%s\n' "$REPO_DIR" "$name"
 }
 
+# settings_source_exists <name>: true when a base or profile override exists.
+settings_source_exists() {
+  local name="$1" override
+  override="$(repo_dir_for "$name")/settings.json"
+  [ -f "$REPO_DIR/$SETTINGS_BASE_FILE" ] || [ -f "$override" ]
+}
+
+# render_settings <name> <out>: merge the shared base with this profile's
+# override. The second object wins, and jq's object multiplication recursively
+# merges nested settings objects. Rendered output is sorted and strict JSON so
+# check/pull can compare and reverse the composition deterministically.
+render_settings() {
+  local name="$1" out="$2" base override
+  base="$REPO_DIR/$SETTINGS_BASE_FILE"
+  override="$(repo_dir_for "$name")/settings.json"
+  command -v jq >/dev/null 2>&1 || return 1
+  if [ -f "$base" ] && [ -f "$override" ]; then
+    jq -S -s '.[0] * .[1]' "$base" "$override" >"$out"
+  elif [ -f "$base" ]; then
+    jq -S . "$base" >"$out"
+  elif [ -f "$override" ]; then
+    jq -S . "$override" >"$out"
+  else
+    return 1
+  fi
+}
+
+# settings_delta <base> <live> <out>: capture only live values that differ from
+# the shared base. This keeps pull from copying the standard settings into every
+# profile override. A base value removed in the UI is intentionally ignored: the
+# repository base remains authoritative and apply restores it.
+settings_delta() {
+  local base="$1" live="$2" out="$3"
+  command -v jq >/dev/null 2>&1 || return 1
+  jq -S -s '
+    def delta($base; $live):
+      if (($base | type) == "object" and ($live | type) == "object") then
+        reduce ($live | keys_unsorted[]) as $key
+          ({ };
+           if (($base | has($key)) and ($base[$key] == $live[$key])) then
+             .
+           elif (($base | has($key)) and
+                 (($base[$key] | type) == "object") and
+                 (($live[$key] | type) == "object")) then
+             (delta($base[$key]; $live[$key])) as $nested
+             | if (($nested | length) > 0) then .[$key] = $nested else . end
+           else
+             .[$key] = $live[$key]
+           end)
+      else
+        $live
+      end;
+    delta(.[0]; .[1])
+  ' "$base" "$live" >"$out"
+}
+
+# settings_equal <expected> <live>: compare normalized JSON, ignoring key order.
+settings_equal() {
+  local expected="$1" live="$2" left right rc
+  left="$(mktemp "${TMPDIR:-/tmp}/vscode-settings.XXXXXX")" || return 1
+  right="$(mktemp "${TMPDIR:-/tmp}/vscode-settings.XXXXXX")" || { rm -f "$left"; return 1; }
+  jq -S . "$expected" >"$left" && jq -S . "$live" >"$right"
+  rc=$?
+  [ "$rc" -eq 0 ] && cmp -s "$left" "$right"
+  rc=$?
+  rm -f "$left" "$right"
+  return "$rc"
+}
+
 # profile_code_args <name> -> selector for `code`: empty (global) or --profile.
 profile_code_args() {
   local name="$1"
@@ -255,6 +326,25 @@ installed_extensions() {
     | tr '[:upper:]' '[:lower:]' | sort -u
 }
 
+# sync_settings <name> [dst]: render the shared base plus profile override into
+# the live profile's settings.json.
+sync_settings() {
+  local name="$1" dst="${2:-}" tmp
+  settings_source_exists "$name" || return 0
+  [ -n "$dst" ] || dst="$(live_dir_for "$name")"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/vscode-settings.XXXXXX")" || {
+    note_failure "mktemp failed while rendering settings ($name)"
+    return
+  }
+  if ! render_settings "$name" "$tmp"; then
+    rm -f "$tmp"
+    note_failure "failed to render settings ($name); jq and valid JSON are required"
+    return
+  fi
+  cp "$tmp" "$dst/settings.json" || note_failure "failed to copy rendered settings ($name)"
+  rm -f "$tmp"
+}
+
 # sync_files <name>: copy repo -> live for the managed files present in the repo.
 sync_files() {
   local name="$1" src dst f
@@ -273,6 +363,7 @@ sync_files() {
     mkdir -p "$dst/snippets" || { note_failure "cannot create $dst/snippets ($name)"; return; }
     cp -R "$src/snippets/." "$dst/snippets/" || note_failure "failed to copy snippets ($name)"
   fi
+  sync_settings "$name" "$dst"
 }
 
 # sync_extensions <name> [--prune]: install declared-but-missing; prune undeclared
@@ -366,6 +457,39 @@ check_snippets() {
   return "$rc"
 }
 
+# check_settings <name> <dst>: compare live settings with the rendered shared
+# base plus this profile's override. Unlike other files, key order is ignored.
+check_settings() {
+  local name="$1" dst="$2" tmp
+  settings_source_exists "$name" || return 0
+  tmp="$(mktemp "${TMPDIR:-/tmp}/vscode-settings.XXXXXX")" || {
+    warn "mktemp failed while checking settings ($name)."
+    return 1
+  }
+  if ! render_settings "$name" "$tmp"; then
+    rm -f "$tmp"
+    warn "cannot render settings ($name); jq and valid JSON are required."
+    return 1
+  fi
+  if [ ! -e "$dst/settings.json" ]; then
+    warn "$dst/settings.json missing - run 'vscode-profiles apply' to seed it."
+    rm -f "$tmp"
+    return 1
+  elif [ -L "$dst/settings.json" ]; then
+    warn "$dst/settings.json is a symlink; profile files are managed in copy mode."
+    rm -f "$tmp"
+    return 1
+  elif ! settings_equal "$tmp" "$dst/settings.json"; then
+    warn "live rendered settings.json differs from repo ($name)."
+    warn "  Capture app changes:  vscode-profiles pull"
+    warn "  Or push the repo out: vscode-profiles apply"
+    rm -f "$tmp"
+    return 1
+  fi
+  rm -f "$tmp"
+  return 0
+}
+
 # check_extensions <name>: compare the profile's effective declared extension
 # set against what `code` reports installed. Missing (declared, not installed)
 # and undeclared (installed, not declared) are both drift. Requires `code`.
@@ -422,6 +546,7 @@ cmd_check() {
         rc=1
       fi
     done
+    check_settings "$name" "$dst" || rc=1
     check_snippets "$name" "$src" "$dst" || rc=1
     if code_available; then check_extensions "$name" || rc=1; fi
   done < <(profiles)
@@ -433,9 +558,33 @@ cmd_check() {
   return "$rc"
 }
 
+# pull_settings <name> <src> <dst>: capture only settings that differ from the
+# shared base, leaving standard values in settings.base.json.
+pull_settings() {
+  local name="$1" src="$2" dst="$3" base tmp
+  [ -f "$dst/settings.json" ] || return 0
+  base="$REPO_DIR/$SETTINGS_BASE_FILE"
+  if [ -f "$base" ]; then
+    tmp="$(mktemp "${TMPDIR:-/tmp}/vscode-settings.XXXXXX")" || {
+      note_failure "mktemp failed while pulling settings ($name)"
+      return
+    }
+    if ! settings_delta "$base" "$dst/settings.json" "$tmp"; then
+      rm -f "$tmp"
+      note_failure "failed to extract settings override ($name); jq and valid JSON are required"
+      return
+    fi
+    cp "$tmp" "$src/settings.json" || note_failure "failed to pull settings override ($name)"
+    rm -f "$tmp"
+  else
+    cp "$dst/settings.json" "$src/settings.json" || note_failure "failed to pull settings ($name)"
+  fi
+}
+
 # cmd_pull: capture live -> repo for every managed file (deliberate). Unlike
 # apply, pull makes the repo mirror the live profile:
-#   - each managed file (PROFILE_FILES) present live is copied into the repo,
+#   - settings.json is reduced to values that override settings.base.json;
+#   - each other managed file (PROFILE_FILES) present live is copied into the repo,
 #     CREATING it if the repo did not track it yet (so a newly-added live
 #     settings/keybindings/tasks file is captured, not skipped);
 #   - snippets/ is mirrored fully: new live snippets are copied in AND repo
@@ -455,6 +604,7 @@ cmd_pull() {
       dst="$USER_DIR/profiles/$loc"
     fi
     mkdir -p "$src" || { note_failure "cannot create repo dir $src ($name)"; continue; }
+    pull_settings "$name" "$src" "$dst"
     # Capture each managed file that exists live, creating it in the repo.
     for f in $PROFILE_FILES; do
       [ -f "$dst/$f" ] || continue
@@ -569,9 +719,8 @@ main() {
   esac
 }
 
-# Execute only when run directly; sourcing (tests) loads the pure helpers
-# (set_minus, valid_location, declared_extensions, effective_declared) without
-# running a subcommand.
+# Execute only when run directly; sourcing (tests) loads the testable helpers
+# without running a subcommand.
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   main "$@"
 fi

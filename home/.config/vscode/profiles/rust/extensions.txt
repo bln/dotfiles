@@ -1,0 +1,4 @@
+# VS Code extensions for the "rust" profile. Named profiles inherit every
+# global extension ("globals expected everywhere"), so global ids are not
+# re-listed here.
+rust-lang.rust-analyzer

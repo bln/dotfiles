@@ -161,18 +161,24 @@ longer shims or versions them.
 
 Layout: the `vscode/` root is the **global** profile; each `profiles/<name>/`
 is a **named** profile. Extensions are plain-text id lists (one per line, `#`
-comments); other profile files (`settings.json`, `keybindings.json`,
-`tasks.json`, `snippets/`) are synced in copy mode when present.
+comments). `settings.base.json` contains shared settings such as fonts, sizes,
+editor behavior, and theme choices. The root and named `settings.json` files
+contain only global or profile-specific overrides; `scripts/vscode-profiles`
+renders the base plus each override into the live profile. Other profile files
+(`keybindings.json`, `tasks.json`, `snippets/`) are synced in copy mode when
+present.
 
 ```
 home/.config/vscode/
-├── settings.json          # global profile
+├── settings.base.json     # shared settings for every profile
+├── settings.json          # global-only overrides
 ├── extensions.txt         # global extension ids
 └── profiles/
-    ├── python/            # extensions.txt + settings.json (curated Python template)
-    ├── go/                # settings.json (golang.go is global; native test explorer)
-    ├── doc/               # extensions.txt + settings.json (curated Doc Writer template)
-    └── node/              # extensions.txt + settings.json (curated Node.js template)
+    ├── python/            # extension/language overrides
+    ├── go/                # extension/language overrides
+    ├── doc/               # extension/language overrides
+    ├── node/              # extension/language overrides
+    └── rust/              # extension/language overrides
 ```
 
 - **Add / remove an extension**: edit the profile's `extensions.txt`, then run
@@ -182,9 +188,10 @@ home/.config/vscode/
   profile and seeds a missing named profile headlessly. Prune (installed but
   not declared) is warned by default; pass `--prune` (or `dot run update`,
   which prunes and runs `code --update-extensions`) to uninstall them.
-- **Drift / capture**: `vscode-profiles check` reports live-vs-repo drift;
-  `vscode-profiles pull` captures live profile files back into the repo after
-  UI edits (copy mode - pull or lose them).
+- **Drift / capture**: `vscode-profiles check` compares rendered effective
+  settings with live settings; `vscode-profiles pull` captures live profile
+  files back into the repo after UI edits and reduces settings to only values
+  that override `settings.base.json` (copy mode - pull or lose them).
 - **Safety**: seeding/deleting a profile mutates VS Code's `storage.json`, which
   a running VS Code rewrites on exit. Those paths refuse to run while VS Code is
   open (`--force` overrides). Extension installs and file copies are unguarded.
@@ -206,6 +213,7 @@ mise -C ~/dotfiles run update         # upgrade tools, packages, dotfiles
 mise -C ~/dotfiles run bootstrap      # finish post-bootstrap setup (idempotent)
 mise bootstrap status                 # show declared machine-state drift
 mise bootstrap --dry-run              # preview bootstrap without applying
+mcode                                 # run the current project's mise vscode task
 ```
 
 The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so

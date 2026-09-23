@@ -1,7 +1,7 @@
 # VS Code extensions for the GLOBAL profile (available in every profile).
 # One extension id per line; # starts a comment. Synced by
 # `scripts/vscode-profiles apply`. Per-language/writing extensions live in the
-# named profiles under profiles/ (python, go, doc, node).
+# named profiles under profiles/ (python, go, doc, node, rust).
 
 # language support
 golang.go
@@ -12,6 +12,7 @@ mechatroner.rainbow-csv
 # AI
 anthropic.claude-code
 openai.chatgpt
+openai.codex-audio
 
 # tooling
 hverlin.mise-vscode

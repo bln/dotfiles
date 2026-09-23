@@ -57,14 +57,17 @@ VS Code profiles are owned on disk under `home/.config/vscode/` and driven by
 the `scripts/vscode-profiles` mini-CLI, not by mise. Extensions are
 profile-scoped state (like Neovim plugins), not global tools, so `code` owns
 their lifecycle - mise does not shim, version, or health-check them. The repo is
-the source of truth for the full profile content (settings, keybindings,
-snippets, tasks, and a plain-text `extensions.txt` id list per profile): the
-`vscode/` root is the global profile, each `profiles/<name>/` a named profile.
-`apply` seeds missing named profiles headlessly (a `storage.json`
-`userDataProfiles` entry + dir), copies profile files live, and installs
-declared-missing extensions (prune undeclared with `--prune`); named profiles
-inherit the global extension set ("globals expected everywhere"). `check`
-reports live-vs-repo drift, `pull` captures live files back into the repo, and
+the source of truth for a shared `settings.base.json`, per-profile settings
+overrides, keybindings, snippets, tasks, and a plain-text `extensions.txt` id
+list per profile: the `vscode/` root is the global profile, each
+`profiles/<name>/` a named profile. `apply` renders the base plus each
+override into the live profile, seeds missing named profiles headlessly (a
+`storage.json` `userDataProfiles` entry + dir), copies other profile files live,
+and installs declared-missing extensions (prune undeclared with `--prune`);
+named profiles inherit the global extension set ("globals expected everywhere").
+`check` compares rendered settings and other live files with the repo, `pull`
+captures live files back into the repo while reducing settings to the profile
+override, and
 `teardown` uninstalls extensions and deletes seeded named profiles. Paths that
 mutate `storage.json` refuse to run while VS Code is open (it rewrites that file
 on exit and would clobber the change); `code`-driven paths no-op when `code` is
@@ -72,6 +75,13 @@ absent (Linux CI, macOS without VS Code). The CLI is self-contained and
 extractable - all state paths route through `VSCODE_*` env seams so tests point
 it at a sandbox and can drive a fully isolated real `code` instance
 (`--user-data-dir`/`--extensions-dir`).
+
+Mise's `mode = "template"` is intentionally not used for settings
+composition. Mise templates render one source file into one destination with
+Tera; they do not provide JSON fragment inheritance, and named VS Code profile
+destinations are opaque storage locations managed by VS Code. The CLI therefore
+owns the small, deterministic merge: effective settings are the base recursively
+merged with the profile override, and `pull` reverses that into an override.
 
 Agent instructions and skills use native mise dotfiles entries in `mode =
 "copy"`. The tracked sources mirror the configured roots: Pi uses
