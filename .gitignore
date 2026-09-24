@@ -14,6 +14,9 @@ backup/
 *.swp
 *.swo
 *~
+# Backups (e.g. rtk --uninstall leaves settings.json.bak / hooks.json.bak in
+# machine-local agent roots; never track a .bak anywhere in the tree).
+*.bak
 # JetBrains
 .idea/
 # VS Code
