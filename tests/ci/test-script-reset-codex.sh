@@ -18,7 +18,7 @@ RESET="$REPO/scripts/reset-codex.sh"
   touch "$home/sessions/s1.json" "$home/scratch.tmp"
   out="$(CODEX_HOME="$home" bash "$RESET" 2>&1)"; rc=$?
   assert_eq "exits 0" "0" "$rc"
-  for keep in auth.json config.toml AGENTS.md skills/s/SKILL.md; do
+  for keep in auth.json config.toml AGENTS.md AGENTS.override.md skills/s/SKILL.md; do
     assert_file "kept $keep" "$home/$keep"
   done
   assert_dir "kept rules dir" "$home/rules"
@@ -46,5 +46,13 @@ RESET="$REPO/scripts/reset-codex.sh"
 {
   set +e; out="$(CODEX_HOME="/etc" bash "$RESET" 2>&1)"; rc=$?; set -e
   assert_eq "refuses /etc (exit 2)" "2" "$rc"
+  assert_contains "names the unsafe target" "$out" "unsafe CODEX_HOME"
+}
+
+# Depth guard: a shallow path that slips past the denylist (one segment below /)
+# is still refused. /etc above never reaches this branch; /singlesegment does.
+{
+  set +e; out="$(CODEX_HOME="/singlesegment" bash "$RESET" 2>&1)"; rc=$?; set -e
+  assert_eq "refuses shallow non-denylisted path (exit 2)" "2" "$rc"
   assert_contains "names the unsafe target" "$out" "unsafe CODEX_HOME"
 }
