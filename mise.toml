@@ -88,17 +88,30 @@ run = [
 description = "upgrade everything: mise, tools, packages, VS Code extensions, python, dotfiles"
 interactive = true
 run = [
+  # mise runs each array step as a fresh process, so self-updating the binary
+  # first is safe: every later `mise ...` step re-execs the new binary.
   "mise self-update --yes",
   # tools: re-resolve `latest`, bump versions in config.toml, rewrite mise.lock.
   "mise upgrade --bump --yes",
-  # packages: refresh metadata + converge brew/brew-cask/mas.
+  # packages: refresh metadata + install any newly-declared packages. `apply`
+  # (what --update runs) is install-only: it does NOT upgrade what's already
+  # installed, so it needs the explicit upgrade step below.
   "mise bootstrap --update --only packages --yes",
-  # VS Code: update all installed extensions, then sync declared profiles
-  # (install missing, prune undeclared). Best-effort: a transient extension
-  # failure warns but must not abort the remaining upgrade steps.
-  "NODE_NO_WARNINGS=1 code --update-extensions",
+  # upgrade installed brew FORMULAE to their current bottles. Casks (brew-cask)
+  # and mas are excluded on purpose: those GUI apps self-update, mise skips a
+  # cask whose app is already newer, and their versions aren't tracked in
+  # mise.lock - so there is no pin to reconcile and nothing to gain here.
+  "mise bootstrap packages upgrade --manager brew --yes",
+  # VS Code: sync declared profiles (install missing, prune undeclared). Extension
+  # *upgrades* are left to VS Code itself (extensions.autoCheckUpdates=true in the
+  # base settings), matching how casks/mas apps self-update - so there is no CLI
+  # update step to pay a slow marketplace round-trip on every converge. Best-effort:
+  # a transient sync failure warns but must not abort the remaining upgrade steps.
   "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
   "mise dotfiles apply --yes",
-  "mise run setup:rtk",
+  # setup:rtk is NOT re-run here: `rtk init` is idempotent (self-detects and
+  # no-ops when the hook/extension are already configured), so re-running it on
+  # every update only adds noise. bootstrap configures it once; re-run
+  # `mise run setup:rtk` by hand if an rtk version bump ever changes its format.
   "uv python upgrade",
 ]

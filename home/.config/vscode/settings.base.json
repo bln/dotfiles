@@ -80,6 +80,6 @@
     "**/build": true
   },
   "telemetry.telemetryLevel": "off",
-  "extensions.autoCheckUpdates": false,
+  "extensions.autoCheckUpdates": true,
   "makefile.configureOnOpen": false
 }
