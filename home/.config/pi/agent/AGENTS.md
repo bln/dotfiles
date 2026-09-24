@@ -37,6 +37,7 @@ session-wide grant - one yes doesn't authorize the next:
 
 ## Verification
 
+- After any work, verify that the result works in its real target environment before reporting completion. Run the narrowest relevant check or test, inspect its result, and state any blocker instead of assuming success.
 - Lint/type-check every file you changed; run the narrowest test that exercises
   the change. If none exists or you can't run it, say so.
 - Never imply something worked when it didn't. When stuck, state what's blocked,
@@ -71,5 +72,4 @@ Pi's RTK extension at `~/.config/pi/agent/extensions/rtk.ts` automatically calls
 `rtk rewrite` for eligible Bash tool calls. Do not manually prefix Pi commands
 with `rtk`; let the extension perform the rewrite and fail open when no rewrite
 is available.
-
 

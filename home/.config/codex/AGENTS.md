@@ -37,6 +37,7 @@ session-wide grant - one yes doesn't authorize the next:
 
 ## Verification
 
+- After any work, verify that the result works in its real target environment before reporting completion. Run the narrowest relevant check or test, inspect its result, and state any blocker instead of assuming success.
 - Lint/type-check every file you changed; run the narrowest test that exercises
   the change. If none exists or you can't run it, say so.
 - Never imply something worked when it didn't. When stuck, state what's blocked,
