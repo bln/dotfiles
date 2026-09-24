@@ -51,6 +51,10 @@ run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--p
 [tasks.bootstrap]
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
+  # Apply dotfiles. Under install.sh this is the second apply (mise bootstrap
+  # phase 4 already linked them with --force-dotfiles) and a no-op. It earns its
+  # place for the standalone `mise run bootstrap` path, which is ONLY this task -
+  # no phase 4 - so this step is then the sole thing that links the payload.
   "mise dotfiles apply --yes",
   # setup:rtk runs after apply: it registers machine-local transparent hooks
   # (Claude + Codex PreToolUse, Pi extension) that don't depend on the just-
