@@ -65,3 +65,19 @@ preamble, no restating my question, no post-hoc summary. Match length to the
 task. After work, report only outcome, verification result, and blockers. Show
 diffs or changed lines, not whole files, unless I ask. No em dashes - use a
 hyphen. Conventional Commits.
+
+## Command output (rtk)
+
+Your shell command output is condensed by rtk before you see it: a PreToolUse
+hook transparently rewrites the command to run under rtk, which keeps every
+signal and drops costly noise to save tokens. This is a rewrite, not a summary
+you should distrust - treat the condensed result as the complete output. Run
+commands normally and batch related ones into a single call to avoid extra
+turns. Truncated results state their own recovery path.
+
+When you need the raw, unfiltered output - full detail, output you will pipe
+into another script, or a result that came back empty when output was expected,
+contradicts its exit code, or is garbled - re-run the command prefixed with
+`rtk proxy`, e.g. `rtk proxy git status`. rtk runs `rtk proxy <cmd>` verbatim
+without rewriting it, so you get the command's real output.
+

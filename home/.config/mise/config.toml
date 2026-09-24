@@ -14,7 +14,7 @@ python.uv_venv_auto = "create|source"
 # Let a release settle before adopting it, except for the fast-moving agent
 # CLIs we deliberately track at the bleeding edge.
 minimum_release_age = "2d"
-minimum_release_age_excludes = ["claude-code", "codex", "pi"]
+minimum_release_age_excludes = ["claude-code", "codex", "pi", "rtk"]
 
 [env]
 # These are mise/package-manager settings, not interactive shell state.

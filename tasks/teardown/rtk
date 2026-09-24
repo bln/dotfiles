@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#MISE description="remove RTK integrations for Claude Code, Codex, and Pi"
+set -euo pipefail
+
+if command -v rtk >/dev/null 2>&1; then
+  export RTK_TELEMETRY_DISABLED="${RTK_TELEMETRY_DISABLED:-1}"
+  rtk init -g --hook-only --uninstall
+  # Codex uninstall removes the hooks.json entry, RTK.md, and the @RTK.md
+  # reference. Restore AGENTS.md from source afterward in case setup left the
+  # reference (it should not, but keep teardown self-correcting).
+  codex_home="${CODEX_HOME:-$HOME/.config/codex}"
+  agents_src="${RTK_AGENTS_SRC:-$HOME/dotfiles/home/.config/agents/INSTRUCTIONS.md}"
+  rtk init -g --codex --uninstall
+  if [ -f "$agents_src" ] && [ -f "$codex_home/AGENTS.md" ]; then
+    cp "$agents_src" "$codex_home/AGENTS.md"
+  fi
+  rtk init -g --agent pi --uninstall
+else
+  echo "rtk not installed; nothing to teardown." >&2
+fi

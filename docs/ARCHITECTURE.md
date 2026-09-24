@@ -90,7 +90,11 @@ Agent instructions and skills use native mise dotfiles entries in `mode =
 `~/.config/claude/CLAUDE.md`), so the three files can never drift and no
 parity test is needed. RTK integration is transparent (per-agent hooks and a
 Pi extension configured by `mise run setup:rtk`), so none of these files carry
-per-agent prose. The shared Pi/Codex skill tree uses `home/.config/skills/`,
+per-agent prose. The one exception is a short shared rtk usage note in the
+instruction body itself (output is condensed; use `rtk proxy <cmd>` for raw
+output) - it applies identically to all three agents, so it stays in the single
+source rather than being injected per-agent. The shared Pi/Codex skill tree
+uses `home/.config/skills/`,
 and Claude has an independent skill tree under `home/.config/claude/`. Mise
 applies these as real files and directories, never symlinks.
 

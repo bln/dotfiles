@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#MISE description="register RTK transparent hooks for Claude Code, Codex, and Pi"
+set -euo pipefail
+
+if ! command -v rtk >/dev/null 2>&1; then
+  echo "ERROR: rtk is not installed; run 'mise install rtk' first." >&2
+  exit 1
+fi
+
+# mise can invoke this task from bootstrap before a new shell sources
+# ~/.zshenv. Keep RTK's telemetry prompt disabled in that process too.
+export RTK_TELEMETRY_DISABLED="${RTK_TELEMETRY_DISABLED:-1}"
+
+# All three integrations are transparent (a PreToolUse hook for Claude and
+# Codex, a TypeScript extension for Pi) and machine-local. The rtk usage note
+# (output is condensed; use `rtk proxy` for raw output) lives in the shared
+# instruction body, so it reaches all three agents via copy-mode - none of them
+# need rtk's per-agent prose files, which we strip below.
+
+# Claude: PreToolUse hook, no CLAUDE.md edit.
+rtk init -g --hook-only --auto-patch
+
+# Codex 0.50.0+: native PreToolUse hook in $CODEX_HOME/hooks.json. `rtk init
+# --codex` also writes RTK.md and appends an `@RTK.md` reference to AGENTS.md,
+# but the same guidance is already in the shared instruction body, and Codex
+# does NOT resolve global @-references anyway (verified on codex 0.156.1). Undo
+# both side effects to keep the copy-managed AGENTS.md byte-identical to source.
+codex_home="${CODEX_HOME:-$HOME/.config/codex}"
+agents_src="${RTK_AGENTS_SRC:-$HOME/dotfiles/home/.config/agents/INSTRUCTIONS.md}"
+rtk init -g --codex
+rm -f "$codex_home/RTK.md"
+if [ -f "$agents_src" ]; then
+  cp "$agents_src" "$codex_home/AGENTS.md"
+fi
+
+# Pi: machine-local TypeScript extension, transparent; safe to refresh.
+rtk init -g --agent pi --auto-patch
+
+# Codex gates hooks behind a trust check: a user-layer hooks.json entry with no
+# persisted `trusted_hash` in config.toml `[hooks.state]` is silently skipped.
+# Interactive `codex` shows a one-time startup review that persists trust; there
+# is no such review under `codex exec`. rtk does not seed trust and reproducing
+# Codex's internal hash here would be brittle, so we surface the one-time manual
+# step loudly instead of pretending it converged silently.
+cat >&2 <<'NOTE'
+
+  ⚠ RTK Codex hook: ONE-TIME TRUST STEP REQUIRED
+    The PreToolUse hook is registered but Codex will ignore it until trusted.
+    Launch `codex` once interactively and approve the RTK hook in the startup
+    review. Non-interactive automation must pass --dangerously-bypass-hook-trust.
+
+NOTE
