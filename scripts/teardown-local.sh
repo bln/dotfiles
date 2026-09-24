@@ -50,6 +50,7 @@ main() {
   for path in \
     "$HOME/.config/git/identity-personal" \
     "$HOME/.config/git/identity-work" \
+    "$HOME/.local/bin/python" \
     "$HOME/.local/share/uv" \
     "$HOME/.cache/uv"
   do

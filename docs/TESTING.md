@@ -107,6 +107,14 @@ cannot run in CI and nothing there can be faked.
   class, plus *every* destructive/security path. Do not add a fourth "missing
   field" variant or a fifth drift permutation; add a case only for a genuinely
   distinct behavior or a real bug you are pinning.
+- **Teardown steps are dry-run by default; guard that default.** Every step of
+  the `teardown` task (`teardown-dotfiles.sh`, `teardown-local.sh`,
+  `tasks/teardown/rtk`, …) reads `APPLY="${APPLY:-false}"` and touches nothing
+  unless `APPLY=true`; the task passes `APPLY="${usage_apply:-false}"` so bare
+  `mise run teardown` previews. A new teardown step MUST carry a case proving the
+  default touches nothing - assert exit 0, a `DRY RUN` marker, and unchanged
+  state (a whole-tree snapshot diff beats per-item probes: see the dry-run case
+  in `test-rtk-roundtrip.sh`). This is failure class #2, so it is not optional.
 - **Skip cleanly, never fail, on a missing optional dependency** (`jq`,
   `uuidgen`, `zsh`, `nvim`, `brew`). CI runners and laptops differ.
 - **GNU-first, BSD-fallback** for `stat`/`date`/`script` (CI is Linux, local is

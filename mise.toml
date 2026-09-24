@@ -77,6 +77,11 @@ usage = 'flag "--apply" help="Execute removals (default: dry-run preview)"'
 # --all` (re-shims the runner mid-array) and `mise implode` (self-deletes mise) -
 # are printed as manual next steps instead.
 run = [
+  # rtk first, before dotfiles unapply: rtk teardown strips its hook edits and
+  # restores the copy-managed Codex AGENTS.md, which unapply then removes -
+  # correct empty end state and no resurrection race. Best-effort: a failed
+  # uninstall warns but must not stop the remaining steps.
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/tasks/teardown/rtk" || echo "WARNING: RTK teardown reported errors; continuing" >&2',
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-dotfiles.sh"',
   # vscode teardown is best-effort: a failed uninstall returns nonzero but must
   # not stop the remaining teardown steps (identity/uv cleanup below).

@@ -60,6 +60,7 @@ run_rtk_task() {
     CODEX_HOME="$codex_home" \
     PI_CODING_AGENT_DIR="$pi_dir" \
     RTK_AGENTS_SRC="$agents_src" \
+    APPLY="${APPLY:-true}" \
     bash "$REPO/tasks/$task/rtk"
 }
 
@@ -88,6 +89,16 @@ run_rtk_task setup
 assert_eq "setup is idempotent" "0" "$RUN_STATUS"
 snapshot_state "$setup_second"
 assert_eq "repeated setup preserves state" "$(cat "$setup_first")" "$(cat "$setup_second")"
+
+# Dry-run teardown (APPLY=false) is the safety default: exit 0, print DRY RUN,
+# and touch nothing. Prove "touches nothing" against the post-setup snapshot
+# rather than probing each integration.
+APPLY=false run_rtk_task teardown
+assert_eq "dry-run teardown exits 0" "0" "$RUN_STATUS"
+assert_contains "dry-run teardown previews" "$(cat "$RUN_STDOUT")" "DRY RUN"
+dryrun_state="$snapshot_dir/dryrun"
+snapshot_state "$dryrun_state"
+assert_eq "dry-run teardown changes nothing" "$(cat "$setup_first")" "$(cat "$dryrun_state")"
 
 run_rtk_task teardown
 assert_eq "teardown exits 0" "0" "$RUN_STATUS"

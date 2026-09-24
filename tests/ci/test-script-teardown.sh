@@ -14,9 +14,13 @@ DOTFILES="$REPO/scripts/teardown-dotfiles.sh"
 
 # ── dry-run default vs --apply, HOME-scoped ──────────────────────────────────
 {
-  home="$(sandbox)"; mkdir -p "$home/.config/git" "$home/.local/share/uv"
+  home="$(sandbox)"; mkdir -p "$home/.config/git" "$home/.local/share/uv" "$home/.local/bin"
   echo p >"$home/.config/git/identity-personal"
   echo w >"$home/.config/git/identity-work"
+  # uv python install --default leaves a ~/.local/bin/python symlink; teardown
+  # must remove it. Point it at a real file under HOME so the guard accepts it.
+  echo py >"$home/.local/share/uv/python-real"
+  ln -s "$home/.local/share/uv/python-real" "$home/.local/bin/python"
 
   run_capture env HOME="$home" bash "$LOCAL"
   assert_eq "dry-run exits 0" "0" "$RUN_STATUS"
@@ -27,6 +31,7 @@ DOTFILES="$REPO/scripts/teardown-dotfiles.sh"
   assert_eq "--apply exits 0" "0" "$RUN_STATUS"
   assert_not_exists "apply removes identity-personal" "$home/.config/git/identity-personal"
   assert_not_exists "apply removes uv share" "$home/.local/share/uv"
+  assert_not_exists "apply removes uv python symlink" "$home/.local/bin/python"
   outside="$(grep 'removed: ' "$RUN_STDOUT" | grep -vc "$home" || true)"
   assert_eq "every removed path under sandbox HOME" "0" "$outside"
 }

@@ -2,7 +2,17 @@
 #MISE description="remove RTK integrations for Claude Code, Codex, and Pi"
 set -euo pipefail
 
+# Safe by default like scripts/teardown-local.sh: without APPLY=true this only
+# reports what it would do and touches nothing. The teardown task passes
+# APPLY="${usage_apply:-false}" so `mise run teardown` previews and
+# `mise run teardown --apply` executes.
+APPLY="${APPLY:-false}"
+
 if command -v rtk >/dev/null 2>&1; then
+  if [ "$APPLY" != true ]; then
+    echo "DRY RUN: would uninstall RTK (claude/codex/pi)"
+    exit 0
+  fi
   export RTK_TELEMETRY_DISABLED="${RTK_TELEMETRY_DISABLED:-1}"
   rtk init -g --hook-only --uninstall
   # Codex uninstall removes the hooks.json entry, RTK.md, and the @RTK.md

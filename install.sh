@@ -29,6 +29,8 @@ mise bootstrap --from "https://github.com/bln/dotfiles.git" \
   ${DOTFILES_DIR:+--from-dir "$DOTFILES_DIR"} --yes --force-dotfiles
 
 # Prompt for machine-local identity in the foreground (TTY intact) - not a
-# bootstrap hook, which would silently skip under a non-TTY stdin. Idempotent:
-# the task no-ops when identity-personal already exists.
-[ -f "$HOME/.config/git/identity-personal" ] || mise run setup:git-identity
+# bootstrap hook, which would silently skip under a non-TTY stdin. The task is
+# idempotent and interactive: it no-ops only when BOTH identity files exist and
+# prompts for whichever is missing (recovers an interrupted first run). Let the
+# task decide completeness - do not second-guess it with a weaker single-file guard.
+mise run setup:git-identity
