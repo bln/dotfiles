@@ -22,7 +22,10 @@ See `docs/ARCHITECTURE.md` (two-file boundary and package policy).
 ## Requirements
 
 - Keep scripts compatible with Bash 3.2 unless explicitly documented otherwise.
-- Use `set -euo pipefail` in Bash scripts.
+- Use `set -euo pipefail` in Bash scripts, except those that drive tools whose
+  nonzero exit is a normal signal (see `scripts/vscode-profiles`): those use
+  `set -u` with explicit `|| die` / failure handling, and adding `set -e` would
+  silently break them.
 - Quote expansions and support paths containing spaces.
 - Make setup and reconciliation tasks idempotent.
 - Give destructive commands a dry-run mode.
