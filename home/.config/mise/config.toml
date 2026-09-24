@@ -118,13 +118,16 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/mise.lock" = {}
 "~/.config/atuin/config.toml" = {}
-# Agent instructions and skills are copy-managed because their consumers write
-# in place. The explicit sources keep agent runtime state outside the repo.
-"~/.config/pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.config/pi/agent/AGENTS.md", mode = "copy" }
+# Agent instructions are copy-managed because their consumers write in place.
+# All three agents share ONE tracked body (agents/INSTRUCTIONS.md) copied to
+# each destination, so nothing can drift; RTK integration is transparent (hooks
+# and a Pi extension), so no per-agent prose lives in these files. Skills stay
+# copy-managed too, keeping agent runtime state outside the repo.
+"~/.config/pi/agent/AGENTS.md" = { source = "~/dotfiles/home/.config/agents/INSTRUCTIONS.md", mode = "copy" }
 "~/.config/pi/agent/extensions/friendly-footer.ts" = {}
-"~/.config/codex/AGENTS.md" = { source = "~/dotfiles/home/.config/codex/AGENTS.md", mode = "copy" }
+"~/.config/codex/AGENTS.md" = { source = "~/dotfiles/home/.config/agents/INSTRUCTIONS.md", mode = "copy" }
 "~/.agents/skills" = { source = "~/dotfiles/home/.config/skills", mode = "copy", manifest = "git" }
-"~/.config/claude/CLAUDE.md" = { source = "~/dotfiles/home/.config/claude/CLAUDE.md", mode = "copy" }
+"~/.config/claude/CLAUDE.md" = { source = "~/dotfiles/home/.config/agents/INSTRUCTIONS.md", mode = "copy" }
 "~/.config/claude/skills" = { source = "~/dotfiles/home/.config/claude/skills", mode = "copy", manifest = "git" }
 
 # VS Code profile content (settings.json, keybindings.json, tasks.json,

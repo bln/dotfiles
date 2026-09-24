@@ -80,10 +80,8 @@ dotfiles/
 └── home/                       # payload managed in $HOME by mise dotfiles
     ├── .zshenv
     └── .config/
-        ├── pi/agent/AGENTS.md   # copied into the Pi agent root
-        ├── codex/AGENTS.md      # copied into the Codex root
+        ├── agents/INSTRUCTIONS.md  # one shared body, copied to Pi/Codex/Claude
         ├── skills/              # copied to ~/.agents/skills for Pi and Codex
-        ├── claude/CLAUDE.md     # copied into the Claude root
         ├── claude/skills/       # independent copied Claude skill tree
         ├── mise/config.toml     # THE source of truth: tools, packages, defaults
         ├── mise/mise.lock
@@ -120,10 +118,10 @@ Agent instructions and skills are copied as real files and directories because
 Pi, Codex, and Claude can write in their configuration roots. Only these
 resources are repository-owned:
 
-- `~/.config/pi/agent/AGENTS.md`
-- `~/.config/codex/AGENTS.md`
+- `~/.config/pi/agent/AGENTS.md`, `~/.config/codex/AGENTS.md`, and
+  `~/.config/claude/CLAUDE.md` — all copied from the one shared body
+  `home/.config/agents/INSTRUCTIONS.md`
 - `~/.agents/skills/**` from `home/.config/skills/**`
-- `~/.config/claude/CLAUDE.md`
 - `~/.config/claude/skills/**` from its independent source tree
 
 Agent settings, credentials, sessions, databases, caches, plugins, and Codex

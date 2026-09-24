@@ -84,12 +84,15 @@ owns the small, deterministic merge: effective settings are the base recursively
 merged with the profile override, and `pull` reverses that into an override.
 
 Agent instructions and skills use native mise dotfiles entries in `mode =
-"copy"`. The tracked sources mirror the configured roots: Pi uses
-`home/.config/pi/agent/AGENTS.md`, Codex uses
-`home/.config/codex/AGENTS.md`, the shared Pi/Codex skill tree uses
-`home/.config/skills/`, and Claude has independent sources under
-`home/.config/claude/`. Mise applies these as real files and directories, never
-symlinks.
+"copy"`. All three agents share ONE tracked instruction body,
+`home/.config/agents/INSTRUCTIONS.md`, copied to each destination
+(`~/.config/pi/agent/AGENTS.md`, `~/.config/codex/AGENTS.md`,
+`~/.config/claude/CLAUDE.md`), so the three files can never drift and no
+parity test is needed. RTK integration is transparent (per-agent hooks and a
+Pi extension configured by `mise run setup:rtk`), so none of these files carry
+per-agent prose. The shared Pi/Codex skill tree uses `home/.config/skills/`,
+and Claude has an independent skill tree under `home/.config/claude/`. Mise
+applies these as real files and directories, never symlinks.
 
 The copy mappings intentionally have no bulk live-to-repository pull. `mise
 dotfiles pull` is for mise's optional shared history and does not capture these

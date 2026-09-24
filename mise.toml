@@ -52,7 +52,6 @@ run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--p
 description = "finish bootstrap: install VS Code extensions and uv default python"
 run = [
   "mise dotfiles apply --yes",
-  "mise run setup:rtk",
   # apply is best-effort here: a transient extension-install failure returns
   # nonzero but must not abort the rest of the converge (verify's `check` is the
   # strict gate). It still prints the failure.
@@ -109,9 +108,5 @@ run = [
   # a transient sync failure warns but must not abort the remaining upgrade steps.
   "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
   "mise dotfiles apply --yes",
-  # setup:rtk is NOT re-run here: `rtk init` is idempotent (self-detects and
-  # no-ops when the hook/extension are already configured), so re-running it on
-  # every update only adds noise. bootstrap configures it once; re-run
-  # `mise run setup:rtk` by hand if an rtk version bump ever changes its format.
   "uv python upgrade",
 ]

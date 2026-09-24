@@ -14,19 +14,18 @@
 
 echo "== ci: agent copy layout =="
 
-# 1. Instruction sources are real files (copy-mode integrity).
-for rel in \
-  "home/.config/pi/agent/AGENTS.md" \
-  "home/.config/codex/AGENTS.md" \
-  "home/.config/claude/CLAUDE.md"; do
-  if [ ! -f "$REPO/$rel" ]; then
-    bad "source exists: $rel" "missing"
-  elif [ -L "$REPO/$rel" ]; then
-    bad "source is a real file: $rel" "must not be a symlink (copy mode)"
-  else
-    ok "source is a real file: $rel"
-  fi
-done
+# 1. The single shared instruction source is a real file (copy-mode integrity).
+#    All three agents (claude CLAUDE.md, codex/pi AGENTS.md) copy from this one
+#    file, so it can never drift; a symlink here would put machine state in the
+#    repo via agent/`git config` rewrites.
+rel="home/.config/agents/INSTRUCTIONS.md"
+if [ ! -f "$REPO/$rel" ]; then
+  bad "source exists: $rel" "missing"
+elif [ -L "$REPO/$rel" ]; then
+  bad "source is a real file: $rel" "must not be a symlink (copy mode)"
+else
+  ok "source is a real file: $rel"
+fi
 
 # 2. Claude skill tree mirrors the shared skill tree exactly.
 shared="$REPO/home/.config/skills"
