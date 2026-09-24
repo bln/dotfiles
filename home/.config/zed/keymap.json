@@ -1,0 +1,23 @@
+[
+  {
+    "context": "Editor && extension == md",
+    "bindings": {
+      "cmd-/": "markdown::OpenPreview",
+    },
+  },
+  {
+    "context": "MarkdownPreview",
+    "bindings": {
+      "cmd-/": "markdown::CloseAndReturnToEditor",
+    },
+  },
+  {
+    "context": "Dock",
+    "bindings": {
+      "ctrl-w h": "workspace::ActivatePaneLeft",
+      "ctrl-w j": "workspace::ActivatePaneDown",
+      "ctrl-w k": "workspace::ActivatePaneUp",
+      "ctrl-w l": "workspace::ActivatePaneRight",
+    },
+  },
+]

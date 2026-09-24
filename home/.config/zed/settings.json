@@ -1,0 +1,49 @@
+{
+  "proxy": "",
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
+  },
+
+  // Input
+  "base_keymap": "VSCode",
+  "vim_mode": true,
+
+  // Appearance
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "buffer_font_size": 16,
+
+  "theme": "One Dark",
+
+  // Editor
+  "autosave": "on_focus_change",
+  "format_on_save": "on",
+  "show_whitespaces": "boundary",
+  "tab_size": 2,
+
+  // Line length
+  "preferred_line_length": 100,
+  "scroll_beyond_last_line": "off",
+  "wrap_guides": [100],
+
+  // Tabs
+  "preview_tabs": {
+    "enabled": false,
+  },
+
+  // Inlay hintstsc
+  "inlay_hints": {
+    "enabled": true,
+  },
+
+  // Markdown
+  "markdown_preview": {
+    "open_markdown_files_in_preview": true,
+  },
+
+  // Terminal
+  "terminal": {
+    "copy_on_select": true,
+    "option_as_meta": true,
+  },
+}
