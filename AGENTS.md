@@ -45,9 +45,9 @@ tools directly under [tools] using the registry's supported name and version.
 For dotfiles changes, prefer:
 
 ```bash
-mise -C ~/dotfiles run test    # lint (shellcheck) + script harness against mktemp sandboxes
-mise -C ~/dotfiles run verify  # the above, plus live machine-state checks
-mise -C ~/dotfiles dotfiles status --missing  # native agent-resource drift
+mise run test    # lint (shellcheck) + script harness against mktemp sandboxes
+mise run verify  # the above, plus live machine-state checks
+mise dotfiles status --missing  # native agent-resource drift
 ```
 
 `test` is host-independent (this is what CI runs); `verify` layers on the

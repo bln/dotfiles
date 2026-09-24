@@ -203,15 +203,18 @@ symlink / include / copy-once / generate breakdown.
 
 ## Common commands
 
+Run these from the `~/dotfiles` directory. From anywhere else, replace `mise`
+with the `dot` alias (`dot run verify`, etc. - see below).
+
 ```sh
-mise -C ~/dotfiles tasks              # list the public task interface
-mise -C ~/dotfiles run test           # host-independent repository tests
-mise -C ~/dotfiles run verify         # repository + installed-machine checks
-mise -C ~/dotfiles run update         # upgrade tools, packages, dotfiles
-mise -C ~/dotfiles run bootstrap      # finish post-bootstrap setup (idempotent)
-mise bootstrap status                 # show declared machine-state drift
-mise bootstrap --dry-run              # preview bootstrap without applying
-mcode                                 # run the current project's mise vscode task
+mise tasks              # list the public task interface
+mise run test           # host-independent repository tests
+mise run verify         # repository + installed-machine checks
+mise run update         # upgrade tools, packages, dotfiles
+mise run bootstrap      # finish post-bootstrap setup (idempotent)
+mise bootstrap status   # show declared machine-state drift
+mise bootstrap --dry-run  # preview bootstrap without applying
+mcode                   # run the current project's mise vscode task
 ```
 
 The `dot` alias expands to `mise -C "${DOTFILES_DIR:-$HOME/dotfiles}"`, so
