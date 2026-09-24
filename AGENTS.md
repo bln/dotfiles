@@ -10,6 +10,11 @@ checkout; `tasks/setup/` holds mise file-tasks (run as `mise run setup:...`)
 that generate machine-local state. If you add repo-local helper scripts, put
 them in the top-level `scripts/` dir (not shipped), mirroring that split.
 
+One-off maintenance scripts (run by hand to fix a specific machine problem, not
+part of convergence) live in `scripts/maint/`, with their tests in
+`tests/maint/`. That test tier is deliberately outside the `mise run
+test`/`verify`/CI gate - see `docs/TESTING.md`.
+
 ## Rules
 
 - Do not split this repo into profile, machinery, policy, or package projects.

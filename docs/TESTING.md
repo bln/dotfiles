@@ -56,10 +56,21 @@ Tests are split by the single question that decides where they can run:
 |---|---|---|---|
 | **ci** | `tests/ci/` | No - hermetic, no host tools, no network | every push (Linux + macOS CI), any laptop |
 | **host** | `tests/host/` | Yes - installed tools, real `code`, GUI login | `mise run verify` only, never CI |
+| **maint** | `tests/maint/` | Sometimes - skips macOS-only checks off-host | run by hand, never `test`/`verify`/CI |
 
 Do **not** re-introduce a static/unit/integration split. That taxonomy tracks
 *how* a test is written, which is not a decision anyone needs to make. "Can this
-run without a converged mac?" is the only axis that changes where a test lives.
+run without a converged mac?" is the only axis that changes where **ci vs host**
+tests live.
+
+`maint` is orthogonal: it holds tests for one-off maintenance scripts under
+`scripts/maint/` (e.g. `reset-safari-readinglist.sh`) that are run deliberately,
+not part of the convergence gate. These tests are **not discovered by
+`tests/run.sh`** - it only iterates `ci`/`host`, and its glob is `test-*.sh`
+while maint files are named `*.test.sh`. Each maint test is self-contained
+(sources `tests/lib/testlib.sh`, prints its own summary) and run by path:
+`bash tests/maint/<name>.test.sh`. `tests/maint/discovery-guard.test.sh` locks
+this isolation so a future run.sh change cannot silently pull maint into CI.
 
 ## The pyramid
 
