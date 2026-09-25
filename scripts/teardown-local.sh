@@ -46,16 +46,22 @@ safe_remove() {
   fi
 }
 
+safe_remove_symlink() {
+  local path="$1"
+  [ -L "$path" ] || return 0
+  safe_remove "$path"
+}
+
 main() {
   for path in \
     "$HOME/.config/git/identity-personal" \
     "$HOME/.config/git/identity-work" \
-    "$HOME/.local/bin/python" \
     "$HOME/.local/share/uv" \
     "$HOME/.cache/uv"
   do
     safe_remove "$path" || true
   done
+  safe_remove_symlink "$HOME/.local/bin/python" || true
 }
 
 # Execute only when run directly; sourcing (tests) just loads the functions.

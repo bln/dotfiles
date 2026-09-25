@@ -34,6 +34,13 @@ DOTFILES="$REPO/scripts/teardown-dotfiles.sh"
   assert_not_exists "apply removes uv python symlink" "$home/.local/bin/python"
   outside="$(grep 'removed: ' "$RUN_STDOUT" | grep -vc "$home" || true)"
   assert_eq "every removed path under sandbox HOME" "0" "$outside"
+
+  # A user-managed executable at the same conventional path is not the uv
+  # symlink and must survive teardown.
+  printf 'user-managed python\n' >"$home/.local/bin/python"
+  run_capture env HOME="$home" bash "$LOCAL" --apply
+  assert_eq "regular python teardown exits 0" "0" "$RUN_STATUS"
+  assert_file "regular python survives" "$home/.local/bin/python"
 }
 
 # ── the real safe_under_home guard ───────────────────────────────────────────
