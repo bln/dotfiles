@@ -28,9 +28,15 @@ command -v mise >/dev/null 2>&1 || { printf 'ERROR: mise not found after install
 mise bootstrap --from "https://github.com/bln/dotfiles.git" \
   ${DOTFILES_DIR:+--from-dir "$DOTFILES_DIR"} --yes --force-dotfiles
 
-# Prompt for machine-local identity in the foreground (TTY intact) - not a
-# bootstrap hook, which would silently skip under a non-TTY stdin. The task is
-# idempotent and interactive: it no-ops only when BOTH identity files exist and
-# prompts for whichever is missing (recovers an interrupted first run). Let the
-# task decide completeness - do not second-guess it with a weaker single-file guard.
-mise run setup:git-identity
+# Prompt for machine-local identity in the foreground - not a bootstrap hook,
+# which would silently skip under a non-TTY stdin. curl | bash uses stdin for
+# the script itself, so use the controlling terminal for the interactive task.
+# The task is idempotent and prompts for whichever identity file is missing.
+if [ -t 0 ]; then
+  mise run setup:git-identity
+elif { exec 3</dev/tty; } 2>/dev/null; then
+  mise run setup:git-identity <&3
+else
+  printf 'ERROR: git identity setup requires an interactive terminal. Run mise run setup:git-identity from a terminal.\n' >&2
+  exit 2
+fi
