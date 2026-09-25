@@ -1,18 +1,13 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
-# min_version is the ONLY place the required mise version is declared. install.sh
-# and CI install latest mise (no second pin to drift); mise enforces this floor
-# after the repo is cloned. See docs/TESTING.md.
-min_version = "2026.9.12"
+min_version = "2026.9.13"
 
 [settings]
 lockfile = true
 dotfiles.root = "~/dotfiles/home"
 dotfiles.default_mode = "symlink"
 python.uv_venv_auto = "create|source"
-# Let a release settle before adopting it, except for the fast-moving agent
-# CLIs we deliberately track at the bleeding edge.
 minimum_release_age = "2d"
 minimum_release_age_excludes = ["claude-code", "codex", "pi", "rtk"]
 
@@ -47,6 +42,7 @@ claude-code = "latest"
 codex = "latest"
 pi = "latest"
 rtk = "latest"
+mole = "latest"
 
 [bootstrap.packages]
 "brew:git" = "latest"
@@ -62,9 +58,9 @@ rtk = "latest"
 
 "mas:1365531024" = { os = "macos" }  # 1Blocker
 "mas:6739955340" = { os = "macos" }  # Markdown Preview
-# "mas:1592917505" = { os = "macos" }  # Noir
-# "mas:6720708363" = { os = "macos" }  # Obsidian Web Clipper
-# "mas:6471380298" = { os = "macos" }  # StopTheMadness Pro
+"mas:1592917505" = { os = "macos" }  # Noir
+"mas:6720708363" = { os = "macos" }  # Obsidian Web Clipper
+"mas:6471380298" = { os = "macos" }  # StopTheMadness Pro
 
 [bootstrap.macos.dock]
 tilesize = 48
@@ -129,10 +125,3 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 "~/.agents/skills" = { source = "~/dotfiles/home/.config/skills", mode = "copy", manifest = "git" }
 "~/.config/claude/CLAUDE.md" = { source = "~/dotfiles/home/.config/agents/INSTRUCTIONS.md", mode = "copy" }
 "~/.config/claude/skills" = { source = "~/dotfiles/home/.config/claude/skills", mode = "copy", manifest = "git" }
-
-# VS Code profile content (settings.json, keybindings.json, tasks.json,
-# snippets/, and per-profile extension lists) is NOT a [dotfiles] entry: VS Code
-# rewrites those files in place (orphaning symlinks) and named-profile files
-# live under an opaque storage location that this table cannot express. The
-# `scripts/vscode-profiles` mini-CLI owns the whole tree in copy mode instead -
-# `apply` pushes repo->live, `pull` captures live->repo, `check` reports drift.
