@@ -33,25 +33,37 @@ config keeps only mise/package-manager environment needed to converge the host.
 
 ## Lifecycle
 
-1. `install.sh` installs mise, then `mise bootstrap --from` clones/reuses and
-   trusts the repo and runs `mise bootstrap --yes`.
-2. Declarative resources (tools, packages, dotfiles, macOS defaults) converge.
-3. The `bootstrap` task performs application-specific setup (agent resources, VS Code extensions, uv python).
-4. `test` validates repository behavior (host-independent, runs in CI).
-5. `verify` checks both repository behavior and installed-machine state.
-6. `update` refreshes all managed layers (this is the re-converge path).
-7. `teardown` removes repository-owned state (safe-by-default, dry-run first).
+```mermaid
+flowchart TD
+    A["curl install.sh | bash\n(first run)"] --> B[install mise if absent]
+    B --> C["mise bootstrap --from\n(clone/reuse repo, trust it)"]
+    C --> D["8-phase bootstrap\n(tools · packages · dotfiles\nmacOS defaults)"]
+    D --> E["[tasks.bootstrap]\nVS Code extensions · uv python · RTK hooks"]
+    E --> F[prompt: git identity]
+    F --> G["✓ converged workstation"]
+
+    H["dot run update\n(re-converge)"] --> D
+    I["mise run bootstrap\n(standalone task)"] --> E
+
+    G --> J["dot run verify\n(check state)"]
+    G --> K["dot run teardown\n(remove repo-owned state)"]
+```
 
 ## Configuration ownership strategies
 
 The strategy for how each config file is installed depends on who writes it:
 
-| Who writes it | Strategy | Examples |
-|---|---|---|
-| Only the repo | **Symlink** - edit in repo, change is live immediately | zsh, starship, nvim, ghostty, git ignore |
-| Repo + tool | **Include** - the repo file pulls in machine-local files | git config (includes untracked identity files) |
-| Mostly the tool | **Copy once** - repo file seeds it, then tool owns it | VS Code settings (if symlink breaks) |
-| Machine-specific | **Generate** - task prompts for local input, writes untracked files | git identity |
+```mermaid
+flowchart TD
+    Q{"Who writes\nthis file?"}
+    Q -->|only the repo| SL["**Symlink**\nEdit in repo → live immediately\ne.g. zsh, starship, nvim, ghostty"]
+    Q -->|repo + the tool| IN["**Include**\nRepo file pulls in machine-local files\ne.g. git config → identity includes"]
+    Q -->|mostly the tool| CP["**Copy once**\nRepo seeds it, tool owns it after\ne.g. VS Code settings"]
+    Q -->|machine-specific secrets| GN["**Generate**\nTask prompts for local input,\nwrites untracked files\ne.g. git identity"]
+```
+
+Never symlink a file that a tool rewrites. `git config --global` in particular
+writes through a symlink and would put machine-local values in the repo.
 
 VS Code profiles are owned on disk under `home/.config/vscode/` and driven by
 the `scripts/vscode-profiles` mini-CLI, not by mise. Extensions are
@@ -90,7 +102,30 @@ Agent instructions and skills use native mise dotfiles entries in `mode =
 `~/.config/claude/CLAUDE.md`), so the three files can never drift and no
 parity test is needed. RTK integration is transparent (per-agent hooks and a
 Pi extension configured by `mise run setup:rtk`), so none of these files carry
-per-agent prose. The one exception is a short shared rtk usage note in the
+per-agent prose.
+
+```mermaid
+flowchart TD
+    SRC["home/.config/agents/INSTRUCTIONS.md\n(single source)"]
+
+    SRC -->|mise dotfiles apply| CL["~/.config/claude/CLAUDE.md"]
+    SRC -->|mise dotfiles apply| CO["~/.config/codex/AGENTS.md"]
+    SRC -->|mise dotfiles apply| PI["~/.config/pi/agent/AGENTS.md"]
+
+    RTK["mise run setup:rtk"]
+    RTK -->|PreToolUse hook| CL
+    RTK -->|PreToolUse hook| CO
+    RTK -->|TS extension| PI
+
+    SK1["home/.config/skills/\n(shared skill tree)"]
+    SK2["home/.config/claude/skills/\n(Claude-only skill tree)"]
+
+    SK1 -->|mise dotfiles apply| CO
+    SK1 -->|mise dotfiles apply| PI
+    SK2 -->|mise dotfiles apply| CL
+```
+
+The one exception is a short shared rtk usage note in the
 instruction body itself (output is condensed; use `rtk proxy <cmd>` for raw
 output) - it applies identically to all three agents, so it stays in the single
 source rather than being injected per-agent. The shared Pi/Codex skill tree
@@ -105,9 +140,6 @@ reviewed individual capture, but credentials, sessions, databases, plugins,
 Codex `.system` skills, and other runtime state are never part of the
 repository-owned mapping. Skills are edited in the repository and copied out
 to each consumer; the independent Claude tree avoids fan-out during apply.
-
-Never symlink a file that a tool rewrites. `git config --global` in particular
-writes through a symlink and would put machine-local values in the repo.
 
 ## Package policy
 

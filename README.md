@@ -14,7 +14,6 @@ Homebrew workflow. There is no Brewfile.
 ## Quick start
 
 ```sh
-curl -fsSL https://mise.run | sh
 curl -fsSL https://raw.githubusercontent.com/bln/dotfiles/main/install.sh | bash
 exec zsh -l
 ```
@@ -34,6 +33,20 @@ exec zsh -l
 `[tasks.bootstrap]` for VS Code extensions + uv python), then prompts for a
 machine-local git identity. It is a **first-run** entrypoint; re-converge with
 `dot run update`. Preview a bootstrap with `mise bootstrap --dry-run`.
+
+```mermaid
+flowchart TD
+    A["curl install.sh | bash\n(first run)"] --> B[install mise if absent]
+    B --> C["mise bootstrap --from\n(clone/reuse repo, trust it)"]
+    C --> D["8-phase bootstrap\n(tools · packages · dotfiles\nmacOS defaults)"]
+    D --> E["[tasks.bootstrap]\nVS Code extensions\nuv python · RTK hooks"]
+    E --> F[prompt: git identity]
+    F --> G["✓ converged workstation"]
+
+    H["dot run update\n(re-converge)"] --> D
+
+    I["mise run bootstrap\n(standalone task)"] --> E
+```
 
 ## Design principles
 
