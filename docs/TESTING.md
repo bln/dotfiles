@@ -15,7 +15,7 @@ those:
    text.
 2. **A destructive script misfiring.** teardown / reset-codex / vscode profile
    seeding can delete or clobber real data.
-3. **Custom script logic being wrong.** `vscode-profiles` and `git-identity` are
+3. **Custom script logic being wrong.** `vscodectl` and `git-identity` are
    code *we* wrote; mise does not validate them.
 4. **A cross-cutting invariant no single tool owns.** Secrets not committed;
    agent copy-trees in sync.
@@ -95,7 +95,7 @@ cannot run in CI and nothing there can be faked.
   sandbox. A test that starts by copying a script into a fixture is the smell to
   fix at the script level. If a script is hard to test, make it testable
   (add a seam; make it sourceable; extract the pure decision) - do not copy it.
-- **Prefer pure functions over fake binaries.** `vscode-profiles` is sourceable
+- **Prefer pure functions over fake binaries.** `vscodectl` is sourceable
   (`main` is guarded by `BASH_SOURCE`), so its decision logic - id
   normalization, `set_minus` drift math, `valid_location` - is tested directly
   on plain data in `test-vscode-logic.sh`, with no fake `code`. Only the

@@ -75,7 +75,7 @@ Never symlink a file that a tool rewrites. `git config --global` in particular
 writes through a symlink and would put machine-local values in the repo.
 
 VS Code profiles are owned on disk under `home/.config/vscode/` and driven by
-the `scripts/vscode-profiles` mini-CLI, not by mise. Extensions are
+the `scripts/vscodectl` mini-CLI, not by mise. Extensions are
 profile-scoped state (like Neovim plugins), not global tools, so `code` owns
 their lifecycle - mise does not shim, version, or health-check them. The repo is
 the source of truth for a shared `settings.base.json`, per-profile settings

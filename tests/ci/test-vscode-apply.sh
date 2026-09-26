@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2153 # REPO is exported by tests/run.sh
-# ci: vscode-profiles APPLY, the genuinely-integration behaviors that need a
+# ci: vscodectl APPLY, the genuinely-integration behaviors that need a
 # `code` process and storage.json - driven against a fake `code` and the
 # VSCODE_* seams. The pure decision logic lives in test-vscode-logic.sh; this
 # file asserts the OBSERVABLE contract of apply (what gets installed/pruned,
@@ -10,7 +10,7 @@
 
 echo "== ci: vscode apply =="
 
-CLI="$REPO/scripts/vscode-profiles"
+CLI="$REPO/scripts/vscodectl"
 
 # Fake `code`: logs install/uninstall (id<TAB>profile); --status reflects
 # CODE_RUNNING like the real binary (which always exits 0, signalling "closed"
@@ -181,4 +181,90 @@ EOF
   assert_eq "apply no-op when code absent" "0" "$RUN_STATUS"
   run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" bash "$CLI" bogus
   assert_eq "unknown subcommand exits 2" "2" "$RUN_STATUS"
+}
+
+# ── C1 regression: apply replaces a symlinked live settings.json, not writes ──
+# through it. A live settings.json that is a symlink must become a real file so
+# `check`'s symlink guard can clear; the outside target must be left untouched.
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud" "$repo" "$bin"; make_code "$bin"
+  printf '%s\n' '{"editor.fontSize":16}' >"$repo/settings.base.json"
+  outside="$sb/outside.json"; printf '%s\n' '{"stolen":true}' >"$outside"
+  ln -s "$outside" "$ud/settings.json"
+  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" \
+    VSCODE_CODE_BIN="$bin/code" PRESET="" bash "$CLI" apply
+  assert_eq "apply exits 0 over a symlinked settings" "0" "$RUN_STATUS"
+  if [ -L "$ud/settings.json" ]; then bad "live settings.json is no longer a symlink" "still a symlink"; else ok "live settings.json is no longer a symlink"; fi
+  assert_file "live settings.json is a real file" "$ud/settings.json"
+  assert_contains "live settings.json holds rendered repo value" "$(cat "$ud/settings.json")" '"editor.fontSize": 16'
+  assert_contains "outside target left untouched" "$(cat "$outside")" '{"stolen":true}'
+}
+
+# ── C2: apply prunes a live snippet the repo no longer declares ───────────────
+{
+  sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+  mkdir -p "$ud/snippets" "$repo/snippets" "$bin"; make_code "$bin"
+  printf '{}\n' >"$repo/snippets/js.json"          # repo declares js
+  printf '{}\n' >"$ud/snippets/js.json"
+  printf '{}\n' >"$ud/snippets/stale.json"         # live-only, repo does not declare
+  run_capture env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" \
+    VSCODE_CODE_BIN="$bin/code" PRESET="" bash "$CLI" apply
+  assert_eq "apply exits 0 with snippet prune" "0" "$RUN_STATUS"
+  assert_file "declared snippet remains live" "$ud/snippets/js.json"
+  assert_not_exists "live-only snippet pruned by apply" "$ud/snippets/stale.json"
+}
+
+# ── teardown: dry-run default touches nothing (mandatory per docs/TESTING.md) ─
+{
+  if ! command -v jq >/dev/null 2>&1 || ! command -v uuidgen >/dev/null 2>&1; then
+    skip "teardown tests (jq/uuidgen not installed)"
+  else
+    sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+    mkdir -p "$ud/globalStorage" "$repo" "$bin"; make_code "$bin"
+    printf 'golang.go\n' >"$repo/extensions.txt"
+    mkdir -p "$repo/profiles/pyth"; printf 'ms-python.python\n' >"$repo/profiles/pyth/extensions.txt"
+    ilog="$sb/i.log"; ulog="$sb/u.log"; : >"$ilog"; : >"$ulog"
+    common=(env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code"
+      PRESET="" CODE_INSTALL_LOG="$ilog" CODE_UNINSTALL_LOG="$ulog")
+    # apply first to seed the named profile so teardown has something to remove.
+    run_capture "${common[@]}" bash "$CLI" apply
+    loc="$("${common[@]}" bash "$CLI" resolve pyth)"
+    assert_dir "seeded profile dir exists before teardown" "$ud/profiles/$loc"
+
+    # dry-run default: no --apply. Must touch nothing.
+    : >"$ulog"
+    run_capture "${common[@]}" bash "$CLI" teardown
+    assert_eq "teardown dry-run exits 0" "0" "$RUN_STATUS"
+    assert_contains "teardown dry-run announces DRY RUN" "$(cat "$RUN_STDOUT")" "DRY RUN"
+    assert_eq "teardown dry-run uninstalls nothing" "" "$(cat "$ulog")"
+    assert_dir "teardown dry-run leaves profile dir" "$ud/profiles/$loc"
+    assert_contains "teardown dry-run leaves storage entry" "$(cat "$ud/globalStorage/storage.json")" "pyth"
+
+    # --apply: uninstalls declared extensions, removes the storage entry, rm -rf's dir.
+    : >"$ulog"
+    run_capture "${common[@]}" bash "$CLI" teardown --apply
+    assert_eq "teardown --apply exits 0" "0" "$RUN_STATUS"
+    assert_contains "teardown --apply uninstalls declared ext" "$(cut -f1 <"$ulog")" "ms-python.python"
+    assert_not_exists "teardown --apply removes profile dir" "$ud/profiles/$loc"
+    assert_not_contains "teardown --apply removes storage entry" "$(cat "$ud/globalStorage/storage.json")" "pyth"
+  fi
+}
+
+# ── teardown --apply rm -rf stays inside profiles/ (containment guard) ────────
+{
+  if ! command -v jq >/dev/null 2>&1 || ! command -v uuidgen >/dev/null 2>&1; then
+    skip "teardown containment test (jq/uuidgen not installed)"
+  else
+    sb="$(sandbox)"; ud="$sb/User"; repo="$sb/repo"; bin="$sb/bin"
+    mkdir -p "$ud/globalStorage" "$repo" "$bin"; make_code "$bin"
+    mkdir -p "$repo/profiles/pyth"; printf 'ms-python.python\n' >"$repo/profiles/pyth/extensions.txt"
+    common=(env VSCODE_USER_DIR="$ud" VSCODE_REPO_DIR="$repo" VSCODE_CODE_BIN="$bin/code" PRESET="")
+    run_capture "${common[@]}" bash "$CLI" apply
+    # A sentinel beside profiles/ must survive teardown (proves rm -rf is scoped).
+    printf 'keep\n' >"$ud/sentinel.txt"
+    run_capture "${common[@]}" bash "$CLI" teardown --apply
+    assert_eq "teardown --apply exits 0" "0" "$RUN_STATUS"
+    assert_file "sentinel outside profiles/ survives teardown" "$ud/sentinel.txt"
+  fi
 }

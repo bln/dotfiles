@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2153 # REPO is exported by tests/run.sh
-# ci: vscode-profiles PURE logic. The script is sourceable (its `main` is guarded
+# ci: vscodectl PURE logic. The script is sourceable (its `main` is guarded
 # by BASH_SOURCE), so these exercise the decision functions directly on plain
 # data - no fake `code`, no sandbox subprocess, no storage.json. Splitting the
 # pure math out is why the fake-`code` integration file can stay small.
@@ -10,7 +10,7 @@
 
 echo "== ci: vscode logic =="
 
-CLI="$REPO/scripts/vscode-profiles"
+CLI="$REPO/scripts/vscodectl"
 
 # Run a sourced function in a fresh, isolated bash (never pollutes this shell).
 call()     { bash -c 'source "$1"; shift; "$@"' _ "$CLI" "$@"; }

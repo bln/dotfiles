@@ -71,7 +71,7 @@ dotfiles/
 │   ├── reset-codex.sh
 │   ├── teardown-dotfiles.sh    # teardown step: mise dotfiles unapply
 │   ├── teardown-local.sh       # teardown step: remove machine-local files
-│   └── vscode-profiles         # mini-CLI: apply/check/pull/teardown VS Code profiles
+│   └── vscodectl               # mini-CLI: apply/check/pull/teardown VS Code profiles
 ├── tasks/
 │   └── setup/
 │       └── git-identity        # prompted machine-local git identity
@@ -97,7 +97,7 @@ dotfiles/
         ├── nvim-kickstart/     # Kickstart.nvim config
         ├── ghostty/config
         ├── gitui/
-        ├── vscode/             # VS Code profiles (settings + extension lists), owned by scripts/vscode-profiles
+        ├── vscode/             # VS Code profiles (settings + extension lists), owned by scripts/vscodectl
         ├── starship.toml
         ├── npm/npmrc
         └── uv/uv.toml
@@ -112,7 +112,7 @@ dotfiles/
 | Dotfile symlinks | `home/` + `[dotfiles]` table | `mise dotfiles apply` |
 | Agent instructions and skills | explicit `[dotfiles]` entries in copy mode | `mise dotfiles apply` |
 | macOS defaults | `[bootstrap.macos.*]` | `mise bootstrap macos defaults apply` |
-| VS Code profiles (settings + extensions) | `home/.config/vscode/` (per-profile `extensions.txt` + files) | `scripts/vscode-profiles apply` |
+| VS Code profiles (settings + extensions) | `home/.config/vscode/` (per-profile `extensions.txt` + files) | `scripts/vscodectl apply` |
 | Shell bootstrap | `home/.zshenv` | zsh startup |
 | Interactive environment, activation, aliases, and functions | `home/.config/zsh/.zshrc` | `exec zsh` |
 | Git identity | machine-local, routed by remote host (untracked) | `mise run setup:git-identity` |
@@ -163,7 +163,7 @@ See `docs/ARCHITECTURE.md` for the full backend preference order and package pol
 ### Managing VS Code profiles
 
 VS Code profiles are owned on disk under `home/.config/vscode/`, driven by the
-`scripts/vscode-profiles` mini-CLI. Extensions are profile-scoped state (like
+`scripts/vscodectl` mini-CLI. Extensions are profile-scoped state (like
 Neovim plugins), not global tools, so `code` owns their lifecycle - mise no
 longer shims or versions them.
 
@@ -171,7 +171,7 @@ Layout: the `vscode/` root is the **global** profile; each `profiles/<name>/`
 is a **named** profile. Extensions are plain-text id lists (one per line, `#`
 comments). `settings.base.json` contains shared settings such as fonts, sizes,
 editor behavior, and theme choices. The root and named `settings.json` files
-contain only global or profile-specific overrides; `scripts/vscode-profiles`
+contain only global or profile-specific overrides; `scripts/vscodectl`
 renders the base plus each override into the live profile. Other profile files
 (`keybindings.json`, `tasks.json`, `snippets/`) are synced in copy mode when
 present.
@@ -190,14 +190,14 @@ home/.config/vscode/
 ```
 
 - **Add / remove an extension**: edit the profile's `extensions.txt`, then run
-  `scripts/vscode-profiles apply` (or `dot run update`). Named profiles inherit
+  `scripts/vscodectl apply` (or `dot run update`). Named profiles inherit
   the global set ("globals expected everywhere").
 - **Sync behavior**: `apply` installs declared-but-missing extensions per
   profile and seeds a missing named profile headlessly. Prune (installed but
   not declared) is warned by default; pass `--prune` (or `dot run update`,
   which prunes and runs `code --update-extensions`) to uninstall them.
-- **Drift / capture**: `vscode-profiles check` compares rendered effective
-  settings with live settings; `vscode-profiles pull` captures live profile
+- **Drift / capture**: `vscodectl check` compares rendered effective
+  settings with live settings; `vscodectl pull` captures live profile
   files back into the repo after UI edits and reduces settings to only values
   that override `settings.base.json` (copy mode - pull or lose them).
 - **Safety**: seeding/deleting a profile mutates VS Code's `storage.json`, which

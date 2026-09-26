@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vscode-profiles: a self-contained mini-CLI for managing VS Code profiles from
+# vscodectl: a self-contained mini-CLI for managing VS Code profiles from
 # this dotfiles repo. The repo owns a shared settings base, per-profile settings
 # overrides, keybindings, snippets, tasks, and extension id lists; this CLI
 # renders that source of truth into VS Code's live user-data dir and drives
@@ -80,8 +80,8 @@ FORCE="${VSCODE_PROFILES_FORCE:-false}"
 PROFILE_FILES="keybindings.json tasks.json"
 SETTINGS_BASE_FILE="settings.base.json"
 
-die() { printf 'vscode-profiles: %s\n' "$1" >&2; exit "${2:-1}"; }
-warn() { printf 'vscode-profiles: %s\n' "$1" >&2; }
+die() { printf 'vscodectl: %s\n' "$1" >&2; exit "${2:-1}"; }
+warn() { printf 'vscodectl: %s\n' "$1" >&2; }
 
 code_available() { command -v "$CODE_BIN" >/dev/null 2>&1; }
 
@@ -284,10 +284,18 @@ GLOBAL="_"
 profiles() {
   printf '%s\n' "$GLOBAL"
   [ -d "$REPO_DIR/profiles" ] || return 0
-  local d
+  local d b
   for d in "$REPO_DIR/profiles"/*/; do
     [ -d "$d" ] || continue
-    basename "$d"
+    b="$(basename "$d")"
+    # "_" is the sentinel for the GLOBAL profile; a named profile called "_"
+    # would be indistinguishable from it (rendered to the User root, never
+    # seeded), so refuse it rather than silently shadow the global profile.
+    if [ "$b" = "$GLOBAL" ]; then
+      warn "ignoring profile named '$GLOBAL' (reserved for the global profile); rename it."
+      continue
+    fi
+    printf '%s\n' "$b"
   done
 }
 
@@ -341,6 +349,12 @@ sync_settings() {
     note_failure "failed to render settings ($name); jq and valid JSON are required"
     return
   fi
+  # rm before cp: profile files are copy-mode and the repo is authoritative, so
+  # a live settings.json that is a symlink (or otherwise not a plain file) must
+  # be REPLACED, not written through - `cp` onto a symlink writes the link's
+  # target and leaves the link, which check flags as drift apply could never
+  # clear. Removing first makes check -> apply -> clean hold.
+  rm -f "$dst/settings.json"
   cp "$tmp" "$dst/settings.json" || note_failure "failed to copy rendered settings ($name)"
   rm -f "$tmp"
 }
@@ -357,11 +371,23 @@ sync_files() {
   mkdir -p "$dst" || { note_failure "cannot create live dir $dst ($name)"; return; }
   for f in $PROFILE_FILES; do
     [ -f "$src/$f" ] || continue
+    # rm before cp: replace a stray symlink rather than write through it (see
+    # sync_settings). Copy-mode + repo-authoritative, so this is correct.
+    rm -f "$dst/$f"
     cp "$src/$f" "$dst/$f" || note_failure "failed to copy $f into $dst ($name)"
   done
   if [ -d "$src/snippets" ]; then
     mkdir -p "$dst/snippets" || { note_failure "cannot create $dst/snippets ($name)"; return; }
     cp -R "$src/snippets/." "$dst/snippets/" || note_failure "failed to copy snippets ($name)"
+    # Prune live snippets the repo no longer declares: the repo owns the full
+    # snippets set (push-only), and check flags a live-only snippet as drift, so
+    # apply must remove it or check -> apply -> clean would never converge.
+    # Mirror of cmd_pull's prune loop, inverted (repo drives live).
+    local rel
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      [ -e "$src/snippets/$rel" ] || rm -f "$dst/snippets/$rel"
+    done < <(cd "$dst/snippets" 2>/dev/null && find . -type f | sed 's|^\./||')
   fi
   sync_settings "$name" "$dst"
 }
@@ -437,7 +463,7 @@ check_snippets() {
   while IFS= read -r rel; do
     [ -n "$rel" ] || continue
     if [ ! -e "$dst/snippets/$rel" ]; then
-      warn "snippet missing live: $rel ($name) - run 'vscode-profiles apply'."
+      warn "snippet missing live: $rel ($name) - run 'vscodectl apply'."
       rc=1
     elif ! cmp -s "$src/snippets/$rel" "$dst/snippets/$rel"; then
       warn "snippet differs: $rel ($name)."
@@ -472,7 +498,7 @@ check_settings() {
     return 1
   fi
   if [ ! -e "$dst/settings.json" ]; then
-    warn "$dst/settings.json missing - run 'vscode-profiles apply' to seed it."
+    warn "$dst/settings.json missing - run 'vscodectl apply' to seed it."
     rm -f "$tmp"
     return 1
   elif [ -L "$dst/settings.json" ]; then
@@ -481,8 +507,8 @@ check_settings() {
     return 1
   elif ! settings_equal "$tmp" "$dst/settings.json"; then
     warn "live rendered settings.json differs from repo ($name)."
-    warn "  Capture app changes:  vscode-profiles pull"
-    warn "  Or push the repo out: vscode-profiles apply"
+    warn "  Capture app changes:  vscodectl pull"
+    warn "  Or push the repo out: vscodectl apply"
     rm -f "$tmp"
     return 1
   fi
@@ -500,7 +526,7 @@ check_extensions() {
   missing="$(set_minus "$declared" "$installed")"
   while IFS= read -r ext; do
     [ -n "$ext" ] || continue
-    warn "extension declared but not installed: $ext (${name:-$GLOBAL}) - run 'vscode-profiles apply'."
+    warn "extension declared but not installed: $ext (${name:-$GLOBAL}) - run 'vscodectl apply'."
     rc=1
   done <<<"$missing"
   undeclared="$(set_minus "$installed" "$declared")"
@@ -523,7 +549,7 @@ cmd_check() {
     else
       local loc; loc="$(resolve_location "$name")"
       if [ -z "$loc" ]; then
-        warn "profile '$name' not created live yet - run 'vscode-profiles apply'"
+        warn "profile '$name' not created live yet - run 'vscodectl apply'"
         rc=1
         continue
       fi
@@ -533,16 +559,16 @@ cmd_check() {
       [ -f "$src/$f" ] || continue
       live="$dst/$f"; repo="$src/$f"
       if [ ! -e "$live" ]; then
-        warn "$live missing - run 'vscode-profiles apply' to seed it."
+        warn "$live missing - run 'vscodectl apply' to seed it."
         rc=1
       elif [ -L "$live" ]; then
         warn "$live is a symlink; profile files are managed in copy mode."
-        warn "  Fix: rm the link, then 'vscode-profiles apply'."
+        warn "  Fix: rm the link, then 'vscodectl apply'."
         rc=1
       elif ! cmp -s "$live" "$repo"; then
         warn "live $f differs from repo ($name)."
-        warn "  Capture app changes:  vscode-profiles pull"
-        warn "  Or push the repo out: vscode-profiles apply"
+        warn "  Capture app changes:  vscodectl pull"
+        warn "  Or push the repo out: vscodectl apply"
         rc=1
       fi
     done
@@ -714,7 +740,7 @@ main() {
     teardown) cmd_teardown "$@" ;;
     list)     cmd_list "$@" ;;
     resolve)  cmd_resolve "$@" ;;
-    ""|-h|--help) die "usage: vscode-profiles {apply [--prune]|check|pull|teardown [--apply]|list|resolve <name>}" 2 ;;
+    ""|-h|--help) die "usage: vscodectl {apply [--prune]|check|pull|teardown [--apply]|list|resolve <name>}" 2 ;;
     *) die "unknown subcommand: $sub" 2 ;;
   esac
 }

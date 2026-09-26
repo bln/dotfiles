@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2153 # REPO is exported by tests/run.sh, which sources this file
-# Verify-tier (host only): exercise scripts/vscode-profiles against a REAL,
+# Verify-tier (host only): exercise scripts/vscodectl against a REAL,
 # fully isolated `code` instance - never the user's live VS Code. Isolation is
 # via `code --user-data-dir <tmp> --extensions-dir <tmp>`, so installs, profile
 # seeding, and prune all happen inside throwaway dirs with zero risk to the
@@ -23,7 +23,7 @@ for dep in code zip jq uuidgen; do
   fi
 done
 
-CLI="$REPO/scripts/vscode-profiles"
+CLI="$REPO/scripts/vscodectl"
 
 # Isolated `code`: wrap the real binary so every call is pinned to sandbox dirs.
 vrc_ud="$(sandbox)/ud"; vrc_ed="$(sandbox)/ed"
