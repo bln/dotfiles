@@ -45,9 +45,18 @@ flowchart TD
     H["dot run update\n(re-converge)"] --> D
     I["mise run bootstrap\n(standalone task)"] --> E
 
-    G --> J["dot run verify\n(check state)"]
+    G --> J["dot run diff / verify\n(check state + drift)"]
+    G --> L["dot run converge\n(fix drift: repo wins)"]
     G --> K["dot run teardown\n(remove repo-owned state)"]
 ```
+
+Drift is split by intent, not by resource: `dot run diff` reports drift across
+every copy-managed resource (symlink dotfiles, copy-mode dotfiles, and VS Code
+profiles/extensions) and `dot run converge` fixes it. The model is push-only -
+the repo is the sole authority and `converge` overwrites live edits with no
+merge. mise's history (`save`/`watch`) and cross-machine sharing
+(`origin`/`sync`/`pull`) tiers are deliberately unused; git is the only
+cross-machine channel. `verify` runs `diff` as its drift gate.
 
 ## Configuration ownership strategies
 

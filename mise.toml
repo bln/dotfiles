@@ -23,8 +23,9 @@ run = [
   "bash tests/run.sh host",
   # machine-local guard scripts.
   'bash "{{ config_root }}/scripts/check-git-identity.sh"',
-  "mise dotfiles status --missing",
-  'bash "{{ config_root }}/scripts/vscode-profiles" check',
+  # all copy-managed drift (dotfiles + VS Code) via the single diff task; it
+  # gates on `dotfiles status --missing` (nonzero on missing OR content drift).
+  "mise run diff",
   "echo 'OK: dotfiles verification passed.'",
 ]
 
@@ -45,6 +46,46 @@ description = "sync VS Code profiles: seed, push files, install extensions (--pr
 dir = "{{ config_root }}"
 usage = 'flag "--prune" help="Uninstall extensions installed but not declared"'
 run = 'bash "{{ config_root }}/scripts/vscode-profiles" apply ${usage_prune:+--prune}'
+
+# ── diff / converge: unified drift across all copy-managed resources ──────────
+# diff reports drift, converge fixes it - covering symlink dotfiles, copy-mode
+# dotfiles, AND VS Code profiles/extensions in one place, split by intent
+# (check vs fix) rather than by resource. The model is push-only: the repo is
+# the sole authority, apply overwrites live edits with no merge. mise's history
+# (save/watch) and sharing (origin/sync/pull) tiers are deliberately NOT used -
+# git is the only cross-machine channel.
+
+[tasks.diff]
+description = "report drift between declared and live state (dotfiles + VS Code)"
+dir = "{{ config_root }}"
+# Report ALL drift, then fail if any exists. mise aborts an array on the first
+# nonzero step, so we cannot put a gate before the informational output or it
+# would hide the rest. Order: print the readable dotfiles patch first (always
+# exits 0), then a single step that runs BOTH drift gates - `dotfiles status
+# --missing` (nonzero on a missing/content-drifted entry) and `vscode-profiles
+# check` (nonzero on VS Code drift) - and exits nonzero if either found drift.
+# Both run regardless of the other's result, so a drifted machine still gets a
+# full report and verify (which delegates here) still gates on VS Code drift.
+run = [
+  "mise dotfiles diff",
+  'st=0; mise dotfiles status --missing || st=1; bash "{{ config_root }}/scripts/vscode-profiles" check || st=1; exit $st',
+]
+
+[tasks.converge]
+description = "apply declared state to the machine (dotfiles + VS Code); repo is authority"
+dir = "{{ config_root }}"
+usage = 'flag "--prune" help="Uninstall VS Code extensions installed but not declared"'
+# Composes sync:vscode for the VS Code half so the apply invocation stays in one
+# place. NOTE: bootstrap does NOT route through converge - it must sequence
+# setup:rtk between the dotfiles apply and the VS Code apply (rtk restores the
+# copy-managed Codex AGENTS.md that apply writes), so it keeps its own steps.
+# dotfiles apply is best-effort so a transient apply error still lets the VS
+# Code sync run (mirrors bootstrap's best-effort vscode step); it still prints
+# the failure.
+run = [
+  "mise dotfiles apply --yes || echo 'WARNING: dotfiles apply reported errors; continuing converge' >&2",
+  "mise run sync:vscode ${usage_prune:+--prune}",
+]
 
 # ── bootstrap ──────────────────────────────────────────────────────────────────
 
@@ -120,12 +161,13 @@ run = [
   # cask whose app is already newer, and their versions aren't tracked in
   # mise.lock - so there is no pin to reconcile and nothing to gain here.
   "mise bootstrap packages upgrade --manager brew --yes",
-  # VS Code: sync declared profiles (install missing, prune undeclared). Extension
-  # *upgrades* are left to VS Code itself (extensions.autoCheckUpdates=true in the
-  # base settings), matching how casks/mas apps self-update - so there is no CLI
-  # update step to pay a slow marketplace round-trip on every converge. Best-effort:
-  # a transient sync failure warns but must not abort the remaining upgrade steps.
-  "mise run sync:vscode --prune || echo 'WARNING: VS Code sync reported errors; continuing update' >&2",
-  "mise dotfiles apply --yes",
+  # VS Code + dotfiles: converge declared state onto the machine (install
+  # missing extensions, prune undeclared, apply dotfiles). Extension *upgrades*
+  # are left to VS Code itself (extensions.autoCheckUpdates=true in the base
+  # settings), matching how casks/mas apps self-update - so converge only
+  # reconciles declared-vs-installed, never versions, and pays no slow
+  # marketplace round-trip per converge. Best-effort: a transient sync failure
+  # warns but must not abort the remaining upgrade steps.
+  "mise run converge --prune || echo 'WARNING: converge reported errors; continuing update' >&2",
   "uv python upgrade",
 ]

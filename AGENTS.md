@@ -21,7 +21,8 @@ test`/`verify`/CI gate - see `docs/TESTING.md`.
 - Do not add a Python project, verifier package, uv task dependency, or test
   framework for repo automation without explicit approval.
 - Keep `install.sh` as a thin shell wrapper. Keep `verify`, `test`, `bootstrap`,
-  `update`, and `teardown` as the exposed mise tasks in `mise.toml`. Non-trivial helper
+  `update`, `diff`, `converge`, `sync:vscode`, and `teardown` as the exposed mise
+  tasks in `mise.toml`. Non-trivial helper
   scripts live in `scripts/` with test seams that `tests/run.sh` exercises.
   The test harness stays plain bash in `tests/` (no bats or other framework
   without approval).

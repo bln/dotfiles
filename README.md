@@ -220,6 +220,8 @@ with the `dot` alias (`dot run verify`, etc. - see below).
 mise tasks              # list the public task interface
 mise run test           # host-independent repository tests
 mise run verify         # repository + installed-machine checks
+mise run diff           # report drift: dotfiles + VS Code (read-only)
+mise run converge       # fix drift: apply dotfiles + VS Code (repo wins)
 mise run update         # upgrade tools, packages, dotfiles
 mise run bootstrap      # finish post-bootstrap setup (idempotent)
 mise bootstrap status   # show declared machine-state drift
