@@ -66,3 +66,75 @@ DOTFILES="$REPO/scripts/teardown-dotfiles.sh"
   assert_eq "no-op when mise absent" "0" "$RUN_STATUS"
   assert_contains "warns mise missing" "$(cat "$RUN_STDERR")" "mise not found"
 }
+
+# ── teardown-dotfiles points mise at the checkout config, not the symlink ─────
+# The [dotfiles] table in the machine config is the only record of owned links;
+# unapply must find it via the repo (this script's path), so it stays correct
+# after the ~/.config/mise/config.toml symlink is gone. Stub mise, record argv.
+{
+  home="$(sandbox)"; stub_dir="$(sandbox)"; calls="$(sandbox)/mise-calls.txt"
+  cat >"$stub_dir/mise" <<'EOF'
+#!/usr/bin/env bash
+printf 'config=%s args=%s\n' "$MISE_GLOBAL_CONFIG_FILE" "$*" >>"$MISE_LOG"
+exit 0
+EOF
+  chmod +x "$stub_dir/mise"
+
+  run_capture env HOME="$home" MISE_LOG="$calls" PATH="$stub_dir:/usr/bin:/bin" \
+    bash "$DOTFILES"
+  assert_eq "unapply exits 0" "0" "$RUN_STATUS"
+  log="$(cat "$calls")"
+  assert_contains "uses repository machine config" "$log" "config=$REPO/home/.config/mise/config.toml"
+  assert_contains "unapplies from repo context (dry-run)" "$log" "args=-C $REPO bootstrap dotfiles unapply --dry-run --yes"
+
+  : >"$calls"
+  run_capture env HOME="$home" MISE_LOG="$calls" PATH="$stub_dir:/usr/bin:/bin" \
+    bash "$DOTFILES" --apply
+  assert_contains "unapplies for real under --apply" "$(cat "$calls")" "args=-C $REPO bootstrap dotfiles unapply --yes"
+}
+
+# ── teardown-packages prunes via mise against an empty-packages overlay ───────
+# mise has no "remove what this config declares"; the only primitive is prune,
+# which removes UNdeclared packages. So the script points prune at a standalone
+# config declaring an empty [bootstrap.packages] and untrusts the repo configs,
+# restoring trust after. Stub mise: record argv + the overlay's contents.
+PACKAGES="$REPO/scripts/teardown-packages.sh"
+{
+  home="$(sandbox)"; stub_dir="$(sandbox)"; calls="$(sandbox)/mise-calls.txt"
+  # The stub records the config path AND, for prune, dumps that config's body so
+  # we can assert it declares an empty packages table (not the real one).
+  cat >"$stub_dir/mise" <<'EOF'
+#!/usr/bin/env bash
+printf 'args=%s\n' "$*" >>"$MISE_LOG"
+if [ "$3" = "bootstrap" ]; then
+  printf 'overlay<<%s>>\n' "$(cat "$MISE_GLOBAL_CONFIG_FILE" 2>/dev/null | tr '\n' ' ')" >>"$MISE_LOG"
+fi
+exit 0
+EOF
+  chmod +x "$stub_dir/mise"
+
+  run_capture env HOME="$home" MISE_LOG="$calls" PATH="$stub_dir:/usr/bin:/bin" \
+    bash "$PACKAGES"
+  assert_eq "prune exits 0" "0" "$RUN_STATUS"
+  log="$(cat "$calls")"
+  assert_contains "untrusts the machine config" "$log" "args=trust --untrust $REPO/home/.config/mise/config.toml"
+  assert_contains "untrusts the repo mise.toml" "$log" "args=trust --untrust $REPO/mise.toml"
+  assert_contains "prunes brew (dry-run)" "$log" "bootstrap packages prune --manager brew --dry-run --yes"
+  assert_contains "prunes brew-cask (dry-run)" "$log" "bootstrap packages prune --manager brew-cask --dry-run --yes"
+  assert_contains "overlay declares empty packages" "$log" "overlay<<[bootstrap.packages] >>"
+  assert_contains "restores machine config trust" "$log" "args=trust $REPO/home/.config/mise/config.toml"
+
+  : >"$calls"
+  run_capture env HOME="$home" MISE_LOG="$calls" PATH="$stub_dir:/usr/bin:/bin" \
+    bash "$PACKAGES" --apply
+  assert_contains "prunes brew for real under --apply" "$(cat "$calls")" "bootstrap packages prune --manager brew"
+  assert_not_contains "apply is not a dry-run" "$(cat "$calls")" "--dry-run"
+}
+
+# ── teardown-packages no-ops (does not error) when mise is absent ─────────────
+{
+  home="$(sandbox)"
+  run_capture env PATH="/usr/bin:/bin" HOME="$home" bash "$PACKAGES"
+  assert_eq "no-op when mise absent" "0" "$RUN_STATUS"
+  assert_contains "warns mise missing" "$(cat "$RUN_STDERR")" "mise not found"
+}

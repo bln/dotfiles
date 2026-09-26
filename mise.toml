@@ -87,6 +87,11 @@ run = [
   # uninstall warns but must not stop the remaining steps.
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/tasks/teardown/rtk" || echo "WARNING: RTK teardown reported errors; continuing" >&2',
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-dotfiles.sh"',
+  # packages: prune repo-declared brew/cask packages through mise (the installer),
+  # never a direct brew call. mise removes what it can prove it owns (formulae,
+  # simple casks) and declines the rest (mas apps, lifecycle/unprovable casks)
+  # with a printed reason. Best-effort: a decline is not a teardown failure.
+  'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/teardown-packages.sh" || echo "WARNING: package prune reported errors; continuing" >&2',
   # vscode teardown is best-effort: a failed uninstall returns nonzero but must
   # not stop the remaining teardown steps (identity/uv cleanup below).
   'APPLY="${usage_apply:-false}" bash "{{ config_root }}/scripts/vscode-profiles" teardown || echo "WARNING: VS Code teardown reported errors; continuing" >&2',

@@ -264,6 +264,7 @@ contract that keeps the suite from re-accreting double-entry checks.
 
 `mise run teardown` (or `dot run teardown`) defaults to a dry run. With `--apply`
 it removes repository-owned state: dotfile symlinks (via `mise dotfiles unapply`),
+repo-declared packages (brew formulae and casks, pruned via mise - the installer),
 declared VS Code extensions and seeded named profiles, and machine-local files
 (git identity, uv cache).
 It then prints the two commands to finish manually - these can't be task steps
@@ -277,9 +278,13 @@ mise uninstall --all --yes
 mise implode --config --yes
 ```
 
-It does not uninstall Homebrew, and does **not** revert macOS system defaults
-(dock, finder, keyboard) - defaults write records no prior value, so there is
-nothing to restore.
+Package removal goes through mise (never a direct brew/mas call), so mise only
+removes what it can prove it owns: brew formulae come off cleanly, while mas
+App Store apps and any casks with lifecycle uninstall hooks or unprovable app
+ownership are left installed with a printed reason. This machine has no separate
+Homebrew install - mise is the package installer - so there is no Homebrew to
+uninstall. Teardown does **not** revert macOS system defaults (dock, finder,
+keyboard): defaults write records no prior value, so there is nothing to restore.
 
 ## Contributing
 

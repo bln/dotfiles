@@ -21,8 +21,19 @@ if ! command -v mise >/dev/null 2>&1; then
   exit 0
 fi
 
+# Point mise at the checkout's machine config explicitly. The [dotfiles] table
+# there is the only record of which links mise owns; deriving it from the repo
+# (via this script's own path) rather than the ~/.config/mise/config.toml
+# symlink keeps unapply correct after that symlink is removed and regardless of
+# cwd - symmetric with install.sh. DOTFILES_DIR overrides for tests.
+repo="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+config="$repo/home/.config/mise/config.toml"
+if [ -f "$config" ]; then
+  export MISE_GLOBAL_CONFIG_FILE="$config"
+fi
+
 if [ "$APPLY" = true ]; then
-  mise bootstrap dotfiles unapply --yes
+  mise -C "$repo" bootstrap dotfiles unapply --yes
 else
-  mise bootstrap dotfiles unapply --dry-run --yes
+  mise -C "$repo" bootstrap dotfiles unapply --dry-run --yes
 fi
