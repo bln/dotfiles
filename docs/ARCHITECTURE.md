@@ -35,8 +35,8 @@ config keeps only mise/package-manager environment needed to converge the host.
 
 ```mermaid
 flowchart TD
-    A["curl install.sh | bash\n(first run)"] --> B[install mise if absent]
-    B --> C["mise bootstrap --from\n(clone/reuse repo, trust it)"]
+    A["git clone ... ~/dotfiles\n~/dotfiles/install.sh"] --> B[install mise if absent]
+    B --> C["explicit repo config\nmise bootstrap"]
     C --> D["8-phase bootstrap\n(tools · packages · dotfiles\nmacOS defaults)"]
     D --> E["[tasks.bootstrap]\nVS Code extensions · uv python · RTK hooks"]
     E --> F[prompt: git identity]
@@ -159,8 +159,9 @@ Where new software goes, in preference order:
 
 Exceptions to the no-direct-backend rule:
 
-- `install.sh` installs mise itself (and Homebrew if a mise backend needs it).
-  This is the only bootstrapping exception.
+- `install.sh` installs mise itself; it is the only bootstrapping exception.
+  mise's brew backend then writes into the Homebrew layout directly - there is
+  no separate Homebrew install and `install.sh` never invokes brew.
 - `.zshrc` may reference Homebrew plugin paths but must detect the prefix
   dynamically, never hard-code `/opt/homebrew`.
 - `scripts/teardown-*.sh` may reference package-manager state for cleanup.

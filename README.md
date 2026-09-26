@@ -14,30 +14,22 @@ Homebrew workflow. There is no Brewfile.
 ## Quick start
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/bln/dotfiles/main/install.sh | bash
-exec zsh -l
-```
-
-Or, from a clone (use the **https** URL - it must match the `--from` URL in
-`install.sh`, or mise's checkout reuse bails):
-
-```sh
 git clone https://github.com/bln/dotfiles.git ~/dotfiles
 ~/dotfiles/install.sh
 exec zsh -l
 ```
 
-`install.sh` installs mise, then hands the whole converge to
-`mise bootstrap --from`: it clones/reuses the repo, trusts it, and runs the
-8-phase bootstrap (tools, packages, dotfiles, macOS defaults, and the repo's
-`[tasks.bootstrap]` for VS Code extensions + uv python), then prompts for a
-machine-local git identity. It is a **first-run** entrypoint; re-converge with
-`dot run update`. Preview a bootstrap with `mise bootstrap --dry-run`.
+`install.sh` must run from this checkout at `~/dotfiles`. It installs mise,
+points mise at the repository's machine config, trusts the repo task files, and
+runs the 8-phase bootstrap (tools, packages, dotfiles, macOS defaults, and the
+repo's `[tasks.bootstrap]` for VS Code extensions + uv python), then prompts for
+a machine-local git identity. It is a **first-run** entrypoint; re-converge
+with `dot run update`. Preview a bootstrap with `mise bootstrap --dry-run`.
 
 ```mermaid
 flowchart TD
-    A["curl install.sh | bash\n(first run)"] --> B[install mise if absent]
-    B --> C["mise bootstrap --from\n(clone/reuse repo, trust it)"]
+    A["git clone ... ~/dotfiles\n~/dotfiles/install.sh"] --> B[install mise if absent]
+    B --> C["explicit repo config\nmise bootstrap"]
     C --> D["8-phase bootstrap\n(tools · packages · dotfiles\nmacOS defaults)"]
     D --> E["[tasks.bootstrap]\nVS Code extensions\nuv python · RTK hooks"]
     E --> F[prompt: git identity]
@@ -63,7 +55,7 @@ flowchart TD
 
 ```text
 dotfiles/
-├── install.sh                  # first-run bootstrap (mise bootstrap --from)
+├── install.sh                  # first-run bootstrap (explicit repo config)
 ├── mise.toml                   # repo-local tasks: verify, test, bootstrap, update, teardown
 ├── AGENTS.md                   # working rules for agents and humans
 ├── CLAUDE.md                   # includes AGENTS.md for Claude Code
@@ -138,18 +130,23 @@ resources are repository-owned:
 - `~/.config/claude/skills/**` from its independent source tree
 
 Agent settings, credentials, sessions, databases, caches, plugins, and Codex
-system skills remain machine-local and ignored. Use the native mise commands:
+system skills remain machine-local and ignored. To check or fix drift across
+all copy-managed resources (dotfiles + VS Code) use the unified tasks:
 
 ```sh
-mise dotfiles diff
-mise dotfiles apply
-mise dotfiles status --missing
+dot run diff       # report drift (dotfiles + VS Code)
+dot run converge   # fix drift: apply declared state (repo wins)
 ```
 
-`mise dotfiles pull` pulls shared mise history; it is not a live-to-repository
-capture. Do not capture an entire writable agent root. Deliberate individual
-instruction-file capture can use `mise dotfiles add` after review. Skill trees
-remain repository-authored.
+These wrap the native primitives (`mise dotfiles diff` / `apply` /
+`status --missing`), which you can still run directly for the dotfiles half
+alone. The model is push-only: the repo is the sole authority and `converge`
+overwrites live edits with no merge. mise's own history and sharing tiers
+(`mise dotfiles pull`, which pulls shared history from another machine, not a
+live-to-repository capture) are deliberately unused - git is the only
+cross-machine channel. Do not capture an entire writable agent root; deliberate
+individual instruction-file capture can use `mise dotfiles add` after review.
+Skill trees remain repository-authored.
 
 ## Adding software
 
