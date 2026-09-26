@@ -46,4 +46,9 @@
     "copy_on_select": true,
     "option_as_meta": true,
   },
+
+  // Extensions (auto-installed by Zed on startup)
+  "auto_install_extensions": {
+    "toml": true,
+  },
 }
