@@ -69,8 +69,13 @@ jobs:
           curl -fsSL https://mise.run | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # The machine config intentionally roots dotfile sources at ~/dotfiles/home
+      # (see install.sh, which refuses any other checkout location). CI checks out
+      # elsewhere, so symlink the checkout to ~/dotfiles before the dry-run to
+      # resolve every [dotfiles] source exactly as a real machine would.
       - name: Trust and validate bootstrap plan
         run: |
+          ln -sfn "$PWD" "$HOME/dotfiles"
           mise trust home/.config/mise/config.toml
           mise trust mise.toml
           MISE_CONFIG_FILE="$PWD/home/.config/mise/config.toml" mise bootstrap --dry-run

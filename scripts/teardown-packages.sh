@@ -59,12 +59,12 @@ printf '[bootstrap.packages]\n' >"$overlay"
 # the only copy left.
 restore_trust() {
   mise trust --untrust "$overlay" >/dev/null 2>&1 || true
-  [ -f "$config" ] && mise trust "$config" >/dev/null 2>&1 || true
-  [ -f "$root" ]   && mise trust "$root"   >/dev/null 2>&1 || true
+  if [ -f "$config" ]; then mise trust "$config" >/dev/null 2>&1 || true; fi
+  if [ -f "$root" ];   then mise trust "$root"   >/dev/null 2>&1 || true; fi
 }
 trap 'restore_trust; rm -rf "$overlay_dir"' EXIT INT TERM
-[ -f "$config" ] && mise trust --untrust "$config" >/dev/null 2>&1 || true
-[ -f "$root" ]   && mise trust --untrust "$root"   >/dev/null 2>&1 || true
+if [ -f "$config" ]; then mise trust --untrust "$config" >/dev/null 2>&1 || true; fi
+if [ -f "$root" ];   then mise trust --untrust "$root"   >/dev/null 2>&1 || true; fi
 mise trust "$overlay" >/dev/null 2>&1 || true
 
 # brew and brew-cask are the managers with prunable packages; mas does not
