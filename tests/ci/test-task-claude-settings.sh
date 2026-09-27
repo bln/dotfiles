@@ -29,12 +29,12 @@ else
   # A project can keep unrelated settings while canonical values win on a
   # conflict. The task is run from a nested directory to exercise Git-root
   # resolution as well.
-  printf '%s\n' '{"project":{"name":"fixture"},"permissions":{"allow":["Read"]},"disableBundledSkills":false}' >"$project/.claude/settings.json"
+  printf '%s\n' '{"project":{"name":"fixture"},"permissions":{"allow":["Read"]},"disableWorkflows":false}' >"$project/.claude/settings.json"
   run_capture run_task "$project/src"
   assert_eq "merges an existing settings file" "0" "$RUN_STATUS"
   assert_eq "preserves unrelated project settings" "fixture" "$(jq -r '.project.name' "$project/.claude/settings.json")"
   assert_eq "preserves unrelated nested settings" "Read" "$(jq -r '.permissions.allow[0]' "$project/.claude/settings.json")"
-  assert_eq "canonical value wins on conflict" "$(jq -c '.disableBundledSkills' "$TEMPLATES/features.json")" "$(jq -c '.disableBundledSkills' "$project/.claude/settings.json")"
+  assert_eq "canonical value wins on conflict" "$(jq -c '.disableWorkflows' "$TEMPLATES/features.json")" "$(jq -c '.disableWorkflows' "$project/.claude/settings.json")"
 
   before="$(cat "$project/.claude/settings.json")"
   run_capture run_task "$project/src"
