@@ -95,6 +95,10 @@ tap_to_click = true
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 
 [dotfiles]
+# Global file tasks and their canonical template fragments are part of the
+# machine config so mise run claude:settings is available from any Git repo.
+"~/.config/mise/tasks" = {}
+"~/.config/mise/templates" = {}
 "~/.zshenv" = {}
 "~/.config/zsh/.zshrc" = {}
 "~/.config/zsh/.zprofile" = {}

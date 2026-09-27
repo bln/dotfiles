@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#MISE description="merge canonical Claude settings into the current Git repository"
+#MISE dir="{{cwd}}"
+set -euo pipefail
+
+die() {
+  printf 'ERROR: %s\n' "$1" >&2
+  exit 2
+}
+
+# The task and its templates are installed together under ~/.config/mise. Keep
+# the source relative to the task so this also works directly from the checkout
+# and does not depend on the caller having a particular dotfiles path.
+task_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+template_dir="$task_dir/../../templates/claude/settings"
+[ -d "$template_dir" ] || die "missing Claude settings templates: $template_dir"
+template_dir="$(cd "$template_dir" && pwd -P)"
+
+command -v jq >/dev/null 2>&1 || die "jq is required to merge Claude settings"
+
+repo_root="${CLAUDE_SETTINGS_REPO_ROOT:-}"
+if [ -z "$repo_root" ]; then
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || \
+    die 'run this task from a Git repository'
+fi
+if ! repo_root="$(cd "$repo_root" && pwd -P)"; then
+  die "cannot access repository root: $repo_root"
+fi
+
+settings_dir="$repo_root/.claude"
+settings_file="$settings_dir/settings.json"
+if [ -e "$settings_dir" ] && [ ! -d "$settings_dir" ]; then
+  die "repository .claude path is not a directory: $settings_dir"
+fi
+mkdir -p "$settings_dir"
+if [ -L "$settings_file" ]; then
+  die "refusing to replace symlink: $settings_file"
+fi
+if [ -e "$settings_file" ] && [ ! -f "$settings_file" ]; then
+  die "repository settings path is not a regular file: $settings_file"
+fi
+
+template_files=("$template_dir"/*.json)
+[ -f "${template_files[0]}" ] || die "no Claude settings templates found in: $template_dir"
+
+# Existing project settings are the base; canonical templates are applied last.
+# jq's object merge is recursive, so unrelated project settings survive while
+# canonical values win when the same key is present in both documents.
+merge_inputs=()
+[ -f "$settings_file" ] && merge_inputs+=("$settings_file")
+merge_inputs+=("${template_files[@]}")
+
+tmp_file=""
+cleanup() {
+  if [ -n "${tmp_file:-}" ]; then
+    rm -f "$tmp_file"
+  fi
+}
+trap cleanup EXIT
+
+tmp_file="$(mktemp "$settings_dir/.settings.json.tmp.XXXXXX")"
+if ! jq -S -s '
+  reduce .[] as $item ({};
+    if ($item | type) == "object" then . * $item
+    else error("settings documents must contain JSON objects")
+    end)
+' "${merge_inputs[@]}" >"$tmp_file"; then
+  die "could not merge Claude settings; check the JSON in $settings_file and the canonical templates"
+fi
+
+# Atomic replacement avoids leaving a truncated settings file on failure. Keep an
+# existing file's mode; generated project settings use the normal 0644 mode.
+if [ -f "$settings_file" ]; then
+  mode="$(stat -c '%a' "$settings_file" 2>/dev/null || stat -f '%Lp' "$settings_file")"
+  chmod "$mode" "$tmp_file"
+else
+  chmod 644 "$tmp_file"
+fi
+mv -f "$tmp_file" "$settings_file"
+tmp_file=""
+
+printf 'Claude settings merged into %s\n' "$settings_file"
