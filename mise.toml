@@ -32,7 +32,11 @@ run = [
 [tasks.test]
 description = "lint and test all shell scripts"
 dir = "{{ config_root }}"
-run = ["bash scripts/lint-shell.sh", "bash tests/run.sh"]
+run = [
+  "mise tasks validate --errors-only",
+  "bash scripts/lint-shell.sh",
+  "bash tests/run.sh",
+]
 
 # ── sync:vscode ──────────────────────────────────────────────────────────────
 # Run from anywhere: dot run sync:vscode  (add --prune to remove undeclared exts)

@@ -1,7 +1,7 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Single source of truth for tools, packages, dotfiles, and macOS setup.
 
-min_version = "2026.9.13"
+min_version = "2026.9.17"
 
 [settings]
 lockfile = true
@@ -47,6 +47,7 @@ mole = "latest"
 [bootstrap.packages]
 "brew:git" = "latest"
 "brew:mas" = "latest"
+"brew:poppler" = "latest"
 
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
@@ -54,6 +55,8 @@ mole = "latest"
 "brew-cask:zed" = "latest"
 "brew-cask:visual-studio-code" = "latest"
 "brew-cask:typora" = "latest"
+"brew-cask:codex-app" = "latest"
+"brew-cask:hyperkey" = "latest"
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 
 "mas:1365531024" = { os = "macos" }  # 1Blocker
