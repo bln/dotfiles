@@ -1,4 +1,4 @@
-# mise adds its managed Node and uv versions to the interactive shell.
+# mise activates its managed runtimes and tools in the interactive shell.
 if (( $+commands[mise] )); then
   eval "$(mise activate zsh)"
 fi
@@ -6,7 +6,6 @@ fi
 export EDITOR="${EDITOR:-vim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export PAGER="${PAGER:-less -FRX}"
-export HOMEBREW_BUNDLE_FILE="${HOMEBREW_BUNDLE_FILE:-$HOME/Brewfile}"
 
 # BSD ls (the macOS default) uses LSCOLORS for its color palette. Use cool
 # colors for directories and links, green for executables, and keep all

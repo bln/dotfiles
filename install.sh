@@ -2,32 +2,30 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+mise_bin="${MISE_BIN:-$HOME/.local/bin/mise}"
 
-# Reuse an existing Homebrew installation even when its prefix is not on PATH.
-if ! command -v brew >/dev/null 2>&1; then
-  if [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -x /usr/local/bin/brew ]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-  fi
+case "$(uname -s):$(uname -m)" in
+  Darwin:arm64)
+    ;;
+  *)
+    printf 'install.sh: this repository requires macOS arm64\n' >&2
+    exit 1
+    ;;
+esac
+
+if [ ! -x "$mise_bin" ]; then
+  mkdir -p "$(dirname "$mise_bin")"
+  curl -fsSL https://mise.run | MISE_INSTALL_PATH="$mise_bin" sh
 fi
 
-if ! command -v brew >/dev/null 2>&1; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-fi
-
-if [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x /usr/local/bin/brew ]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
-
-command -v brew >/dev/null 2>&1 || {
-  printf 'install.sh: Homebrew is not on PATH\n' >&2
+if [ ! -x "$mise_bin" ]; then
+  printf 'install.sh: mise was not installed at %s\n' "$mise_bin" >&2
   exit 1
-}
+fi
 
-brew bundle --file "$repo/home/Brewfile"
-stow --dir "$repo" --target "$HOME" --no-folding --restow home
-mise install
-"$repo/macos.sh"
+# Prefer the standalone mise installation on PATH.
+export PATH="$(dirname "$mise_bin"):$PATH"
+
+"$mise_bin" --version
+"$mise_bin" trust "$repo/mise.toml"
+"$mise_bin" -C "$repo" bootstrap --yes --locked

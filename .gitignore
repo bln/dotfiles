@@ -31,7 +31,7 @@ build/
 !.env.sample
 .claude/settings.local.json
 
-# Machine-local files that may live beside managed files in the Stow tree.
+# Machine-local files that may live beside managed files in the mise dotfiles tree.
 home/.zshrc.local
 home/.config/git/identity-*
 
@@ -55,4 +55,3 @@ home/.claude/**
 !home/.claude/skills/**
 
 # Local package-manager artifacts
-mise.lock

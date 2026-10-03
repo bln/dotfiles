@@ -8,8 +8,8 @@
  * status segment; it swaps the footer via ctx.ui.setFooter().
  *
  * Read-only: no tool interception, no session mutation. Managed in ~/dotfiles
- * (home/.pi/agent/extensions/) and linked to ~/.pi/agent/extensions/ by Stow,
- * so it loads globally across all projects.
+ * (home/.pi/agent/extensions/) and deployed to ~/.pi/agent/extensions/ by mise
+ * dotfiles, so it loads globally across all projects.
  */
 
 import type { AssistantMessage } from "@earendil-works/pi-ai";

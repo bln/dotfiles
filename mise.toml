@@ -1,0 +1,117 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+# Canonical machine setup.
+# This file is also deployed to ~/.config/mise/config.toml.
+
+min_version = "2026.9.18"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["macos-arm64"]
+dotfiles.default_mode = "symlink"
+dotfiles.relative_symlinks = true
+minimum_release_age = "2d"
+minimum_release_age_excludes = ["claude-code", "codex", "pi", "rtk"]
+
+[tool_config]
+locked = true
+
+[env]
+# Keep cask applications in the user-owned Applications directory.
+MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
+
+# mise-managed tools use mise activation; brew:git and brew-cask binaries
+# use the canonical Homebrew-compatible prefix.
+_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
+
+[tools]
+# Managed runtimes.
+node = "lts"
+uv = "latest"
+
+# Managed command-line tools.
+gh = "latest"
+pi = "latest"
+ripgrep = "latest"
+rtk = "latest"
+fd = "latest"
+
+[bootstrap.packages]
+# Required host package.
+"brew:git" = "latest"
+
+# Mise cask identifiers use the brew-cask:<token> form.
+"brew-cask:claude-code" = "latest"
+"brew-cask:codex" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
+"brew-cask:ghostty" = "latest"
+"brew-cask:zed" = "latest"
+"brew-cask:typora" = "latest"
+
+[bootstrap.macos.dock]
+tilesize = 48
+autohide = true
+show_recents = false
+mru_spaces = false
+autohide_delay = 0.0
+autohide_time_modifier = 0.2
+
+[bootstrap.macos.finder]
+show_pathbar = true
+show_status_bar = true
+preferred_view_style = "list"
+show_extensions_warning = false
+sort_folders_first = true
+
+[bootstrap.macos.keyboard]
+key_repeat = 2
+initial_key_repeat = 15
+press_and_hold = false
+
+[bootstrap.macos.trackpad]
+tap_to_click = true
+
+[bootstrap.macos.defaults]
+"NSGlobalDomain" = {
+  AppleInterfaceStyleSwitchesAutomatically = true,
+NSTableViewDefaultSizeMode = 3,
+}
+
+"com.apple.finder" = {
+  FXDefaultSearchScope = "SCcf",
+}
+
+"com.apple.desktopservices" = {
+  DSDontWriteNetworkStores = true,
+DSDontWriteUSBStores = true,
+}
+
+"com.apple.spaces" = {
+  "spans-displays" = false,
+}
+
+"com.apple.TextEdit" = {
+  RichText = 0,
+PlainTextEncoding = 4,
+PlainTextEncodingForWrite = 4,
+}
+
+"com.apple.ActivityMonitor" = {
+  OpenMainWindow = true,
+ShowCategory = 0,
+SortColumn = "CPUUsage",
+}
+
+[bootstrap.hooks]
+post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+[dotfiles]
+"~" = {
+  source = "home",
+mode = "symlink-each",
+manifest = "git",
+}
+
+"~/.config/mise/config.toml" = {
+  source = "mise.toml",
+mode = "symlink",
+}
