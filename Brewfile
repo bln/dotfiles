@@ -1,0 +1,21 @@
+# Homebrew owns machine software; mise only owns language runtimes.
+brew "git"
+brew "gh"
+brew "mise"
+brew "neovim"
+brew "pi-coding-agent"
+brew "ripgrep"
+brew "rtk"
+brew "stow"
+
+cask_args appdir: "~/Applications"
+
+cask "claude-code"
+cask "codex"
+cask "font-jetbrains-mono-nerd-font"
+cask "ghostty"
+cask "typora"
+cask "visual-studio-code"
+
+vscode "anthropic.claude-code"
+vscode "openai.chatgpt"

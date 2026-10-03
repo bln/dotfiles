@@ -1,0 +1,123 @@
+# Git identity is machine-local and lives in ~/.config/git/identity-*.
+# Create both files before committing; useConfigOnly prevents Git from guessing.
+[user]
+	useConfigOnly = true
+
+[include]
+	path = ~/.config/git/identity-personal
+
+[includeIf "hasconfig:remote.*.url:https://github.tools.sap/**"]
+	path = ~/.config/git/identity-work
+[includeIf "hasconfig:remote.*.url:ssh://*github.tools.sap/**"]
+	path = ~/.config/git/identity-work
+[includeIf "hasconfig:remote.*.url:git@github.tools.sap:*/**"]
+	path = ~/.config/git/identity-work
+
+[core]
+	editor = nvim
+	autocrlf = input
+	whitespace = -indent-with-non-tab,trailing-space,cr-at-eol
+	precomposeunicode = true
+	trustctime = false
+
+[credential "https://github.com"]
+	helper = osxkeychain
+[credential "https://github.tools.sap"]
+	helper = osxkeychain
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	default = current
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+	prunetags = true
+
+[rebase]
+	autoStash = true
+	autoSquash = true
+	updateRefs = true
+
+[merge]
+	conflictstyle = zdiff3
+	ff = only
+
+[diff]
+	algorithm = histogram
+	colorMoved = default
+	colorMovedWS = allow-indentation-change
+	renames = copies
+
+[commit]
+	verbose = true
+
+[branch]
+	sort = -committerdate
+
+[tag]
+	sort = -version:refname
+
+[status]
+	showUntrackedFiles = all
+
+[log]
+	date = iso-local
+
+[column]
+	ui = auto
+
+[transfer]
+	fsckObjects = true
+
+[rerere]
+	enabled = true
+	autoupdate = true
+
+[help]
+	autocorrect = prompt
+
+[alias]
+	# status / inspection
+	s      = status -sb
+	l      = log --oneline --graph --decorate --all
+	ll     = log --oneline --graph --decorate -20
+	lg     = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	show-files = diff-tree --no-commit-id --name-only -r
+
+	# branching
+	b      = branch -vv
+	co     = checkout
+	cob    = checkout -b
+	sw     = switch
+	swc    = switch -c
+
+	# staging / committing
+	a      = add -p
+	aa     = add -A
+	c      = commit
+	ca     = commit --amend
+	can    = commit --amend --no-edit
+
+	# syncing
+	f      = fetch --all
+	pu     = push -u origin HEAD
+	fpush  = push --force-with-lease --force-if-includes
+
+	# stash
+	ss     = stash push -u -m
+	sp     = stash pop
+
+	# cleanup
+	gone   = "!git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads | awk '$2 == \"[gone]\" {print $1}' | grep . | xargs git branch -D"
+	trim   = "!git fetch --prune && git gone"
+
+	# utilities
+	root   = rev-parse --show-toplevel
+	whoami = "!git config user.name && git config user.email"
+	aliases = "!git config --get-regexp '^alias\\.' | sed 's/alias\\.//'"

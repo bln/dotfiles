@@ -1,8 +1,3 @@
--- Prepend mise shims to PATH so LSPs/formatters/tools resolve mise-managed
--- binaries even when nvim is launched from a GUI context (which doesn't source
--- .zprofile). See https://mise.jdx.dev/ide-integration.html
-vim.env.PATH = vim.env.HOME .. "/.local/share/mise/shims:" .. vim.env.PATH
-
 -- ── options ──────────────────────────────────────────────────────────────────
 vim.opt.number         = true
 vim.opt.relativenumber = true
