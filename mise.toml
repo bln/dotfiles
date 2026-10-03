@@ -56,6 +56,24 @@ rtk = "latest"
 fd = "latest"
 starship = "latest"
 
+[bootstrap.secrets]
+git_personal_name = {
+  env = "GIT_PERSONAL_NAME",
+  description = "Personal Git user name",
+}
+git_personal_email = {
+  env = "GIT_PERSONAL_EMAIL",
+  description = "Personal Git email",
+}
+git_work_name = {
+  env = "GIT_WORK_NAME",
+  description = "Work Git user name",
+}
+git_work_email = {
+  env = "GIT_WORK_EMAIL",
+  description = "Work Git email",
+}
+
 [bootstrap.packages]
 # Required host package.
 "brew:git" = "latest"
@@ -128,6 +146,18 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
   source = "home",
 mode = "symlink-each",
 manifest = "git",
+}
+
+"~/.config/git/identity-personal" = {
+  source = "templates/git/identity-personal.tmpl",
+  mode = "template",
+  permissions = "0600",
+}
+
+"~/.config/git/identity-work" = {
+  source = "templates/git/identity-work.tmpl",
+  mode = "template",
+  permissions = "0600",
 }
 
 "~/.config/mise/config.toml" = {

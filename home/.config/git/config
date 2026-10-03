@@ -1,5 +1,5 @@
-# Git identity is machine-local and lives alongside this config in ~/.config/git/identity-*.
-# Create both files before committing; useConfigOnly prevents Git from guessing.
+# Mise renders the machine-local identity files during bootstrap; useConfigOnly
+# prevents Git from guessing.
 [user]
 	useConfigOnly = true
 

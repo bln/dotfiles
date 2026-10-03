@@ -1,0 +1,4 @@
+{% set target_exists = exec(command='test -f "$HOME/.config/git/identity-work" && printf present || printf missing') | trim %}{% if target_exists == "present" %}{{ read_file(path=env.HOME ~ "/.config/git/identity-work") }}{% else %}[user]
+    name = {{ secret(name="git_work_name") }}
+    email = {{ secret(name="git_work_email") }}
+{% endif %}
