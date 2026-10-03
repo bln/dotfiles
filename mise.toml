@@ -34,6 +34,7 @@ pi = "latest"
 ripgrep = "latest"
 rtk = "latest"
 fd = "latest"
+starship = "latest"
 
 [bootstrap.packages]
 # Required host package.

@@ -1,0 +1,34 @@
+# Keep the prompt compact while preserving the context shown by the previous
+# custom Zsh prompt: a three-component path, Git branch/status, and result.
+format = "╭─ $directory$git_branch$git_status\n╰─$character "
+add_newline = false
+
+[directory]
+format = "[$path]($style)"
+style = "cyan"
+truncation_length = 3
+truncation_symbol = "…/"
+truncate_to_repo = false
+
+[git_branch]
+symbol = " "
+format = "  [$symbol$branch]($style)"
+style = "purple"
+
+[git_status]
+format = " [$all_status$ahead_behind]($style)"
+style = "yellow"
+conflicted = "=${count}"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕${ahead_count}/${behind_count}"
+untracked = "?${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[✘](red)"
+vimcmd_symbol = "[❮](green)"

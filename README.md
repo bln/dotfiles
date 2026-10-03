@@ -89,6 +89,7 @@ dotfiles/
     │   │   ├── config
     │   │   └── ignore
     │   ├── ghostty/
+    │   ├── starship.toml
     │   └── uv/uv.toml
     ├── .agents/skills/
     ├── .claude/
