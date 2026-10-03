@@ -30,11 +30,13 @@ build/
 !.env.example
 !.env.sample
 .claude/settings.local.json
+
+# Machine-local files that may live beside managed files in the Stow tree.
 home/.zshrc.local
-home/.gitconfig.local
 home/.config/git/identity-*
 
-# Agent runtime roots: only stable, deliberate files are tracked here.
+# home/ mirrors $HOME. Keep agent runtime state local, but allow the
+# repository-owned instructions, extensions, and skills below.
 home/.agents/**
 !home/.agents/skills/
 !home/.agents/skills/**

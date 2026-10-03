@@ -1,4 +1,4 @@
-# Git identity is machine-local and lives in ~/.config/git/identity-*.
+# Git identity is machine-local and lives alongside this config in ~/.config/git/identity-*.
 # Create both files before committing; useConfigOnly prevents Git from guessing.
 [user]
 	useConfigOnly = true

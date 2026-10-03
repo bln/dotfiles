@@ -48,12 +48,13 @@ dotfiles/
     ├── Brewfile
     ├── .zprofile
     ├── .zshrc
-    ├── .gitconfig
     ├── .npmrc
     ├── .vimrc
     ├── .config/
+    │   ├── git/
+    │   │   ├── config
+    │   │   └── ignore
     │   ├── ghostty/
-    │   ├── git/ignore
     │   ├── mise/config.toml
     │   └── uv/uv.toml
     ├── .agents/skills/
@@ -98,7 +99,9 @@ Review the output before choosing any destructive cleanup option.
 
 ## Git identity
 
-Identity is machine-local. Create the files referenced by `.gitconfig`:
+Identity is machine-local. The tracked Git config, global ignore file, and identity
+files all live under `~/.config/git/`; create the identity files referenced by
+`~/.config/git/config`:
 
 ```sh
 mkdir -p ~/.config/git
