@@ -28,4 +28,4 @@ export PATH="$(dirname "$mise_bin"):$PATH"
 
 "$mise_bin" --version
 "$mise_bin" trust "$repo/mise.toml"
-"$mise_bin" -C "$repo" bootstrap --yes --locked
+"$mise_bin" -C "$repo" bootstrap --yes --locked --force-dotfiles

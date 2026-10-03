@@ -25,7 +25,7 @@ The installer:
 
 1. Installs standalone mise under `~/.local/bin` if needed.
 2. Trusts the repository's root `mise.toml`.
-3. Runs the locked `mise bootstrap` using the checked-in `mise.lock`.
+3. Runs the locked `mise bootstrap` using the checked-in `mise.lock`, with `--force-dotfiles` so managed dotfile targets replace conflicting existing files.
 4. Installs `brew:git` through mise's bootstrap package manager.
 5. Installs the remaining command-line tools as mise tools.
 6. Installs casks and fonts through mise's `brew-cask` manager.
