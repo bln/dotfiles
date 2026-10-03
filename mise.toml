@@ -51,6 +51,8 @@ uv = "latest"
 
 # Managed command-line tools.
 gh = "latest"
+claude-code = "latest"
+codex = "latest"
 pi = "latest"
 ripgrep = "latest"
 rtk = "latest"
@@ -62,8 +64,6 @@ starship = "latest"
 "brew:git" = "latest"
 
 # Mise cask identifiers use the brew-cask:<token> form.
-"brew-cask:claude-code" = "latest"
-"brew-cask:codex" = "latest"
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:zed" = "latest"
