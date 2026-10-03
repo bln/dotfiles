@@ -25,7 +25,7 @@ The installer:
 
 1. Installs standalone mise under `~/.local/bin` if needed.
 2. Trusts the repository's root `mise.toml`.
-3. Runs the locked `mise bootstrap` using the checked-in `mise.lock`, with `--force-dotfiles` so managed dotfile targets replace conflicting existing files.
+3. Runs the normal developer-mode `mise bootstrap` using the checked-in `mise.lock`, with `--force-dotfiles` so managed dotfile targets replace conflicting existing files.
 4. Installs `brew:git` through mise's bootstrap package manager.
 5. Installs the remaining command-line tools as mise tools.
 6. Installs casks and fonts through mise's `brew-cask` manager.
@@ -50,23 +50,26 @@ databases.
 | Dotfiles | `home/` and `[dotfiles]` in `mise.toml` | `mise bootstrap` |
 | macOS preferences | `[bootstrap.macos.*]` in `mise.toml` | `mise bootstrap` |
 
-The checked-in `mise.lock` pins the resolved tool versions, checksums, and
+The checked-in `mise.lock` records resolved tool versions, checksums, and
 artifact URLs for macOS arm64 (and the generated entries for other supported
-platforms). Refresh it deliberately when upgrading tools:
+platforms). Normal developer-mode `mise upgrade` refreshes it when a tool
+advances. To refresh pins without installing tools, use:
 
 ```sh
 mise lock --global --bump
 ```
 
-The config's `[tool_config].locked = true` policy and the installer's
-`--locked` flag prevent fallback resolution for tools; a missing platform entry
-fails instead of making another GitHub resolution request.
+Developer commands intentionally do not enable strict locked mode. The lockfile
+remains enabled, but normal installations and upgrades may resolve a newly
+released artifact when checked-in metadata is stale. CI should pass `--locked`
+(or set `MISE_LOCKED=1`) so every artifact URL must already be present in the
+lockfile.
 
 `--global` is required because the canonical root configuration is also
 symlinked into mise's global configuration path.
 
 The root `mise.toml` and `mise.lock` are also deployed to
-`~/.config/mise/`, so the same locked configuration is available to mise
+`~/.config/mise/`, so the same configuration and lockfile are available to mise
 outside the repository checkout.
 
 `symlink-each` keeps the directory structure in the user's home while managed
@@ -122,11 +125,22 @@ Apply the declared state:
 mise bootstrap
 ```
 
-Upgrade mise-managed tools and their checked-in pins:
+Upgrade mise-managed tools during development:
+
+```sh
+mise upgrade
+```
+
+For an explicit lockfile refresh, use:
 
 ```sh
 mise lock --global --bump
-mise bootstrap
+```
+
+CI should use strict locked mode explicitly:
+
+```sh
+mise bootstrap --yes --locked --force-dotfiles
 ```
 
 Upgrade the declared host formula and casks through mise:

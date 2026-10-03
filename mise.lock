@@ -143,44 +143,14 @@ checksum = "sha256:158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e
 url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip"
 
 [[tools.pi]]
-version = "1.0.0"
+version = "1.0.1"
 backend = "aqua:earendil-works/pi"
 specifiers = ["latest"]
 
-[tools.pi."platforms.linux-arm64"]
-checksum = "sha256:b60b3fda830a43c1dc3f5edb5fc7b681f22a0a930b48cdac13b97570c6045819"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916759"
-
-[tools.pi."platforms.linux-arm64-musl"]
-checksum = "sha256:b60b3fda830a43c1dc3f5edb5fc7b681f22a0a930b48cdac13b97570c6045819"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916759"
-
-[tools.pi."platforms.linux-x64"]
-checksum = "sha256:8fd5543a52a889d60ad57ccbf6c969e73c75c5240aae18ac40b506947a63dc38"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916768"
-
-[tools.pi."platforms.linux-x64-musl"]
-checksum = "sha256:8fd5543a52a889d60ad57ccbf6c969e73c75c5240aae18ac40b506947a63dc38"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916768"
-
 [tools.pi."platforms.macos-arm64"]
-checksum = "sha256:97291e7d2eb2d7d95ab1f67d26de7902302201bc8786c132bbbc9e53fa8526cc"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916769"
-
-[tools.pi."platforms.macos-x64"]
-checksum = "sha256:62fb78fcdbc7c0dbd21044dd44bfb3af20df447285bb55e9debf86ff4838776d"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-darwin-x64.tar.gz"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916767"
-
-[tools.pi."platforms.windows-x64"]
-checksum = "sha256:f7dbd39814bf6763f01e7f688ad089615de1d0eb55fc8915a49acdc2088f4404"
-url = "https://github.com/earendil-works/pi/releases/download/v1.0.0/pi-windows-x64.zip"
-url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/603916799"
+checksum = "sha256:de35e0025b136eb37693054ca658c010b6327a12aaff438ae87c4d1c94f99e6c"
+url = "https://github.com/earendil-works/pi/releases/download/v1.0.1/pi-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/607772279"
 
 [[tools.ripgrep]]
 version = "15.2.0"

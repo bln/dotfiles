@@ -29,7 +29,7 @@ curl -fsSL https://mise.run | sh
 "$HOME/.local/bin/mise" bootstrap \
   --from https://github.com/bln/dotfiles.git \
   --from-dir "$HOME/dotfiles" \
-  --yes --locked
+  --yes
 ```
 
 `--from-dir` is optional. Without it, mise uses
@@ -261,7 +261,7 @@ fi
 "$mise" bootstrap \
   --from https://github.com/bln/dotfiles.git \
   --from-dir "$HOME/dotfiles" \
-  --yes --locked
+  --yes
 ```
 
 The local repository's explicit macOS arm64 guard can be retained around this
@@ -269,7 +269,7 @@ flow. If `install.sh` is run from an already cloned repository, the simpler and
 more deterministic operation remains:
 
 ```sh
-"$HOME/.local/bin/mise" -C "$repo" bootstrap --yes --locked
+"$HOME/.local/bin/mise" -C "$repo" bootstrap --yes
 ```
 
 That form preserves local edits, uses the existing stable checkout, and does

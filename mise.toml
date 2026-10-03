@@ -12,9 +12,6 @@ dotfiles.relative_symlinks = true
 minimum_release_age = "2d"
 minimum_release_age_excludes = ["claude-code", "codex", "pi", "rtk"]
 
-[tool_config]
-locked = true
-
 [env]
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
