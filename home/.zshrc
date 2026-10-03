@@ -3,23 +3,6 @@ if (( $+commands[mise] )); then
   eval "$(mise activate zsh)"
 fi
 
-export EDITOR="${EDITOR:-vim}"
-export VISUAL="${VISUAL:-$EDITOR}"
-export PAGER="${PAGER:-less -FRX}"
-
-# BSD ls (the macOS default) uses LSCOLORS for its color palette. Use cool
-# colors for directories and links, green for executables, and keep all
-# backgrounds neutral so listings stay readable across terminal themes.
-export CLICOLOR=1
-export LSCOLORS='ExGxFxDxCxBxBxCxCxExDx'
-alias ls='command ls -G'
-alias l='ls -lh'
-alias ll='ls -lah'
-alias la='ls -A'
-alias lla='ls -lah'
-alias c='clear'
-alias q='exit'
-
 # Keep a large, shared history while avoiding noisy duplicates.
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=100000
@@ -74,8 +57,6 @@ bindkey '^[[3~' delete-char
 
 # Starship renders the prompt and manages its Zsh hooks.
 eval "$(starship init zsh)"
-alias ..='cd ..'
-alias ...='cd ../..'
 
 if [[ -r "$HOME/.zshrc.local" ]]; then
   source "$HOME/.zshrc.local"

@@ -19,9 +19,30 @@ locked = true
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 
+# Shell defaults preserve values supplied by the caller.
+EDITOR = { default = "vim" }
+VISUAL = { default = "${EDITOR:-vim}" }
+PAGER = { default = "less -FRX" }
+
+# BSD ls (the macOS default) uses this color configuration.
+CLICOLOR = { default = "1" }
+LSCOLORS = { default = "ExGxFxDxCxBxBxCxCxExDx" }
+
 # mise-managed tools use mise activation; brew:git and brew-cask binaries
 # use the canonical Homebrew-compatible prefix.
 _.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
+
+[shell_alias]
+# Interactive shortcuts managed by mise's shell integration.
+ls = "command ls -G"
+l = "ls -lh"
+ll = "ls -lah"
+la = "ls -A"
+lla = "ls -lah"
+c = "clear"
+q = "exit"
+".." = "cd .."
+"..." = "cd ../.."
 
 [tools]
 # Managed runtimes.
@@ -114,5 +135,10 @@ manifest = "git",
 
 "~/.config/mise/config.toml" = {
   source = "mise.toml",
+mode = "symlink",
+}
+
+"~/.config/mise/mise.lock" = {
+  source = "mise.lock",
 mode = "symlink",
 }

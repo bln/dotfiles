@@ -44,6 +44,7 @@ databases.
 |---|---|---|
 | mise configuration and tool pins | `mise.toml` and `mise.lock` | `mise bootstrap` |
 | Language runtimes and CLI tools | `[tools]` in `mise.toml` | `mise bootstrap` |
+| Shell environment and aliases | `[env]` and `[shell_alias]` in `mise.toml` | `mise activate zsh` |
 | Git host package | `"brew:git"` in `[bootstrap.packages]` | `mise bootstrap` |
 | Casks and fonts | `"brew-cask:<token>"` in `[bootstrap.packages]` | `mise bootstrap` |
 | Dotfiles | `home/` and `[dotfiles]` in `mise.toml` | `mise bootstrap` |
@@ -64,8 +65,9 @@ fails instead of making another GitHub resolution request.
 `--global` is required because the canonical root configuration is also
 symlinked into mise's global configuration path.
 
-The root `mise.toml` is also deployed to `~/.config/mise/config.toml`, so the
-same configuration is available to mise outside the repository checkout.
+The root `mise.toml` and `mise.lock` are also deployed to
+`~/.config/mise/`, so the same locked configuration is available to mise
+outside the repository checkout.
 
 `symlink-each` keeps the directory structure in the user's home while managed
 files link back to the repository. Only files tracked by Git are deployed.
