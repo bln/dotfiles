@@ -2,11 +2,11 @@
 brew "git"
 brew "gh"
 brew "mise"
-brew "neovim"
 brew "pi-coding-agent"
 brew "ripgrep"
 brew "rtk"
 brew "stow"
+brew "fd"
 
 cask_args appdir: "~/Applications"
 

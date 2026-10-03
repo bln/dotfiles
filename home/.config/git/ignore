@@ -28,7 +28,7 @@
 # it silently.
 *.code-workspace
 
-# Vim / Neovim
+# Vim
 *.swp
 *.swo
 *~

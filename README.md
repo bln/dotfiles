@@ -50,11 +50,11 @@ dotfiles/
     ├── .zshrc
     ├── .gitconfig
     ├── .npmrc
+    ├── .vimrc
     ├── .config/
     │   ├── ghostty/
     │   ├── git/ignore
     │   ├── mise/config.toml
-    │   ├── nvim/
     │   └── uv/uv.toml
     ├── .agents/skills/
     ├── .claude/

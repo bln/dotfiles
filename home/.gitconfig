@@ -14,7 +14,7 @@
 	path = ~/.config/git/identity-work
 
 [core]
-	editor = nvim
+	editor = vim
 	autocrlf = input
 	whitespace = -indent-with-non-tab,trailing-space,cr-at-eol
 	precomposeunicode = true
