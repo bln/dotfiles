@@ -13,7 +13,7 @@ Clone the repository and run:
 The installer:
 
 1. Installs Homebrew if needed.
-2. Runs `brew bundle` from `Brewfile`.
+2. Installs the declared Homebrew dependencies from `home/Brewfile`.
 3. Links `home/` into `$HOME` with GNU Stow.
 4. Installs the Node and uv versions declared in mise.
 5. Applies the macOS preferences in `macos.sh`.
@@ -21,23 +21,17 @@ The installer:
 The casks are installed under `~/Applications` so the setup works without
 requiring administrator access to `/Applications`.
 
+Stow links `home/Brewfile` to `~/Brewfile`, and the shell exports
+`HOMEBREW_BUNDLE_FILE` so plain `brew bundle` commands use it from any directory.
+
 The installer does not manage credentials, sessions, caches, or application
 databases.
-
-When moving from the previous mise-managed layout, back up any existing
-`~/.config/pi`, `~/.config/codex`, and `~/.config/claude` state before replacing
-it with the native `~/.pi`, `~/.codex`, and `~/.claude` locations. Also remove
-obsolete repo-owned links such as `~/.zshenv`, `~/.config/zsh`,
-`~/.config/git/config`, `~/.config/mise/{mise.lock,tasks,templates}`,
-`~/.config/npm`, `~/.config/vscode`, and
-`~/.config/zed`. Resolve any Stow conflicts manually; the installer
-intentionally does not delete existing files.
 
 ## Ownership
 
 | Concern | Source | Apply |
 |---|---|---|
-| Homebrew software and VS Code extensions | `Brewfile` | `brew bundle --file Brewfile` |
+| Homebrew software | `home/Brewfile` | `brew bundle` |
 | Language runtimes | `home/.config/mise/config.toml` | `mise install` |
 | Dotfiles | `home/` | `stow --dir . --target "$HOME" --no-folding --restow home` |
 | macOS preferences | `macos.sh` | `./macos.sh` |
@@ -48,10 +42,10 @@ Mise is used like a lightweight asdf: it manages Node and uv, not general comman
 
 ```text
 dotfiles/
-├── Brewfile
 ├── install.sh
 ├── macos.sh
 └── home/
+    ├── Brewfile
     ├── .zprofile
     ├── .zshrc
     ├── .gitconfig
@@ -83,7 +77,7 @@ From the repository root:
 
 ```sh
 brew update && brew upgrade
-brew bundle --file Brewfile
+brew bundle
 mise upgrade
 stow --dir . --target "$HOME" --no-folding --restow home
 ```
@@ -91,13 +85,13 @@ stow --dir . --target "$HOME" --no-folding --restow home
 Check the declared Homebrew state without changing anything:
 
 ```sh
-brew bundle check --file Brewfile
+brew bundle check
 ```
 
 To inspect packages that are no longer declared, use Homebrew directly:
 
 ```sh
-brew bundle cleanup --file Brewfile
+brew bundle cleanup
 ```
 
 Review the output before choosing any destructive cleanup option.

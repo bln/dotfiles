@@ -2,7 +2,7 @@
 
 This is a personal macOS dotfiles repository.
 
-- `Brewfile` owns Homebrew formulae, casks, fonts, and VS Code extensions.
+- `home/Brewfile` owns Homebrew formulae, casks, and fonts.
 - `home/` mirrors `$HOME`; GNU Stow links it into place.
 - `home/.config/mise/config.toml` owns language runtimes only.
 - `macos.sh` owns macOS preferences.

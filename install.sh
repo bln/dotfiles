@@ -27,7 +27,7 @@ command -v brew >/dev/null 2>&1 || {
   exit 1
 }
 
-brew bundle --file "$repo/Brewfile"
+brew bundle --file "$repo/home/Brewfile"
 stow --dir "$repo" --target "$HOME" --no-folding --restow home
 mise install
 "$repo/macos.sh"
