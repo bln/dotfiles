@@ -1,0 +1,59 @@
+name: Configuration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  MISE_VERSION: 2026.10.0
+
+jobs:
+  check:
+    name: Check
+    runs-on: macos-14
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: ${{ env.MISE_VERSION }}
+          install: false
+
+      - name: Check shell syntax
+        run: |
+          bash -n install.sh uninstall.sh home/.local/bin/*
+          zsh -n home/.zshenv home/.config/zsh/.zprofile home/.config/zsh/.zshrc
+
+      - name: Check Git configuration
+        run: git config --file home/.config/git/config --list >/dev/null
+
+      - name: Check GitHub CLI configuration
+        env:
+          GH_CONFIG_DIR: ${{ github.workspace }}/home/.config/gh
+        run: |
+          test "$(gh config get git_protocol)" = https
+          test "$(gh config get editor)" = nvim
+          test "$(gh config get pager)" = delta
+          test "$(gh alias list | awk '$1 == "co:" { print $2, $3 }')" = "pr checkout"
+
+      - name: Check Mise configuration
+        run: mise config get --file mise.toml >/dev/null
+
+      - name: Check dotfile bootstrap
+        run: mise bootstrap --dry-run --yes --skip packages,services,user
+
+      - name: Check whitespace
+        run: git diff --check HEAD

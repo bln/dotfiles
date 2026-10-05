@@ -1,0 +1,29 @@
+gui:
+  filterMode: fuzzy
+  theme:
+    activeBorderColor:
+      - "#98c379"
+      - bold
+    inactiveBorderColor:
+      - "#5c6370"
+    searchingActiveBorderColor:
+      - "#56b6c2"
+      - bold
+    optionsTextColor:
+      - "#61afef"
+    selectedLineBgColor:
+      - "#3e4451"
+    inactiveViewSelectedLineBgColor:
+      - "#282c34"
+    unstagedChangesColor:
+      - "#e06c75"
+    defaultFgColor:
+      - "#abb2bf"
+
+git:
+  diffRenderers:
+    - command: delta --dark --paging=never --line-numbers --syntax-theme=OneHalfDark
+      colorArg: always
+
+os:
+  editPreset: nvim

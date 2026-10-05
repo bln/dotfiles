@@ -1,0 +1,12 @@
+{
+  "disableArtifact": true,
+  "disableClaudeAiConnectors": true,
+  "disableRemoteControl": true,
+  "disableWorkflows": true,
+  "permissions": {
+    "deny": [
+      "NotebookEdit",
+      "RemoteTrigger"
+    ]
+  }
+}

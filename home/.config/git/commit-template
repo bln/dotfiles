@@ -1,0 +1,9 @@
+# Conventional Commit format: type(scope): summary
+#
+# Types: feat, fix, docs, refactor, test, build, ci, chore, revert
+# Keep the summary concise, imperative, and without a trailing period.
+# Add a scope when it makes the affected area clearer, for example `git` or
+# `zsh`.
+#
+# Body and footer are optional. Separate them from the summary with a blank line.
+# Use a footer for references such as `Fixes #123`.

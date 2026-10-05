@@ -1,0 +1,23 @@
+[
+  {
+    "context": "Workspace && !menu",
+    "use_key_equivalents": true,
+    "bindings": {
+      "cmd-alt-ctrl-shift-,": "zed::OpenSettingsFile",
+    },
+  },
+  {
+    "context": "Editor && extension == md",
+    "use_key_equivalents": true,
+    "bindings": {
+      "cmd-alt-ctrl-?": "markdown::OpenPreview",
+    },
+  },
+  {
+    "context": "MarkdownPreview",
+    "use_key_equivalents": true,
+    "bindings": {
+      "cmd-alt-ctrl-?": "markdown::CloseAndReturnToEditor",
+    },
+  },
+]

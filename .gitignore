@@ -1,0 +1,58 @@
+# Local repository state
+FINDINGS.md
+backup/
+research/
+
+# macOS
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors and generated files
+*.swp
+*.swo
+*~
+*.bak
+*.log
+.vscode/
+.idea/
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+!.env.sample
+.claude/settings.local.json
+
+# Machine-local files that may live beside managed files in the mise dotfiles tree.
+home/.zshrc.local
+home/.config/git/identity-*
+
+# home/ mirrors $HOME. Keep agent runtime state local, but allow the
+# repository-owned instructions, extensions, and skills below.
+home/.agents/**
+!home/.agents/skills/
+!home/.agents/skills/**
+home/.pi/**
+!home/.pi/agent/
+!home/.pi/agent/AGENTS.md
+!home/.pi/agent/extensions/
+!home/.pi/agent/extensions/friendly-footer.ts
+home/.codex/**
+!home/.codex/
+!home/.codex/AGENTS.md
+home/.claude/**
+!home/.claude/
+!home/.claude/CLAUDE.md
+!home/.claude/skills/
+!home/.claude/skills/**
+
+# Local package-manager artifacts

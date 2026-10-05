@@ -1,0 +1,137 @@
+// Zed user settings.
+//
+// This file is managed from the dotfiles repository and deployed to:
+// ~/.config/zed/settings.json
+{
+  "disable_ai": true,
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Zed (Default)",
+    "dark": "Zed (Default)",
+  },
+  "vim_mode": true,
+  "vim": {
+    "toggle_relative_line_numbers": true,
+    "highlight_on_yank_duration": 200,
+    "use_smartcase_find": true,
+    "cursor_shape": {
+      "normal": "block",
+      "insert": "bar",
+      "replace": "underline",
+      "visual": "hollow",
+    },
+  },
+  "terminal": {
+    "button": true,
+    "font_size": 16.0,
+    "font_family": "JetBrainsMono Nerd Font",
+    "max_scroll_history_lines": 10000,
+  },
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
+  },
+  "base_keymap": "VSCode",
+  "preview_tabs": {
+    "enabled": false,
+  },
+  "tabs": {
+    "git_status": true,
+  },
+  "markdown_preview": {
+    "open_markdown_files_in_preview": true,
+  },
+  "languages": {
+    "Markdown": {
+      "remove_trailing_whitespace_on_save": false,
+    },
+  },
+  "minimap": {
+    "show": "never",
+  },
+  "status_bar": {
+    "show_active_file": true,
+    "active_language_button": true,
+    "cursor_position_button": true,
+    "line_endings_button": true,
+    "active_encoding_button": "non_utf8",
+    "pending_keystrokes_indicator": true,
+  },
+  "line_indicator_format": "short",
+  "global_lsp_settings": {
+    "button": true,
+  },
+  "project_panel": {
+    "button": true,
+  },
+  "outline_panel": {
+    "button": true,
+  },
+  "git_panel": {
+    "button": true,
+    "status_style": "icon",
+  },
+  "diagnostics": {
+    "button": true,
+  },
+  "search": {
+    "button": false,
+  },
+  "collaboration_panel": {
+    "button": false,
+  },
+  "debugger": {
+    "button": false,
+  },
+  "gutter": {
+    "line_numbers": true,
+  },
+  "current_line_highlight": "all",
+  "hard_tabs": false,
+  "soft_wrap": "none",
+  "preferred_line_length": 100,
+  "horizontal_scroll_margin": 8,
+  "cursor_blink": true,
+  "autosave": "on_focus_change",
+  "buffer_font_fallbacks": ["Menlo"],
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "file_scan_exclusions": [
+    "**/.DS_Store",
+    "**/.git",
+    "**/.hg",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+    "**/.svn",
+    "**/.venv",
+    "**/CVS",
+    "**/Thumbs.db",
+    "**/__pycache__",
+    "**/node_modules",
+    "...",
+  ],
+  "linked_edits": true,
+  "show_whitespaces": "boundary",
+  "use_smartcase_search": true,
+  "line_ending": "detect",
+  "ensure_final_newline_on_save": true,
+  "format_on_save": "on",
+  "remove_trailing_whitespace_on_save": true,
+  "wrap_guides": [100],
+  "tab_size": 2,
+  "vertical_scroll_margin": 8,
+  "ui_font_size": 16,
+  "buffer_font_size": 16.0,
+  "theme": {
+    "mode": "dark",
+    "light": "One Light",
+    "dark": "One Dark",
+  },
+  "theme_overrides": {
+    "One Dark": {
+      "status_bar.background": "#21252b",
+    },
+    "Gruvbox Dark": {
+      "status_bar.background": "#282828",
+    },
+  },
+}

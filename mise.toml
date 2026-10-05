@@ -1,0 +1,175 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+# Canonical machine setup.
+# This file is also deployed to ~/.config/mise/config.toml.
+
+min_version = "2026.10.0"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["macos-arm64"]
+dotfiles.default_mode = "symlink"
+dotfiles.relative_symlinks = true
+minimum_release_age = "2d"
+minimum_release_age_excludes = ["claude-code", "codex", "pi"]
+
+[settings.github]
+credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
+
+[env]
+# Use Neovim consistently for shell, Git, mise, and interactive tools.
+EDITOR = "nvim"
+VISUAL = "nvim"
+GIT_EDITOR = "nvim"
+NPM_CONFIG_USERCONFIG = "{{env.HOME}}/.config/npm/npmrc"
+
+# Keep cask applications in the user-owned Applications directory.
+MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
+
+# Mise-managed tools use mise activation; Homebrew package binaries use the
+# canonical Homebrew-compatible prefix.
+_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
+
+[tools]
+# Managed runtimes.
+node = "lts"
+uv = "latest"
+
+# Managed command-line tools.
+claude-code = "latest"
+codex = "latest"
+neovim = "latest"
+pi = "latest"
+
+[bootstrap.secrets]
+git_personal_name = {
+  env = "GIT_PERSONAL_NAME",
+  description = "Personal Git user name",
+}
+git_personal_email = {
+  env = "GIT_PERSONAL_EMAIL",
+  description = "Personal Git email",
+}
+git_work_name = {
+  env = "GIT_WORK_NAME",
+  description = "Work Git user name",
+}
+git_work_email = {
+  env = "GIT_WORK_EMAIL",
+  description = "Work Git email",
+}
+
+[bootstrap.packages]
+# Required host package.
+"brew:git" = "latest"
+
+# Command-line tools.
+"brew:atuin" = "latest"
+"brew:bat" = "latest"
+"brew:bottom" = "latest"
+"brew:git-delta" = "latest"
+"brew:eza" = "latest"
+"brew:fd" = "latest"
+"brew:fzf" = "latest"
+"brew:gh" = "latest"
+"brew:lazygit" = "latest"
+"brew:ripgrep" = "latest"
+"brew:rtk" = "latest"
+"brew:starship" = "latest"
+"brew:yazi" = "latest"
+"brew:zoxide" = "latest"
+
+# Interactive Zsh plugins.
+"brew:zsh-autosuggestions" = "latest"
+"brew:zsh-syntax-highlighting" = "latest"
+
+# Mise cask identifiers use the brew-cask:<token> form.
+"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
+"brew-cask:ghostty" = "latest"
+"brew-cask:zed" = "latest"
+"brew-cask:typora" = "latest"
+
+[bootstrap.macos.dock]
+tilesize = 48
+autohide = true
+show_recents = false
+mru_spaces = false
+autohide_delay = 0.0
+autohide_time_modifier = 0.2
+
+[bootstrap.macos.finder]
+show_pathbar = true
+show_status_bar = true
+preferred_view_style = "list"
+show_extensions_warning = false
+sort_folders_first = true
+
+[bootstrap.macos.keyboard]
+key_repeat = 2
+initial_key_repeat = 15
+press_and_hold = false
+
+[bootstrap.macos.trackpad]
+tap_to_click = true
+
+[bootstrap.macos.defaults]
+"NSGlobalDomain" = {
+  AppleInterfaceStyleSwitchesAutomatically = true,
+NSTableViewDefaultSizeMode = 3,
+}
+
+"com.apple.finder" = {
+  FXDefaultSearchScope = "SCcf",
+}
+
+"com.apple.desktopservices" = {
+  DSDontWriteNetworkStores = true,
+DSDontWriteUSBStores = true,
+}
+
+"com.apple.spaces" = {
+  "spans-displays" = false,
+}
+
+"com.apple.TextEdit" = {
+  RichText = 0,
+PlainTextEncoding = 4,
+PlainTextEncodingForWrite = 4,
+}
+
+"com.apple.ActivityMonitor" = {
+  OpenMainWindow = true,
+ShowCategory = 0,
+SortColumn = "CPUUsage",
+}
+
+[bootstrap.hooks]
+post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+[dotfiles]
+"~" = {
+  source = "home",
+mode = "symlink-each",
+manifest = "git",
+}
+
+"~/.config/git/identity-personal" = {
+  source = "templates/git/identity-personal.tmpl",
+  mode = "template",
+  permissions = "0600",
+}
+
+"~/.config/git/identity-work" = {
+  source = "templates/git/identity-work.tmpl",
+  mode = "template",
+  permissions = "0600",
+}
+
+"~/.config/mise/config.toml" = {
+  source = "mise.toml",
+mode = "symlink",
+}
+
+"~/.config/mise/mise.lock" = {
+  source = "mise.lock",
+mode = "symlink",
+}

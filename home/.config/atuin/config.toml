@@ -1,0 +1,3 @@
+# Keep Atuin local to this machine. Do not enable network checks or automatic sync.
+auto_sync = false
+update_check = false
