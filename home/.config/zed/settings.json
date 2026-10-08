@@ -3,6 +3,7 @@
 // This file is managed from the dotfiles repository and deployed to:
 // ~/.config/zed/settings.json
 {
+  "cli_default_open_behavior": "new_window",
   "disable_ai": true,
   "icon_theme": {
     "mode": "dark",
