@@ -13,23 +13,33 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs mise, trusts this checkout, prompts for private Git identity
-values, installs the declared tools, applies macOS settings, and deploys the files
-under `home/`.
+The installer installs mise, prompts for private Git identity values, installs the
+managed tools, applies macOS settings, and deploys the files under `home/`. It
+uses the repository's checked-in global mise configuration during the initial
+bootstrap, before that configuration has been linked into `$HOME`.
 
 ## Ownership
 
 | Source | Responsibility |
 | --- | --- |
-| `mise.toml` | Tools, packages, macOS preferences, dotfile declarations, and templates |
-| `mise.lock` | Locked tool artifacts for macOS Apple Silicon |
+| `home/.config/mise/config.toml` | Global machine settings, tools, packages, and macOS bootstrap declarations |
+| `home/.config/mise/mise.lock` | Locked global tool artifacts for macOS Apple Silicon |
+| `mise.toml` | Repository project configuration for dotfiles and templates |
 | `home/` | Files deployed into their native `$HOME` locations with `symlink-each` |
 | `templates/git/` | Private rendered Git identity files |
 | `install.sh` | Initial mise bootstrap |
 | `uninstall.sh` | Explicit mise-native teardown |
 
-`mise.toml` and `mise.lock` are also linked into mise's native configuration
-location under `~/.config/mise/`.
+The global mise configuration and lockfile are part of `home/`, so the existing
+whole-home dotfile declaration deploys them to:
+
+```text
+~/.config/mise/config.toml
+~/.config/mise/mise.lock
+```
+
+The root `mise.toml` remains the project configuration for repository-relative
+dotfile sources. It does not declare machine-wide tools.
 
 ## Configuration layout
 
@@ -109,13 +119,16 @@ For a deliberate dotfile deployment that overwrites conflicting files:
 mise dot apply --force --yes
 ```
 
-Use the global context when locking or installing tools declared by this global
+Use the global context when locking or installing tools declared by the global
 configuration:
 
 ```sh
 mise lock --global
 mise install
 ```
+
+The global lockfile is `home/.config/mise/mise.lock`. A root `mise.lock` is only
+needed if this repository later declares project-specific tools.
 
 Upgrade managed tools with `mise upgrade`. Refresh locked artifacts only when
 intended with `mise lock --global --bump`.

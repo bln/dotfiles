@@ -15,6 +15,7 @@ concurrency:
 
 env:
   MISE_VERSION: 2026.10.0
+  MISE_CONFIG_DIR: ${{ github.workspace }}/home/.config/mise
 
 jobs:
   check:
@@ -50,7 +51,10 @@ jobs:
           test "$(gh alias list | awk '$1 == "co:" { print $2, $3 }')" = "pr checkout"
 
       - name: Check Mise configuration
-        run: mise config get --file mise.toml >/dev/null
+        run: |
+          mise config get --file mise.toml >/dev/null
+          mise config get --global >/dev/null
+          test -f home/.config/mise/mise.lock
 
       - name: Check dotfile bootstrap
         run: mise bootstrap --dry-run --yes --skip packages,services,user

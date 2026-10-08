@@ -2,6 +2,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+global_config_dir="$repo/home/.config/mise"
 
 dry_run=0
 case "${1:-}" in
@@ -43,7 +44,7 @@ if ((dry_run)); then
   bootstrap_args=(--dry-run --yes)
 else
   bootstrap_args=(--yes --prompt-secrets --force-dotfiles)
-  "$mise_bin" trust "$repo/mise.toml"
 fi
 
-"$mise_bin" -C "$repo" bootstrap "${bootstrap_args[@]}"
+MISE_CONFIG_DIR="$global_config_dir" \
+  "$mise_bin" -C "$repo" bootstrap "${bootstrap_args[@]}"

@@ -4,9 +4,11 @@ This is a personal macOS dotfiles repository.
 
 ## Source of truth
 
-- `mise.toml` owns tools, packages, macOS preferences, dotfile declarations, and
-  templates.
-- `mise.lock` pins the macOS Apple Silicon tool artifacts.
+- `home/.config/mise/config.toml` owns global tools, packages, macOS preferences,
+  environment, and mise settings.
+- `home/.config/mise/mise.lock` pins the global macOS Apple Silicon tool artifacts.
+- `mise.toml` owns this repository's dotfile declarations, template inputs, and
+  repository-relative deployment policy.
 - `home/` mirrors `$HOME`; mise deploys it with `symlink-each`.
 - Credentials, sessions, caches, databases, and application state stay in native
   machine-local locations and are never tracked.
