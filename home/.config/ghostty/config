@@ -15,12 +15,13 @@ window-padding-x = 12
 window-padding-y = 10
 
 # ── cursor ────────────────────────────────────────────────────────────────────
-cursor-style = bar
+# Use a standard full-cell cursor and keep it blinking at the command prompt.
+cursor-style = block
 cursor-style-blink = true
 
 # ── shell ─────────────────────────────────────────────────────────────────────
 shell-integration = zsh
-shell-integration-features = cursor,sudo,title
+shell-integration-features = no-cursor,sudo,title
 
 # ── clipboard ─────────────────────────────────────────────────────────────────
 copy-on-select = clipboard
