@@ -23,6 +23,8 @@ alias q='exit'
 alias v='nvim'
 alias cc='z'
 alias dc='z'
+alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
+alias cxauto='codex --approve-for-me'
 
 # Git and workflow shortcuts.
 alias gcm='git switch "$(git main-branch)" && git pull'
