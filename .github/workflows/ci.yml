@@ -14,7 +14,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  MISE_VERSION: 2026.10.0
   MISE_CONFIG_DIR: ${{ github.workspace }}/home/.config/mise
 
 jobs:
@@ -30,7 +29,6 @@ jobs:
       - name: Set up mise
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          version: ${{ env.MISE_VERSION }}
           install: false
 
       - name: Check shell syntax
