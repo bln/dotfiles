@@ -1,7 +1,7 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 # Project configuration for this repository's dotfile deployment.
 
-min_version = "2026.10.0"
+min_version = "2026.10.5"
 
 [settings]
 dotfiles.default_mode = "symlink"

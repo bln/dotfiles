@@ -2,7 +2,7 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.0"
+min_version = "2026.10.5"
 
 [settings]
 lockfile = true
@@ -32,11 +32,11 @@ _.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
 node = "lts"
 uv = "latest"
 
-# Managed command-line tools.
-claude-code = "latest"
-codex = "latest"
+# Coding agents check for updates before they run, using mise's default interval.
+claude-code = { version = "latest", auto_update = true }
+codex = { version = "latest", auto_update = true }
 neovim = "latest"
-pi = "latest"
+pi = { version = "latest", auto_update = true }
 
 [bootstrap.packages]
 # Required host package.

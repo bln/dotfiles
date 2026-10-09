@@ -116,6 +116,10 @@ mise-managed tools are installed, upgrades the configured tools and packages,
 applies the repository dotfiles, and updates mise itself. It uses the canonical
 `~/dotfiles` checkout when applying the repository configuration.
 
+The coding agents `claude-code`, `codex`, and `pi` use mise's `auto_update = true`.
+Mise checks for an update before running each agent, at its default 24-hour
+interval. This requires mise 2026.10.5 or newer.
+
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
 and dry-run bootstrap checks on macOS.
 
