@@ -124,3 +124,27 @@ SortColumn = "CPUUsage",
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+[tasks.bootstrap]
+description = "Ensure uv's default stable Python is installed"
+run = '''
+uv_bin_dir="$(uv python dir --bin)"
+default_python="$uv_bin_dir/python"
+
+if [ ! -x "$default_python" ] || ! uv python find --no-project --managed-python "$default_python" >/dev/null 2>&1; then
+  uv python install --default
+  uv python find --no-project --managed-python "$default_python" >/dev/null
+fi
+'''
+
+[tasks.update]
+description = "Update mise tools, packages, plugins, and dotfiles"
+dir = "{{ env.HOME }}/dotfiles"
+run = [
+  "mise bootstrap --only tools,task --yes --prompt-secrets",
+  "mise upgrade",
+  "mise bootstrap packages apply --update --yes",
+  "mise bootstrap packages upgrade --yes",
+  "mise dot apply --force --yes --prompt-secrets",
+  "mise self-update --yes",
+]

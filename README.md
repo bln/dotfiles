@@ -108,7 +108,13 @@ mise bootstrap --prompt-secrets
 mise bootstrap status --missing
 mise dot status --missing
 mise doctor
+mise run update
 ```
+
+The global `mise run update` task can be run from any directory. It ensures
+mise-managed tools are installed, upgrades the configured tools and packages,
+applies the repository dotfiles, and updates mise itself. It uses the canonical
+`~/dotfiles` checkout when applying the repository configuration.
 
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
 and dry-run bootstrap checks on macOS.
