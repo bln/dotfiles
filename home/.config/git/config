@@ -133,3 +133,8 @@
 	root   = rev-parse --show-toplevel
 	whoami = "!git config user.name && git config user.email"
 	aliases = "!git config --get-regexp '^alias\\.' | sed 's/alias\\.//'"
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
