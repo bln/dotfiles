@@ -2,13 +2,14 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.5"
+min_version = "2026.10.4"
 
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 minimum_release_age = "2d"
 minimum_release_age_excludes = ["claude-code", "codex", "pi"]
+disable_backends = ["asdf", "vfox", "ubi", "conda", "gem", "pypi"]
 
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
@@ -41,8 +42,11 @@ pi = { version = "latest", auto_update = true }
 [bootstrap.packages]
 # Required host package.
 "brew:git" = "latest"
+"brew:mas" = "latest"
 
 # Command-line tools.
+"brew:jq" = "latest"
+"brew:wget" = "latest"
 "brew:atuin" = "latest"
 "brew:bat" = "latest"
 "brew:bottom" = "latest"
@@ -51,12 +55,15 @@ pi = { version = "latest", auto_update = true }
 "brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:gh" = "latest"
-"brew:lazygit" = "latest"
+"brew:gitui" = "latest"
 "brew:ripgrep" = "latest"
 "brew:rtk" = "latest"
 "brew:starship" = "latest"
 "brew:yazi" = "latest"
 "brew:zoxide" = "latest"
+"brew:tokei" = "latest"
+"brew:shellcheck" = "latest"
+"brew:mole" = "latest"
 
 # Interactive Zsh plugins.
 "brew:zsh-autosuggestions" = "latest"
@@ -64,9 +71,16 @@ pi = { version = "latest", auto_update = true }
 
 # Mise cask identifiers use the brew-cask:<token> form.
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
+"brew-cask:font-fira-code-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:zed" = "latest"
+"brew-cask:bloom" = "latest"
 "brew-cask:typora" = "latest"
+"brew-cask:smoothcsv" = "latest"
+"brew-cask:antinote" = "latest"
+"brew-cask:obsidian" = "latest"
+"brew-cask:shottr" = "latest"
+"brew-cask:github" = "latest"
 
 [bootstrap.macos.dock]
 tilesize = 48
@@ -93,7 +107,6 @@ tap_to_click = true
 
 [bootstrap.macos.defaults]
 "NSGlobalDomain" = {
-  AppleInterfaceStyleSwitchesAutomatically = true,
 NSTableViewDefaultSizeMode = 3,
 }
 
