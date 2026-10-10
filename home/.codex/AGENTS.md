@@ -47,3 +47,10 @@ tracked files.
 Answer first and keep responses dense. Show file paths and changed lines rather
 than whole files unless requested. Use hyphens, not em dashes. Use Conventional
 Commits for commit messages.
+
+## Command output
+
+Command output here is condensed to save tokens, keeping every signal and dropping costly noise. Treat it as the complete result: run commands
+normally, and batch related commands into one call to avoid extra turns.
+Truncated results state their recovery path in their own output. Re-run a
+command as `rtk proxy <cmd>` only when its result is unusable: empty when output was clearly expected, contradicting its exit code, or garbled.
