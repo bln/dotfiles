@@ -1,83 +1,57 @@
 # Working in this repo
 
-This is a personal macOS dotfiles repository.
+Personal macOS dotfiles repository. Keep changes small, explicit, and reversible.
 
-## Source of truth
+## Ownership
 
-- `home/.config/mise/config.toml` owns global tools, packages, macOS preferences,
-  environment, and mise settings.
-- `home/.config/mise/mise.lock` pins the global macOS Apple Silicon tool artifacts.
-- `mise.toml` owns this repository's dotfile declarations, template inputs, and
-  repository-relative deployment policy.
+- `home/.config/mise/config.toml` owns global tools, packages, environment, macOS
+  preferences, and mise settings.
+- `home/.config/mise/mise.lock` pins global macOS Apple Silicon tool artifacts.
+- `mise.toml` owns repository dotfile declarations, templates, and deployment policy.
 - `home/` mirrors `$HOME`; mise deploys it with `symlink-each`.
-- Credentials, sessions, caches, databases, and application state stay in native
-  machine-local locations and are never tracked.
+- Credentials, sessions, caches, databases, generated state, and application state
+  stay in native machine-local locations and are never tracked.
 - Prefer native mise, Git, and macOS commands over repository wrappers.
 
 ## Change loop
 
-1. Inspect the relevant files, callers, configuration, and current live state.
-2. Make the smallest coherent change that keeps behavior visible.
-3. Exercise the shipped artifact in its real setting and read the output.
-4. Review the staged file list before committing and report any unchecked result.
+1. Inspect relevant files, callers, configuration, and live state.
+2. Make the smallest coherent change.
+3. Exercise the shipped artifact in its real setting and read the result.
+4. Review the staged file list before committing and report unchecked results.
 
-Use Conventional Commits. Ask before pushing, deleting unrelated files, changing
-skills, or making destructive cleanup. Never commit secrets or generated state.
+Use Conventional Commits. Ask before deleting unrelated files, changing skills,
+committing, pushing, or making destructive cleanup. Never commit secrets or
+generated state. Use `mise lock --global` and the normal mise install flow for
+global tools.
 
-When locking or installing tools declared by this global configuration, use
-`mise lock --global` and the repository's normal mise install flow.
+## Native paths
 
-## XDG and native paths
+- `home/.zshenv` establishes XDG roots and `ZDOTDIR=$HOME/.config/zsh`.
+- Keep login and interactive Zsh files under `home/.config/zsh/`; the root
+  `.zshenv` is the required bootstrap shim.
+- Keep npm configuration at `home/.config/npm/npmrc` via
+  `NPM_CONFIG_USERCONFIG`.
+- Do not create alternate configuration homes, arbitrary XDG paths, or repository
+  runtime directories.
 
-`home/.zshenv` establishes the XDG configuration, cache, data, and state roots
-and sets `ZDOTDIR=$HOME/.config/zsh`. Keep the managed login and interactive
-startup files under `home/.config/zsh/`; the root `.zshenv` is the required
-bootstrap shim.
+## Editors and keybindings
 
-Do not create a second configuration home, set arbitrary XDG search paths, or move
-runtime data into the repository. Machine-local state belongs outside `home/`.
-
-## Editors
-
-- Neovim is managed by mise and configured in `home/.config/nvim/init.lua`.
-- Native Vim remains configured by `home/.config/vim/vimrc` and
-  `home/.config/vim/colors/`.
-- `home/.config/npm/npmrc` is the npm configuration; `NPM_CONFIG_USERCONFIG`
-  points npm to this path.
-- `nvim` is the configured `EDITOR`, `VISUAL`, `GIT_EDITOR`, Git editor, and
-  LazyGit edit preset.
-- The shell may define `v='nvim'` as a convenience alias.
-- Keep `vim` as the native Vim command. Do not alias or wrap `vim` to invoke
-  Neovim.
-- Keep both editors plugin-free unless the user explicitly chooses a different
-  architecture.
-
-The two editors share the `mini-onedark` colorscheme. Keep its semantic roles
-aligned with Ghostty, Starship, fzf, eza, delta, and LazyGit rather than adding a
-competing editor palette.
-
-## Keybindings
-
-Keybindings are a shared product decision across Vim, Neovim, Zed, and the shell:
-
+- Neovim uses `home/.config/nvim/init.lua`; native Vim uses
+  `home/.config/vim/vimrc` and stays basic, plugin-free, and unthemed.
+- `nvim` is the editor for the shell, Git, and mise. Keep `vim` native;
+  never alias or wrap it to invoke Neovim.
+- Keep both editors plugin-free. Neovim uses the `mini-onedark` palette; native
+  Vim uses the terminal's default colors.
 - Preserve native Vim motions, Space behavior, and the Ctrl-W pane namespace.
-- Use Space as the Vim/Neovim leader only for deliberate editor commands.
-- Prefer native actions over custom mappings when the tool already expresses the
-  intent.
-- Use `[b` and `]b` for buffer navigation, `[e` and `]e` for visual line movement,
-  and `jk` in insert mode for returning to normal mode.
-- Do not recreate Zed's language-server, Tree-sitter, or multi-cursor bindings in
-  Vim or Neovim.
-- Keep Zed's application-specific bindings on Hyperkey; Space retains its native
-  Vim meaning there.
-- Check the existing keymap before adding a binding and avoid mappings that fight
-  a native prefix or motion.
+  Use Space as leader only for deliberate editor commands.
+- Keep `[b`/`]b`, `[e`/`]e`, and insert-mode `jk` bindings. Do not copy Zed's
+  language-server, Tree-sitter, or multi-cursor bindings into Vim or Neovim.
+- Keep Zed-specific bindings on Hyperkey; Space retains its native Vim meaning.
 
-## Shell and terminal tools
+## Shell and terminal
 
-Keep native `ls` and `cat` behavior. Convenience aliases may use eza, but `ls`
-remains `command ls -G` and `cat` is not replaced. Atuin owns Ctrl-R, fzf owns
-Ctrl-T and Alt-C, and native Zsh owns prefix-aware Up-arrow history search.
-
-Themes use the One Dark palette from Ghostty's `mini-onedark` theme. Bottom and
-Yazi should use terminal colors unless a deliberate native theme is added.
+- Keep native `ls` and `cat`; `ls` remains `command ls -G` and `cat` is not replaced.
+- Atuin owns Ctrl-R, fzf owns Ctrl-T and Alt-C, and native Zsh owns prefix-aware
+  Up-arrow history search.
+- Keep Bottom and Yazi on terminal colors unless a deliberate native theme is added.

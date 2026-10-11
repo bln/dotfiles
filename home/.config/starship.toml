@@ -12,15 +12,6 @@ status = "#e5c07b"
 success = "#98c379"
 error = "#e06c75"
 
-[palettes.mini-gruvbox]
-prompt = "#ebdbb2"
-muted = "#928374"
-dir = "#83a598"
-branch = "#d3869b"
-status = "#fabd2f"
-success = "#b8bb26"
-error = "#fb4934"
-
 [directory]
 format = "[$path]($style)"
 style = "dir"

@@ -131,7 +131,6 @@ if (( $+commands[yazi] )); then
   }
 fi
 
-alias lg='lazygit'
 
 # Starship renders the prompt and manages its Zsh hooks.
 eval "$(starship init zsh)"

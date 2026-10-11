@@ -1,5 +1,5 @@
 -- Plugin-free Neovim configuration.
--- The mini-onedark colorscheme is shared with native Vim via ~/.config/vim/colors.
+-- Neovim uses a small Vim-compatible theme without plugins.
 
 -- Keep mise-managed tools available when Neovim starts outside an interactive
 -- shell, such as from a GUI editor or a Git client.

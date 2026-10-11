@@ -55,7 +55,6 @@ The `home/` tree mirrors the target home directory:
   Conventional Commit template.
 - `home/.config/gh/config.yml` contains GitHub CLI defaults and aliases;
   authentication remains in GitHub's native machine-local state.
-- `home/.config/lazygit/config.yml` contains the LazyGit configuration.
 - `home/.config/nvim/init.lua` contains the plugin-free Neovim configuration.
 - `home/.config/vim/vimrc` and `home/.config/vim/colors/` contain the native
   Vim configuration and the shared `mini-onedark` colorscheme.
@@ -72,7 +71,7 @@ configuration homes or track generated application state.
 
 ## Editors and keybindings
 
-Neovim is installed and updated through mise. The shell, Git, LazyGit, and mise
+Neovim is installed and updated through Homebrew. The shell, Git, and mise
 all use `nvim` as their editor. The only editor alias is `v='nvim'`; `vim` remains
 the native Vim command and is never aliased to Neovim.
 
@@ -116,9 +115,8 @@ mise-managed tools are installed, upgrades the configured tools and packages,
 applies the repository dotfiles, and updates mise itself. It uses the canonical
 `~/dotfiles` checkout when applying the repository configuration.
 
-The coding agents `claude-code`, `codex`, and `pi` use mise's `auto_update = true`.
-Mise checks for an update before running each agent, at its default 24-hour
-interval. This requires mise 2026.10.5 or newer.
+The coding agents `claude-code`, `codex`, and `pi`, along with Neovim, are
+managed as Homebrew packages. Update them with `mise bootstrap packages upgrade`.
 
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
 and dry-run bootstrap checks on macOS.

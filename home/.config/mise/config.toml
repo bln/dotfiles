@@ -8,7 +8,6 @@ min_version = "2026.10.6"
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 minimum_release_age = "2d"
-minimum_release_age_excludes = ["claude-code", "codex", "pi"]
 disable_backends = ["asdf", "vfox", "ubi", "conda", "gem", "pypi"]
 
 [settings.github]
@@ -31,12 +30,6 @@ MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 # Managed runtimes.
 node = "lts"
 uv = "latest"
-
-# Coding agents check for updates before they run, using mise's default interval.
-claude-code = { version = "latest", auto_update = true }
-codex = { version = "latest", auto_update = true }
-neovim = "latest"
-pi = { version = "latest", auto_update = true }
 
 [bootstrap.packages]
 # Required host package.
@@ -63,6 +56,12 @@ pi = { version = "latest", auto_update = true }
 "brew:tokei" = "latest"
 "brew:shellcheck" = "latest"
 "brew:mole" = "latest"
+
+# Coding agents and editor.
+"brew-cask:claude-code" = "latest"
+"brew-cask:codex" = "latest"
+"brew:neovim" = "latest"
+"brew:pi-coding-agent" = "latest"
 
 # Interactive Zsh plugins.
 "brew:zsh-autosuggestions" = "latest"
