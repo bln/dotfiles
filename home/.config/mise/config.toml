@@ -24,9 +24,8 @@ NPM_CONFIG_USERCONFIG = "{{env.HOME}}/.config/npm/npmrc"
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
 
-# Mise-managed tools use mise activation; Homebrew package binaries use the
-# canonical Homebrew-compatible prefix.
-_.path = ["{{env.HOME}}/.local/bin", "/opt/homebrew/bin", "/opt/homebrew/sbin"]
+# Mise-managed tools use mise activation. Homebrew package paths are declared
+# in the login shell before activation so mise can place managed paths first.
 
 [tools]
 # Managed runtimes.
