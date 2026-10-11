@@ -1,6 +1,7 @@
 ---
 name: publish-static-site-to-github-pages
 description: Publish a prebuilt static site (any generator or hand-written HTML) to GitHub Pages.
+disable-model-invocation: true
 ---
 
 # Publish a static site to GitHub Pages
@@ -41,17 +42,17 @@ gh api "repos/$R/pages" --jq '{build_type, source, html_url}' 2>/dev/null \
 
 What each probe tells you, and what it changes downstream:
 
-| Probe | Question | Drives |
-|---|---|---|
-| `gh auth status` | github.com or an Enterprise host? | URL scheme and Pages domain |
-| `.owner.type` | User or Organization? | The base **path** (owner segment) |
-| `.private` | Private repo? | Whether the served site is behind an SSO wall |
-| `actions/permissions` `.enabled` | Are Actions usable? | Deploy strategy: Actions workflow vs `gh-pages` branch |
-| `pages` `.html_url` | Is Pages on, and where does it serve? | Ground truth for the base path |
+| Probe                            | Question                              | Drives                                                 |
+| -------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `gh auth status`                 | github.com or an Enterprise host?     | URL scheme and Pages domain                            |
+| `.owner.type`                    | User or Organization?                 | The base **path** (owner segment)                      |
+| `.private`                       | Private repo?                         | Whether the served site is behind an SSO wall          |
+| `actions/permissions` `.enabled` | Are Actions usable?                   | Deploy strategy: Actions workflow vs `gh-pages` branch |
+| `pages` `.html_url`              | Is Pages on, and where does it serve? | Ground truth for the base path                         |
 
 Record the host, owner type, visibility, whether Actions are usable, and the Pages state. Once Pages is enabled, its `html_url` (probe 5) is the ground truth for the base path - trust it over any formula.
 
-> **The Actions probe has a trap.** On some Enterprise instances Actions is disabled org- or instance-wide by admins. The repo-level toggle then *silently no-ops*: a `PUT` returns success but the value stays `false`. Always write, then re-read to confirm:
+> **The Actions probe has a trap.** On some Enterprise instances Actions is disabled org- or instance-wide by admins. The repo-level toggle then _silently no-ops_: a `PUT` returns success but the value stays `false`. Always write, then re-read to confirm:
 >
 > ```bash
 > gh api -X PUT "repos/$R/actions/permissions" -F enabled=true >/dev/null 2>&1 || true
@@ -62,10 +63,10 @@ Record the host, owner type, visibility, whether Actions are usable, and the Pag
 
 Pick from the probe results:
 
-| Actions usable? | Strategy |
-|---|---|
-| **Yes** | GitHub Actions workflow: build in CI, deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`. Requires Pages source = "GitHub Actions" (`build_type=workflow`). |
-| **No** (admin-disabled, or you want zero CI) | **Local build → `gh-pages` branch.** Build locally, force-push the built output to a `gh-pages` branch that Pages serves from. No CI needed. |
+| Actions usable?                              | Strategy                                                                                                                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Yes**                                      | GitHub Actions workflow: build in CI, deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`. Requires Pages source = "GitHub Actions" (`build_type=workflow`). |
+| **No** (admin-disabled, or you want zero CI) | **Local build → `gh-pages` branch.** Build locally, force-push the built output to a `gh-pages` branch that Pages serves from. No CI needed.                                  |
 
 The branch strategy is the robust default - it works everywhere, including instances where Actions is locked. The rest of this skill assumes it. If Actions is available and you prefer CI, use the standard Pages Actions workflow instead.
 
@@ -94,11 +95,11 @@ gh api "repos/$R/pages" --jq '.html_url'
 
 Static sites break subtly when links and assets assume the wrong root. The path depends on host and owner type:
 
-| Host / kind | Served at | Base path |
-|---|---|---|
-| github.com, project site | `https://<owner>.github.io/<repo>/` | `/<repo>/` |
-| github.com, user/org root (repo named `<owner>.github.io`) | `https://<owner>.github.io/` | `/` |
-| Enterprise, project site | `https://pages.<enterprise-domain>/<owner>/<repo>/` | `/<owner>/<repo>/` |
+| Host / kind                                                | Served at                                           | Base path          |
+| ---------------------------------------------------------- | --------------------------------------------------- | ------------------ |
+| github.com, project site                                   | `https://<owner>.github.io/<repo>/`                 | `/<repo>/`         |
+| github.com, user/org root (repo named `<owner>.github.io`) | `https://<owner>.github.io/`                        | `/`                |
+| Enterprise, project site                                   | `https://pages.<enterprise-domain>/<owner>/<repo>/` | `/<owner>/<repo>/` |
 
 The Enterprise case includes the **owner segment** - this is the single most common Enterprise mistake. A base of `/<repo>/` (github.com style) makes every link resolve one level too shallow and 404.
 
@@ -120,16 +121,16 @@ SITE_BUILD_DIR=dist bash scripts/deploy-site.sh
 SITE_BUILD_DIR=dist SITE_BUILD_CMD='npm run build' bash scripts/deploy-site.sh
 ```
 
-| Env var | Default | Purpose |
-|---|---|---|
-| `SITE_REPO_ROOT` | script's parent dir | Repo root |
-| `SITE_DEPLOY_REMOTE` | `origin` | Remote to push to |
-| `SITE_DEPLOY_BRANCH` | `gh-pages` | Branch Pages serves from |
-| `SITE_BUILD_DIR` | `dist` | Built-output dir (`dist` / `_site` / `build` / ...) |
-| `SITE_BUILD_CMD` | (none) | Optional build command, run with `BASE`/`SITE_BASE_PATH` exported |
-| `SITE_PAGES_REPO` | derived from remote | `owner/repo` for the Pages API; set empty to skip enable/trigger/poll (tests) |
-| `SITE_PAGES_POLL_TRIES` | `20` | Reconcile poll attempts (0 disables) |
-| `SITE_PAGES_POLL_SLEEP` | `6` | Seconds between poll attempts |
+| Env var                 | Default             | Purpose                                                                       |
+| ----------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `SITE_REPO_ROOT`        | script's parent dir | Repo root                                                                     |
+| `SITE_DEPLOY_REMOTE`    | `origin`            | Remote to push to                                                             |
+| `SITE_DEPLOY_BRANCH`    | `gh-pages`          | Branch Pages serves from                                                      |
+| `SITE_BUILD_DIR`        | `dist`              | Built-output dir (`dist` / `_site` / `build` / ...)                           |
+| `SITE_BUILD_CMD`        | (none)              | Optional build command, run with `BASE`/`SITE_BASE_PATH` exported             |
+| `SITE_PAGES_REPO`       | derived from remote | `owner/repo` for the Pages API; set empty to skip enable/trigger/poll (tests) |
+| `SITE_PAGES_POLL_TRIES` | `20`                | Reconcile poll attempts (0 disables)                                          |
+| `SITE_PAGES_POLL_SLEEP` | `6`                 | Seconds between poll attempts                                                 |
 
 What the script does, and why each step exists (these are the parts that bite if you skip them):
 
@@ -148,7 +149,7 @@ What the script does, and why each step exists (these are the parts that bite if
 4. **Enable Pages if needed** (`POST .../pages` legacy source, `PUT` fallback on 409).
 5. **Explicitly request a build, then RECONCILE.** This is the non-obvious one. On Enterprise the
    push auto-trigger is **intermittent** - it silently misses deploys and leaves the site serving
-   the *previous* build. The script `POST`s `.../pages/builds`, then polls `.../pages/builds/latest`
+   the _previous_ build. The script `POST`s `.../pages/builds`, then polls `.../pages/builds/latest`
    until its `.commit` equals the tip it just pushed. On non-convergence it warns loudly but does
    not fail (the branch is already correct; a re-request will catch up).
 
@@ -172,14 +173,14 @@ A generator skill adds its own `build` / `preview` tasks alongside this (see the
 
 How you verify depends on the visibility probe from Phase 1:
 
-| Repo | How to verify |
-|---|---|
-| **Public** | Fetch the `html_url` and grep for a known marker string. |
+| Repo                               | How to verify                                                                                                                                                                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Public**                         | Fetch the `html_url` and grep for a known marker string.                                                                                                                                                                                  |
 | **Private** (common on Enterprise) | The Pages host is behind SSO - a `gh` token authenticates the **API** host, not the Pages host, so `curl`/`gh` against the Pages URL return the login page (a 302 to `.../login` or `_auth_request_bounce`), not your content. See below. |
 
 > **`"public": true` on the Pages object is misleading on Enterprise.** It does not mean anonymous
-> access - a private repo's site still bounces to instance login. It can mean *any authenticated
-> instance user* rather than *only users with repo access*, so if the content is confidential,
+> access - a private repo's site still bounces to instance login. It can mean _any authenticated
+> instance user_ rather than _only users with repo access_, so if the content is confidential,
 > confirm the instance's Pages access model rather than trusting the field.
 
 For a private site you **cannot** verify served content from the CLI. Use instead:

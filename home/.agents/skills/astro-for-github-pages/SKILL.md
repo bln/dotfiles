@@ -1,6 +1,7 @@
 ---
 name: astro-for-github-pages
 description: Build an Astro site that publishes cleanly to GitHub Pages.
+disable-model-invocation: true
 ---
 
 # Astro for GitHub Pages
@@ -12,12 +13,12 @@ The Astro layer on top of `publish-static-site-to-github-pages`. Run that skill 
 Take the base path computed in the platform skill (Phase 3 - the path component of the real Pages `html_url`) and set it in `astro.config.mjs`:
 
 ```js
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  site: 'https://pages.<enterprise-domain>',
-  base: '/<owner>/<repo>/',
-  trailingSlash: 'always',
+  site: "https://pages.<enterprise-domain>",
+  base: "/<owner>/<repo>/",
+  trailingSlash: "always",
 });
 ```
 
@@ -38,11 +39,11 @@ A common need: publish existing repo docs (README, design docs) as site pages **
 
 A `sync-docs` script copies the chosen markdown into `src/content/docs/` (gitignored), applying three transforms so repo files render well as pages:
 
-| Transform | Why |
-|---|---|
+| Transform                              | Why                                                        |
+| -------------------------------------- | ---------------------------------------------------------- |
 | Prepend frontmatter (`title`, `order`) | Raw repo files have none; the collection and nav need them |
-| Strip the leading H1 | The page layout renders the title from frontmatter |
-| Rewrite links | So they work both in-repo and on-site (see below) |
+| Strip the leading H1                   | The page layout renders the title from frontmatter         |
+| Rewrite links                          | So they work both in-repo and on-site (see below)          |
 
 Run it as the first step of `build`:
 
@@ -56,11 +57,11 @@ Prefer this over npm's `prebuild` hook, which can double-register content and em
 
 For each markdown link, resolve it to a repo-relative path (honoring `../`), then rewrite by destination:
 
-| Link target | Rewrite to |
-|---|---|
-| A **synced** doc | On-site URL `${base}/docs/<slug>/#anchor` |
+| Link target                                                    | Rewrite to                                                      |
+| -------------------------------------------------------------- | --------------------------------------------------------------- |
+| A **synced** doc                                               | On-site URL `${base}/docs/<slug>/#anchor`                       |
 | Any **other** repo file (unpublished doc, script, `AGENTS.md`) | Source URL `https://<host>/<owner>/<repo>/blob/<branch>/<path>` |
-| External `http(s)` link | Leave untouched |
+| External `http(s)` link                                        | Leave untouched                                                 |
 
 Two rules that are easy to get wrong:
 
@@ -77,10 +78,10 @@ If docs contain ` ```mermaid ` fences:
 
 **Rejected alternatives** - do not re-explore:
 
-| Alternative | Why not |
-|---|---|
-| Bundle full mermaid | Heavy shipped JS on every visit |
-| Build-time pre-render (Puppeteer / Playwright) | Pulls in a headless browser (~150MB) and adds deploy fragility |
+| Alternative                                            | Why not                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Bundle full mermaid                                    | Heavy shipped JS on every visit                                                       |
+| Build-time pre-render (Puppeteer / Playwright)         | Pulls in a headless browser (~150MB) and adds deploy fragility                        |
 | Mermaid → ASCII (`mermaid-ascii`, `beautiful-mermaid`) | Browser-free, but mangle subgraphs and HTML labels; unusable for non-trivial diagrams |
 
 ## 4. Repo-local runner tasks (Astro-specific)

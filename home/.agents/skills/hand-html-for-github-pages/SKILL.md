@@ -1,6 +1,7 @@
 ---
 name: hand-html-for-github-pages
 description: Publish a no-framework GitHub Pages site. Use when the site has no generator (not Astro/Hugo/Vite).
+disable-model-invocation: true
 ---
 
 # Hand-authored HTML for GitHub Pages
@@ -15,7 +16,7 @@ Write **one** `template.html` (the shell: nav, theme CSS, `<head>`) and render e
 - `$base$` - URL base path prefix for nav/asset links (Section 3).
 - `$has-mermaid$` - gate the Mermaid loader so only diagram pages pay for it (Section 5).
 
-```bash
+````bash
 convert_doc() {  # src -> out
   local src="$1" out="$2" mermaid=""
   grep -q '```mermaid' "$src" && mermaid="-V has-mermaid=true"
@@ -23,14 +24,14 @@ convert_doc() {  # src -> out
   pandoc "$src" --from gfm --to html5 --template "$TEMPLATE" --standalone \
     --syntax-highlighting=tango -V title="$title" -V base="$BASE" $mermaid -o "$out"
 }
-```
+````
 
 **Copy already-standalone HTML as-is** (e.g. a slide deck) - only run Markdown through the template.
 
 ### pandoc traps that bite
 
 - **Titles: `-V title=...`, never `-M title=...`.** pandoc parses a `-M` value as YAML, so a title containing `": "` becomes a map and `$title$` renders **empty**. `-V` sets it as a literal string.
-- **Keep hyphens hyphens: `--from gfm`, not `markdown+smart`.** Smart typography rewrites `--`/`---` into en/em dashes (which a plain-hyphen house style forbids). `gfm` leaves them alone and still handles tables and fenced code. (If you *want* smart quotes, `markdown+smart` is fine - decide deliberately.)
+- **Keep hyphens hyphens: `--from gfm`, not `markdown+smart`.** Smart typography rewrites `--`/`---` into en/em dashes (which a plain-hyphen house style forbids). `gfm` leaves them alone and still handles tables and fenced code. (If you _want_ smart quotes, `markdown+smart` is fine - decide deliberately.)
 
 ## 2. Build and deploy are separate concerns
 
@@ -46,10 +47,10 @@ That contract lets the same `build.sh` run standalone (local preview) and under 
 
 Take the base path from the platform skill's Phase 3 (the path component of the live Pages `html_url`) and pass it as `BASE`. Support **both modes from one build**:
 
-| `BASE` | Links | Use |
-|---|---|---|
-| empty (default) | relative | local `file://`, OneDrive, offline hand-off |
-| `/<owner>/<repo>/` (Pages path) | root-relative | GitHub Pages |
+| `BASE`                          | Links         | Use                                         |
+| ------------------------------- | ------------- | ------------------------------------------- |
+| empty (default)                 | relative      | local `file://`, OneDrive, offline hand-off |
+| `/<owner>/<repo>/` (Pages path) | root-relative | GitHub Pages                                |
 
 In the template, prefix every nav/asset href with `$base$`. In offline mode `$base$` is empty so links stay relative; in Pages mode it prefixes the served path. Verify: grep `dist/` for the expected prefix - any bare `/foo` that should be `/<base>/foo` will 404 on Pages, and a single page hides the bug (build ≥2 linked pages before trusting it).
 
@@ -66,12 +67,18 @@ If a Markdown file has a ` ```mermaid ` fence, set `$has-mermaid$` (grep, Sectio
 ```html
 $if(has-mermaid)$
 <script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });  // 'loose' if labels contain <br/>
-  for (const block of document.querySelectorAll('pre.mermaid code, pre code.language-mermaid')) {
-    try { const { svg } = await mermaid.render('m' + Math.random().toString(36).slice(2), block.textContent);
-          /* replace block with svg in a .mermaid-wrap */ }
-    catch (e) { /* surface the parse error inline; leave the source visible */ }
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: false, securityLevel: "loose" }); // 'loose' if labels contain <br/>
+  for (const block of document.querySelectorAll("pre.mermaid code, pre code.language-mermaid")) {
+    try {
+      const { svg } = await mermaid.render(
+        "m" + Math.random().toString(36).slice(2),
+        block.textContent,
+      );
+      /* replace block with svg in a .mermaid-wrap */
+    } catch (e) {
+      /* surface the parse error inline; leave the source visible */
+    }
   }
 </script>
 $endif$
