@@ -2,7 +2,7 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.4"
+min_version = "2026.10.6"
 
 [settings]
 lockfile = true
@@ -120,12 +120,6 @@ DSDontWriteUSBStores = true,
 
 "com.apple.spaces" = {
   "spans-displays" = false,
-}
-
-"com.apple.TextEdit" = {
-  RichText = 0,
-PlainTextEncoding = 4,
-PlainTextEncodingForWrite = 4,
 }
 
 "com.apple.ActivityMonitor" = {
