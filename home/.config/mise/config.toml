@@ -8,7 +8,7 @@ min_version = "2026.10.6"
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 minimum_release_age = "2d"
-disable_backends = ["asdf", "vfox", "ubi", "conda", "gem", "pypi"]
+disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "pypi", "s3", "ubi", "vfox"]
 
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
