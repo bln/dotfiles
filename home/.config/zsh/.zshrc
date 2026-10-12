@@ -1,9 +1,16 @@
-# mise activates its managed runtimes and tools in the interactive shell.
-if (( $+commands[mise] )); then
-  eval "$(mise activate zsh)"
-fi
+#mise: activate tools + shims for interactive shells (PATH is set in .zshenv)
+command -v mise &>/dev/null && eval "$(mise activate zsh)"
+
+# Keep Homebrew available without letting it shadow mise-managed tools or shims.
+path=(${path:#/opt/homebrew/bin})
+path=(${path:#/opt/homebrew/sbin})
+[[ -d /opt/homebrew/bin ]] && path+=(/opt/homebrew/bin)
+[[ -d /opt/homebrew/sbin ]] && path+=(/opt/homebrew/sbin)
+typeset -gU path PATH
 
 export PAGER="${PAGER:-less -FRX}"
+export LANG=en_US.UTF-8
+
 
 # BSD ls (the macOS default) uses LSCOLORS for its color palette. Use cool
 # colors for directories and links, green for executables, and keep all
@@ -46,7 +53,8 @@ fi
 export EZA_COLORS='fi=38;2;171;178;191:di=38;2;97;175;239:ln=38;2;86;182;194:ex=38;2;152;195;121:da=38;2;229;192;123:sn=38;2;92;99;112'
 
 # Keep a large, shared history while avoiding noisy duplicates.
-HISTFILE="$XDG_STATE_HOME/zsh/history"
+mkdir -p "$XDG_CACHE_HOME/zsh"
+HISTFILE="$XDG_CACHE_HOME/zsh/history"
 HISTSIZE=100000
 SAVEHIST=100000
 setopt EXTENDED_HISTORY       # save timestamps and command durations
@@ -141,10 +149,14 @@ if [[ -r "$ZDOTDIR/.zshrc.local" ]]; then
   source "$ZDOTDIR/.zshrc.local"
 fi
 
-# Load autosuggestions before syntax highlighting; syntax highlighting must be last.
-if [[ -r /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# ── zsh plugins (loaded last for proper terminal rendering) ───────────────────
+HB_PREFIX="/opt/homebrew/share"
+
+if [[ -f "$HB_PREFIX/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$HB_PREFIX/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=8"
 fi
-if [[ -r /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
-  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+if [[ -f "$HB_PREFIX/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$HB_PREFIX/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
