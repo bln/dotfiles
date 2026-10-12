@@ -2,7 +2,7 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.6"
+min_version = "2026.10.7"
 
 [settings]
 lockfile = true
