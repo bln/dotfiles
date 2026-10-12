@@ -16,12 +16,12 @@ window-padding-y = 10
 
 # ── cursor ────────────────────────────────────────────────────────────────────
 # Use a standard full-cell cursor and keep it blinking at the command prompt.
-#cursor-style = block
+cursor-style = bar
 cursor-style-blink = true
 
 # ── shell ─────────────────────────────────────────────────────────────────────
 shell-integration = zsh
-shell-integration-features = no-cursor,sudo,title
+shell-integration-features = cursor,sudo,title
 
 # ── clipboard ─────────────────────────────────────────────────────────────────
 copy-on-select = clipboard
@@ -46,5 +46,4 @@ keybind = cmd+opt+left=goto_split:left
 keybind = cmd+opt+right=goto_split:right
 keybind = cmd+opt+up=goto_split:top
 keybind = cmd+opt+down=goto_split:bottom
-#keybind = ctrl+shift+,=text:ghostty +edit-config\n
 keybind = unconsumed:super+,=text:\x1bqghostty +edit-config\x0d
