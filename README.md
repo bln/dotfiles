@@ -151,9 +151,7 @@ git code-stats [today|week|month|all]
 
 Do not track credentials, secret values, agent sessions, caches, application
 state, databases, generated output, or temporary editor state. Keep private Git
-identity files in their native machine-local locations. Preview teardown with
-`./uninstall.sh --dry-run`, then run `./uninstall.sh --yes` only after backing
-up anything that must survive. It un-applies this repository's dotfiles, prunes
-mise-owned Homebrew resources, removes mise-managed tool versions, and implodes
-mise configuration and state. It does not restore removed user files or macOS
-preferences.
+identity files in their native machine-local locations. Run `./uninstall.sh --yes` only
+after backing up anything that must survive. It un-applies this repository's dotfiles, prunes
+mise-owned Homebrew resources, removes mise-managed tool versions, and implodes mise
+configuration and state. It does not restore removed user files or macOS preferences.
