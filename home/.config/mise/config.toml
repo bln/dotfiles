@@ -14,14 +14,8 @@ disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "pypi
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
 
 [env]
-# Use Neovim consistently for shell, Git, mise, and interactive tools.
-EDITOR = "nvim"
-VISUAL = "nvim"
-GIT_EDITOR = "nvim"
-NPM_CONFIG_USERCONFIG = "{{env.HOME}}/.config/npm/npmrc"
-
 # Keep cask applications in the user-owned Applications directory.
-MISE_BREW_CASK_OPT_APPDIR = "{{env.HOME}}/Applications"
+MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
 
 # Mise-managed tools use mise activation. Homebrew package paths are declared
 # in the login shell before activation so mise can place managed paths first.
@@ -34,7 +28,6 @@ uv = "latest"
 [bootstrap.packages]
 # Required host package.
 "brew:git" = "latest"
-"brew:mas" = "latest"
 
 # Command-line tools.
 "brew:jq" = "latest"
