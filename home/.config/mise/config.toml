@@ -17,9 +17,6 @@ credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
 
-# Mise-managed tools use mise activation. Homebrew package paths are declared
-# in the login shell before activation so mise can place managed paths first.
-
 [tools]
 # Managed runtimes.
 node = "lts"
@@ -31,29 +28,18 @@ uv = "latest"
 
 # Command-line tools.
 "brew:jq" = "latest"
-"brew:wget" = "latest"
-"brew:atuin" = "latest"
 "brew:bat" = "latest"
-"brew:bottom" = "latest"
-"brew:git-delta" = "latest"
-"brew:eza" = "latest"
 "brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:gh" = "latest"
-"brew:gitui" = "latest"
 "brew:ripgrep" = "latest"
 "brew:rtk" = "latest"
 "brew:starship" = "latest"
-"brew:yazi" = "latest"
 "brew:zoxide" = "latest"
-"brew:tokei" = "latest"
-"brew:shellcheck" = "latest"
-"brew:mole" = "latest"
 
-# Coding agents and editor.
+# Coding agents.
 "brew-cask:claude-code" = "latest"
 "brew-cask:codex" = "latest"
-"brew:neovim" = "latest"
 "brew:pi-coding-agent" = "latest"
 
 # Interactive Zsh plugins.
@@ -65,13 +51,8 @@ uv = "latest"
 "brew-cask:font-fira-code-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:zed" = "latest"
-"brew-cask:bloom" = "latest"
 "brew-cask:typora" = "latest"
-"brew-cask:smoothcsv" = "latest"
-"brew-cask:antinote" = "latest"
 "brew-cask:obsidian" = "latest"
-"brew-cask:shottr" = "latest"
-"brew-cask:github" = "latest"
 
 [bootstrap.macos.dock]
 tilesize = 48

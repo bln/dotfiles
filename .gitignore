@@ -39,6 +39,8 @@ home/.config/git/identity-*
 # home/ mirrors $HOME. Keep agent runtime state local, but allow the
 # repository-owned instructions, extensions, and skills below.
 home/.agents/**
+!home/.agents/
+!home/.agents/AGENTS.md
 !home/.agents/skills/
 !home/.agents/skills/**
 home/.pi/**

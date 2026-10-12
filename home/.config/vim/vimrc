@@ -4,6 +4,7 @@
 set nocompatible
 filetype plugin indent on
 syntax enable
+colorscheme mini-onedark
 
 set number
 set tabstop=2

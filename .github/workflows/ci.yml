@@ -33,7 +33,7 @@ jobs:
 
       - name: Check shell syntax
         run: |
-          bash -n install.sh uninstall.sh home/.local/bin/*
+          bash -n install.sh uninstall.sh
           zsh -n home/.zshenv home/.config/zsh/.zprofile home/.config/zsh/.zshrc
 
       - name: Check Git configuration
@@ -44,8 +44,7 @@ jobs:
           GH_CONFIG_DIR: ${{ github.workspace }}/home/.config/gh
         run: |
           test "$(gh config get git_protocol)" = https
-          test "$(gh config get editor)" = nvim
-          test "$(gh config get pager)" = delta
+          test "$(gh config get editor)" = vim
           test "$(gh alias list | awk '$1 == "co:" { print $2, $3 }')" = "pr checkout"
 
       - name: Check Mise configuration

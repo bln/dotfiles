@@ -51,18 +51,16 @@ The `home/` tree mirrors the target home directory:
 - `home/.config/zsh/.zprofile` and `home/.config/zsh/.zshrc` contain the login
   and interactive shell behavior, aliases, tool initialization, history
   bindings, and the One Dark terminal palette.
-- `home/.config/git/` contains Git behavior, the Delta integration, and the
-  Conventional Commit template.
+- `home/.config/git/` contains Git behavior and the Conventional Commit template.
 - `home/.config/gh/config.yml` contains GitHub CLI defaults and aliases;
   authentication remains in GitHub's native machine-local state.
-- `home/.config/nvim/init.lua` contains the plugin-free Neovim configuration.
 - `home/.config/vim/vimrc` and `home/.config/vim/colors/` contain the native
   Vim configuration and the shared `mini-onedark` colorscheme.
 - `home/.config/npm/npmrc` contains the npm user configuration;
   `NPM_CONFIG_USERCONFIG` points npm to this XDG path.
 - `home/.config/ghostty/`, `home/.config/starship.toml`, `home/.config/zed/`,
-  `home/.config/atuin/`, and `home/.config/bat/` contain the remaining managed
-  application configurations.
+  and `home/.config/bat/` contain the remaining managed application
+  configurations.
 - `home/.agents/`, `home/.claude/`, `home/.codex/`, and `home/.pi/` contain
   repository-owned agent instructions and extensions only.
 
@@ -71,31 +69,23 @@ configuration homes or track generated application state.
 
 ## Editors and keybindings
 
-Neovim is installed and updated through Homebrew. The shell, Git, and mise
-all use `nvim` as their editor. The only editor alias is `v='nvim'`; `vim` remains
-the native Vim command and is never aliased to Neovim.
+Vim is the native command-line editor and Zed is the graphical editor. The
+shell, Git, and GitHub CLI use `vim`; both editors keep a small, plugin-free
+configuration and the shared `mini-onedark` palette.
 
 The Zsh root shim is intentionally retained: `~/.zshenv` must set `ZDOTDIR`
 before Zsh can read `~/.config/zsh/.zprofile` and `~/.config/zsh/.zshrc`. Shell
 history and completion dumps live under `~/.local/state/zsh` and `~/.cache/zsh`.
 
-Both Vim and Neovim are plugin-free and use the shared `mini-onedark` palette.
-Their keybindings preserve Vim's native motions and Ctrl-W pane namespace. The
-Space leader is reserved for deliberate editor commands such as saving, splitting,
-opening the built-in file explorer, and toggling relative line numbers. Zed keeps
-Space's native Vim meaning and uses Hyperkey for application-specific shortcuts.
-
-Read the owning configuration before changing a binding. Prefer native behavior
-and align intent across tools rather than copying implementation details between
-Vim, Neovim, and Zed.
+Read the owning configuration before changing an editor binding. Prefer native
+behavior and keep the Vim and Zed keymaps deliberately small.
 
 ### Shell shortcuts
 
-- `Ctrl-R` - Atuin local history search.
 - `Ctrl-T` - fzf file picker with bat previews.
 - `Alt-C` - fzf directory picker.
 - `Up` and `Down` - native prefix-aware Zsh history search.
-- `z`, `cc`, and `dc` - zoxide directory jumping; `cd` remains native.
+- `z` - zoxide directory jumping.
 
 ## Maintenance
 
@@ -115,8 +105,8 @@ mise-managed tools are installed, upgrades the configured tools and packages,
 applies the repository dotfiles, and updates mise itself. It uses the canonical
 `~/dotfiles` checkout when applying the repository configuration.
 
-The coding agents `claude-code`, `codex`, and `pi`, along with Neovim, are
-managed as Homebrew packages. Update them with `mise bootstrap packages upgrade`.
+The coding agents `claude-code`, `codex`, and `pi`, along with Zed, are
+managed through mise. Vim remains the native macOS command-line editor.
 
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
 and dry-run bootstrap checks on macOS.
@@ -140,12 +130,6 @@ needed if this repository later declares project-specific tools.
 
 Upgrade managed tools with `mise upgrade`. Refresh locked artifacts only when
 intended with `mise lock --global --bump`.
-
-Managed helper:
-
-```sh
-git code-stats [today|week|month|all]
-```
 
 ## Boundaries
 
