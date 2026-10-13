@@ -1,0 +1,19 @@
+[
+  {
+    // Open the VS Code user settings file.
+    "key": "cmd+alt+ctrl+shift+,",
+    "command": "workbench.action.openSettingsJson"
+  },
+  {
+    // Toggle the built-in Markdown preview from a Markdown editor.
+    "key": "cmd+alt+ctrl+shift+/",
+    "command": "markdown.showPreview",
+    "when": "editorLangId == markdown"
+  },
+  {
+    // Return to the Markdown source from its preview.
+    "key": "cmd+alt+ctrl+shift+/",
+    "command": "markdown.showSource",
+    "when": "inMarkdownPreview"
+  }
+]

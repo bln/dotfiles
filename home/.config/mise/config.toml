@@ -50,7 +50,7 @@ uv = "latest"
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 "brew-cask:font-fira-code-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
-"brew-cask:zed" = "latest"
+"brew-cask:visual-studio-code" = "latest"
 "brew-cask:typora" = "latest"
 "brew-cask:obsidian" = "latest"
 

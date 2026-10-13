@@ -58,9 +58,9 @@ The `home/` tree mirrors the target home directory:
   Vim configuration and the shared `mini-onedark` colorscheme.
 - `home/.config/npm/npmrc` contains the npm user configuration;
   `NPM_CONFIG_USERCONFIG` points npm to this XDG path.
-- `home/.config/ghostty/`, `home/.config/starship.toml`, `home/.config/zed/`,
-  and `home/.config/bat/` contain the remaining managed application
-  configurations.
+- `home/.config/ghostty/`, `home/.config/starship.toml`,
+  `home/Library/Application Support/Code/User/`, and `home/.config/bat/` contain
+  the remaining managed application configurations.
 - `home/.agents/`, `home/.claude/`, `home/.codex/`, and `home/.pi/` contain
   repository-owned agent instructions and extensions only.
 
@@ -69,16 +69,22 @@ configuration homes or track generated application state.
 
 ## Editors and keybindings
 
-Vim is the native command-line editor and Zed is the graphical editor. The
-shell, Git, and GitHub CLI use `vim`; both editors keep a small, plugin-free
-configuration and the shared `mini-onedark` palette.
+Vim is the native command-line editor and VS Code is the graphical editor. The
+shell, Git, and GitHub CLI use `vim`; both editors keep a small configuration.
+VS Code uses its built-in dark theme, while the native Vim and terminal
+configurations use the shared `mini-onedark` palette. VS Code extensions are
+intentionally not declared here and remain managed by VS Code.
+
+The VS Code user settings and keybindings live in the native macOS location under
+`home/Library/Application Support/Code/User/` and are deployed to
+`~/Library/Application Support/Code/User/`.
 
 The Zsh root shim is intentionally retained: `~/.zshenv` must set `ZDOTDIR`
 before Zsh can read `~/.config/zsh/.zprofile` and `~/.config/zsh/.zshrc`. Shell
 history and completion dumps live under `~/.local/state/zsh` and `~/.cache/zsh`.
 
 Read the owning configuration before changing an editor binding. Prefer native
-behavior and keep the Vim and Zed keymaps deliberately small.
+behavior and keep the Vim and VS Code keymaps deliberately small.
 
 ### Shell shortcuts
 
@@ -105,7 +111,7 @@ mise-managed tools are installed, upgrades the configured tools and packages,
 applies the repository dotfiles, and updates mise itself. It uses the canonical
 `~/dotfiles` checkout when applying the repository configuration.
 
-The coding agents `claude-code`, `codex`, and `pi`, along with Zed, are
+The coding agents `claude-code`, `codex`, and `pi`, along with VS Code, are
 managed through mise. Vim remains the native macOS command-line editor.
 
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
