@@ -1,0 +1,728 @@
+#!/usr/bin/env -S uv run --script
+#
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+
+"""Manage repositories stored below $HOME/git.
+
+Git discovers this executable as the external git local subcommand. The
+script deliberately uses only the Python standard library; uv supplies the
+interpreter without making this repository a Python project.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tomllib
+from typing import Callable, Iterable, Sequence
+from urllib.parse import urlsplit
+
+
+HOST_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]*$")
+COMPONENT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+SCP_REFERENCE_PATTERN = re.compile(r"^git@([^:]+):(.+)$")
+SGR_PATTERN = re.compile(r"^[0-9;]+$")
+_HEX_COLOR_PATTERN = re.compile(r"^#([0-9A-Fa-f]{6})$")
+GITHUB_HOSTS = frozenset(("github.com", "github.tools.sap"))
+CONFLICT_CODES = frozenset(("DD", "AU", "UD", "UA", "DU", "AA", "UU"))
+DEFAULT_LS_COLORS = {
+    "di": "38;2;97;175;239",  # One Dark blue, matching EZA_COLORS.
+    "ex": "38;2;152;195;121",  # One Dark green, matching EZA_COLORS.
+}
+DEFAULT_PROMPT_COLORS = {
+    "branch": "#c678dd",
+    "status": "#e5c07b",
+}
+BRANCH_SYMBOL = " "
+CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
+
+
+@dataclass(frozen=True)
+class RepositoryReference:
+    host: str
+    owner: str
+    name: str
+    scheme: str = "ssh"
+
+    @property
+    def path(self) -> str:
+        return f"{self.owner}/{self.name}"
+
+
+@dataclass(frozen=True)
+class RepositoryStatus:
+    path: Path
+    branch: str
+    detached: bool = False
+    tracked_changes: int = 0
+    staged_changes: int = 0
+    modified_changes: int = 0
+    renamed_changes: int = 0
+    deleted_changes: int = 0
+    untracked: int = 0
+    conflicts: int = 0
+    ahead: int = 0
+    behind: int = 0
+    has_upstream: bool | None = None
+    origin: str | None = None
+    origin_matches: bool | None = None
+    status_error: str | None = None
+
+    @property
+    def dirty(self) -> bool:
+        return bool(
+            self.tracked_changes
+            or self.staged_changes
+            or self.modified_changes
+            or self.renamed_changes
+            or self.deleted_changes
+            or self.untracked
+            or self.conflicts
+        )
+
+    @property
+    def push_status(self) -> str:
+        if self.detached:
+            return "detached"
+        if self.has_upstream is not True:
+            return "no-upstream"
+        if self.ahead and self.behind:
+            return f"diverged(↑{self.ahead} ↓{self.behind})"
+        if self.ahead:
+            return f"unpushed(↑{self.ahead})"
+        if self.behind:
+            return f"behind(↓{self.behind})"
+        return "pushed"
+
+    @property
+    def git_status(self) -> str:
+        """Return the compact status format used by the Starship prompt."""
+
+        parts: list[str] = []
+        if self.conflicts:
+            parts.append(f"={self.conflicts}")
+        if self.deleted_changes:
+            parts.append(f"✘{self.deleted_changes}")
+        if self.renamed_changes:
+            parts.append(f"»{self.renamed_changes}")
+        if self.modified_changes:
+            parts.append(f"!{self.modified_changes}")
+        if self.staged_changes:
+            parts.append(f"+{self.staged_changes}")
+        if self.untracked:
+            parts.append(f"?{self.untracked}")
+
+        if self.ahead and self.behind:
+            parts.append(f"⇕{self.ahead}/{self.behind}")
+        elif self.ahead:
+            parts.append(f"⇡{self.ahead}")
+        elif self.behind:
+            parts.append(f"⇣{self.behind}")
+        return "".join(parts)
+
+
+@dataclass
+class TreeNode:
+    children: dict[str, "TreeNode"] = field(default_factory=dict)
+    status: RepositoryStatus | None = None
+
+
+@dataclass(frozen=True)
+class PromptColors:
+    """Read the branch and Git status styles from Starship's active palette."""
+
+    values: dict[str, str]
+
+    @classmethod
+    def from_environment(cls) -> "PromptColors":
+        values = DEFAULT_PROMPT_COLORS.copy()
+        config_name = os.environ.get("STARSHIP_CONFIG")
+        config_path = (
+            Path(config_name).expanduser()
+            if config_name
+            else Path.home() / ".config/starship.toml"
+        )
+        try:
+            with config_path.open("rb") as config_file:
+                config = tomllib.load(config_file)
+            palette_name = config.get("palette", "mini-onedark")
+            palette = config.get("palettes", {}).get(palette_name, {})
+            for role in values:
+                color = palette.get(role)
+                if isinstance(color, str) and _HEX_COLOR_PATTERN.fullmatch(color):
+                    values[role] = color
+        except (OSError, KeyError, TypeError, tomllib.TOMLDecodeError):
+            pass
+        return cls(values)
+
+    def style(self, role: str) -> str:
+        color = self.values.get(role, "")
+        match = _HEX_COLOR_PATTERN.fullmatch(color)
+        if not match:
+            return ""
+        hex_color = match.group(1)
+        red = int(hex_color[0:2], 16)
+        green = int(hex_color[2:4], 16)
+        blue = int(hex_color[4:6], 16)
+        return f"38;2;{red};{green};{blue}"
+
+    def paint(self, text: str, role: str) -> str:
+        style = self.style(role)
+        return f"\033[{style}m{text}\033[0m" if style else text
+
+
+class ExistingTargetError(Exception):
+    """Raised when a clone would overwrite an existing path."""
+
+
+@dataclass(frozen=True)
+class LsColors:
+    """Read directory and executable colors from the lscolors databases."""
+
+    values: dict[str, str]
+
+    @classmethod
+    def from_environment(cls) -> "LsColors":
+        values = _parse_ls_colors(os.environ.get("EZA_COLORS", ""))
+        values.update(_parse_ls_colors(os.environ.get("LS_COLORS", "")))
+        return cls(values)
+
+    def style(self, indicator: str) -> str:
+        style = self.values.get(indicator, DEFAULT_LS_COLORS.get(indicator, ""))
+        return style if SGR_PATTERN.fullmatch(style) else DEFAULT_LS_COLORS.get(indicator, "")
+
+    def paint(self, text: str, indicator: str) -> str:
+        style = self.style(indicator)
+        return f"\033[{style}m{text}\033[0m" if style else text
+
+
+def _parse_ls_colors(value: str) -> dict[str, str]:
+    """Parse the indicator=SGR subset used for directory and repo colors."""
+
+    values: dict[str, str] = {}
+    for entry in value.split(":"):
+        indicator, separator, style = entry.partition("=")
+        if separator and indicator in ("di", "ex") and SGR_PATTERN.fullmatch(style):
+            values[indicator] = style
+    return values
+
+
+def _normalise_repository_path(path: str) -> tuple[str, str]:
+    path = path.removesuffix(".git")
+    if path.startswith("/") or path.endswith("/"):
+        raise ValueError("repository path must contain exactly owner/repository")
+
+    components = path.split("/")
+    if len(components) != 2 or any(
+        not COMPONENT_PATTERN.fullmatch(component) for component in components
+    ):
+        raise ValueError("repository path must contain exactly owner/repository")
+    return components[0], components[1]
+
+
+def _normalise_host(host: str) -> str:
+    host = host.rstrip(".").lower()
+    if not HOST_PATTERN.fullmatch(host):
+        raise ValueError("repository host is invalid")
+    return host
+
+
+def _parse_url_reference(value: str) -> tuple[str, str, str]:
+    parsed = urlsplit(value)
+    if parsed.scheme not in ("http", "https", "ssh"):
+        raise ValueError("repository URL must use http, https, or ssh")
+    if parsed.username not in (None, "git") or parsed.password is not None:
+        raise ValueError("repository URL has an unsupported user")
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise ValueError("repository URL has an invalid port") from error
+    if port is not None:
+        raise ValueError("repository URL must not contain a port")
+    if not parsed.hostname:
+        raise ValueError("repository URL has no host")
+    if parsed.query or parsed.fragment:
+        raise ValueError("repository URL must not contain a query or fragment")
+    return parsed.scheme, parsed.hostname, parsed.path.lstrip("/")
+
+
+def parse_repository_reference(value: str) -> RepositoryReference:
+    """Parse a repository shorthand or remote URL.
+
+    Accepted forms are owner/repository, host/owner/repository, HTTP(S)
+    or SCP-style SSH URLs, and ssh:// URLs. The components are intentionally
+    conservative because they become local path components.
+    """
+
+    if not value or value != value.strip():
+        raise ValueError("repository reference must not be empty or padded")
+
+    scheme = "ssh"
+    host: str
+    repository_path: str
+
+    if value.startswith(("http://", "https://", "ssh://")):
+        scheme, host, repository_path = _parse_url_reference(value)
+    else:
+        scp_match = SCP_REFERENCE_PATTERN.fullmatch(value)
+        if scp_match:
+            host, repository_path = scp_match.groups()
+        else:
+            components = value.split("/")
+            if len(components) == 2:
+                host = "github.com"
+                repository_path = value
+            elif len(components) == 3:
+                host, owner, name = components
+                repository_path = f"{owner}/{name}"
+            else:
+                raise ValueError(
+                    "repository must be owner/repository or host/owner/repository"
+                )
+
+    owner, name = _normalise_repository_path(repository_path)
+    return RepositoryReference(_normalise_host(host), owner, name, scheme)
+
+
+def clone_url(reference: RepositoryReference) -> str:
+    if reference.scheme == "ssh":
+        return f"git@{reference.host}:{reference.path}.git"
+    return f"{reference.scheme}://{reference.host}/{reference.path}.git"
+
+
+def clone_repository(
+    reference: RepositoryReference,
+    root: Path | None = None,
+    *,
+    runner: CommandRunner = subprocess.run,
+    which: Callable[[str], str | None] = shutil.which,
+) -> int:
+    """Clone one repository into the canonical local hierarchy."""
+
+    clone_root = (root or (Path.home() / "git")).expanduser()
+    target = clone_root / reference.host / reference.owner / reference.name
+    if target.exists() or target.is_symlink():
+        raise ExistingTargetError(str(target))
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    environment: dict[str, str] | None = None
+
+    if reference.host in GITHUB_HOSTS and which("gh"):
+        command = [
+            "gh",
+            "repo",
+            "clone",
+            reference.path,
+            str(target),
+            "--no-upstream",
+            "--",
+            "--recurse-submodules",
+        ]
+        environment = os.environ.copy()
+        environment["GH_HOST"] = reference.host
+    else:
+        command = [
+            "git",
+            "clone",
+            "--recurse-submodules",
+            "--",
+            clone_url(reference),
+            str(target),
+        ]
+
+    result = runner(command, check=False, env=environment)
+    return result.returncode
+
+
+def _run_git(
+    repository: Path, arguments: Sequence[str], *, runner: CommandRunner = subprocess.run
+) -> subprocess.CompletedProcess[str]:
+    return runner(
+        ["git", "-C", str(repository), *arguments],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def _git_output(
+    repository: Path,
+    arguments: Sequence[str],
+    *,
+    runner: CommandRunner = subprocess.run,
+) -> str | None:
+    result = _run_git(repository, arguments, runner=runner)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def parse_origin_url(value: str) -> RepositoryReference | None:
+    """Parse an origin URL, returning None for local or unsupported URLs."""
+
+    try:
+        return parse_repository_reference(value)
+    except ValueError:
+        return None
+
+
+def expected_repository_identity(
+    repository: Path, root: Path
+) -> tuple[str, str, str] | None:
+    try:
+        relative = repository.relative_to(root)
+    except ValueError:
+        return None
+    if len(relative.parts) != 3:
+        return None
+    return relative.parts[0], relative.parts[1], relative.parts[2]
+
+
+def _same_repository(
+    reference: RepositoryReference, identity: tuple[str, str, str]
+) -> bool:
+    return (
+        reference.host.casefold(),
+        reference.owner.casefold(),
+        reference.name.casefold(),
+    ) == tuple(part.casefold() for part in identity)
+
+
+@dataclass(frozen=True)
+class PorcelainStatus:
+    tracked_changes: int = 0
+    staged_changes: int = 0
+    modified_changes: int = 0
+    renamed_changes: int = 0
+    deleted_changes: int = 0
+    untracked: int = 0
+    conflicts: int = 0
+
+
+def _parse_porcelain_details(output: str) -> PorcelainStatus:
+    tracked_changes = 0
+    staged_changes = 0
+    modified_changes = 0
+    renamed_changes = 0
+    deleted_changes = 0
+    untracked = 0
+    conflicts = 0
+    for line in output.splitlines():
+        if line.startswith("??"):
+            untracked += 1
+            continue
+        if len(line) < 2:
+            continue
+        code = line[:2]
+        tracked_changes += 1
+        if code in CONFLICT_CODES:
+            conflicts += 1
+            continue
+        index_code, worktree_code = code
+        if index_code == "R" or worktree_code == "R":
+            renamed_changes += 1
+        if index_code == "D" or worktree_code == "D":
+            deleted_changes += 1
+        if index_code not in (" ", "?", "R", "D"):
+            staged_changes += 1
+        if worktree_code not in (" ", "?", "R", "D"):
+            modified_changes += 1
+    return PorcelainStatus(
+        tracked_changes=tracked_changes,
+        staged_changes=staged_changes,
+        modified_changes=modified_changes,
+        renamed_changes=renamed_changes,
+        deleted_changes=deleted_changes,
+        untracked=untracked,
+        conflicts=conflicts,
+    )
+
+
+def _parse_porcelain_status(output: str) -> tuple[int, int, int]:
+    details = _parse_porcelain_details(output)
+    return details.tracked_changes, details.untracked, details.conflicts
+
+
+def repository_status(
+    repository: Path,
+    root: Path,
+    *,
+    runner: CommandRunner = subprocess.run,
+) -> RepositoryStatus:
+    branch_output = _git_output(
+        repository, ["symbolic-ref", "--quiet", "--short", "HEAD"], runner=runner
+    )
+    detached = branch_output is None
+    if detached:
+        commit = _git_output(repository, ["rev-parse", "--short", "HEAD"], runner=runner)
+        branch = f"detached@{commit}" if commit else "unborn"
+    else:
+        branch = branch_output
+
+    has_upstream: bool | None = None
+    ahead = 0
+    behind = 0
+    if not detached:
+        upstream = _git_output(
+            repository,
+            ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+            runner=runner,
+        )
+        has_upstream = upstream is not None
+        if has_upstream:
+            counts = _git_output(
+                repository,
+                ["rev-list", "--left-right", "--count", "HEAD...@{upstream}"],
+                runner=runner,
+            )
+            if counts:
+                count_parts = counts.split()
+                if len(count_parts) == 2:
+                    ahead, behind = (int(part) for part in count_parts)
+
+    origin = _git_output(repository, ["remote", "get-url", "origin"], runner=runner)
+    expected = expected_repository_identity(repository, root)
+    if origin is None:
+        origin_matches = False if expected is not None else None
+    elif expected is None:
+        origin_matches = None
+    else:
+        parsed_origin = parse_origin_url(origin)
+        origin_matches = parsed_origin is not None and _same_repository(parsed_origin, expected)
+
+    status_result = _run_git(
+        repository,
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        runner=runner,
+    )
+    status_error: str | None = None
+    if status_result.returncode == 0:
+        porcelain = _parse_porcelain_details(status_result.stdout)
+    else:
+        porcelain = PorcelainStatus()
+        status_error = status_result.stderr.strip() or "git status failed"
+
+    return RepositoryStatus(
+        path=repository,
+        branch=branch,
+        detached=detached,
+        tracked_changes=porcelain.tracked_changes,
+        staged_changes=porcelain.staged_changes,
+        modified_changes=porcelain.modified_changes,
+        renamed_changes=porcelain.renamed_changes,
+        deleted_changes=porcelain.deleted_changes,
+        untracked=porcelain.untracked,
+        conflicts=porcelain.conflicts,
+        ahead=ahead,
+        behind=behind,
+        has_upstream=has_upstream,
+        origin=origin,
+        origin_matches=origin_matches,
+        status_error=status_error,
+    )
+
+
+def find_repositories(root: Path) -> list[Path]:
+    """Find Git repositories without following symlinked directories."""
+
+    if not root.is_dir():
+        return []
+
+    repositories: list[Path] = []
+    for current, directories, files in os.walk(root, followlinks=False):
+        has_git_directory = ".git" in directories
+        directories[:] = sorted(
+            directory
+            for directory in directories
+            if directory != ".git" and not (Path(current) / directory).is_symlink()
+        )
+        if has_git_directory or ".git" in files:
+            repositories.append(Path(current))
+    return sorted(repositories, key=lambda path: path.relative_to(root).parts)
+
+
+def _display_root(root: Path) -> str:
+    home = Path.home()
+    try:
+        relative = root.relative_to(home)
+    except ValueError:
+        return str(root)
+    return "~" if not relative.parts else f"~/{relative.as_posix()}"
+
+
+def _build_tree(
+    root: Path, statuses: Iterable[RepositoryStatus]
+) -> TreeNode:
+    tree = TreeNode()
+    for status in statuses:
+        node = tree
+        relative = status.path.relative_to(root)
+        for part in relative.parts:
+            node = node.children.setdefault(part, TreeNode())
+        node.status = status
+    return tree
+
+
+def _format_status(status: RepositoryStatus) -> str:
+    return status.git_status
+
+
+def _format_repository_status(
+    status: RepositoryStatus,
+    *,
+    color: bool,
+    prompt_colors: PromptColors,
+) -> str:
+    branch = f"{BRANCH_SYMBOL}{status.branch}"
+    if color:
+        branch = prompt_colors.paint(branch, "branch")
+
+    git_status = _format_status(status)
+    if color and git_status:
+        git_status = prompt_colors.paint(git_status, "status")
+    if git_status:
+        branch += f" {git_status}"
+    return branch
+
+
+def render_tree(
+    root: Path,
+    statuses: Iterable[RepositoryStatus],
+    *,
+    color: bool = False,
+    empty_label: str = "no repositories",
+    ls_colors: LsColors | None = None,
+    prompt_colors: PromptColors | None = None,
+) -> list[str]:
+    statuses = list(statuses)
+    tree = _build_tree(root, statuses)
+    colors = ls_colors or LsColors.from_environment()
+    prompt = prompt_colors or PromptColors.from_environment()
+    root_label = _display_root(root)
+    lines = [colors.paint(root_label, "di") if color else root_label]
+
+    if tree.status is not None:
+        lines.append(_format_repository_status(tree.status, color=color, prompt_colors=prompt))
+
+    def render_children(node: TreeNode, prefix: str) -> None:
+        entries = sorted(node.children.items())
+        for index, (name, child) in enumerate(entries):
+            last = index == len(entries) - 1
+            connector = "└── " if last else "├── "
+            indicator = "ex" if child.status is not None else "di"
+            label = colors.paint(name, indicator) if color else name
+            if child.status is not None:
+                repository_status_text = _format_repository_status(
+                    child.status,
+                    color=color,
+                    prompt_colors=prompt,
+                )
+                label = f"{label}  {repository_status_text}"
+            lines.append(f"{prefix}{connector}{label}")
+            if child.children:
+                render_children(child, prefix + ("    " if last else "│   "))
+
+    if tree.children:
+        render_children(tree, "")
+    elif tree.status is None:
+        lines.append(f"└── ({empty_label})")
+    return lines
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="git local",
+        description="Clone and inspect repositories in the local Git hierarchy.",
+    )
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    clone_parser = subparsers.add_parser("clone", help="clone a repository")
+    clone_parser.add_argument("repository", help="owner/repository, host/owner/repository, or URL")
+    clone_parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="root directory (default: ~/git)",
+    )
+
+    list_parser = subparsers.add_parser("list", help="list local repositories and status")
+    list_parser.add_argument(
+        "root",
+        nargs="?",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="root directory (default: ~/git)",
+    )
+    list_parser.add_argument(
+        "--dirty",
+        action="store_true",
+        help="show only repositories with working-tree changes",
+    )
+    color_group = list_parser.add_mutually_exclusive_group()
+    color_group.add_argument(
+        "--color",
+        action="store_true",
+        help="force ANSI colors, including when output is piped",
+    )
+    color_group.add_argument(
+        "--no-color",
+        action="store_true",
+        help="disable ANSI colors",
+    )
+    return parser
+
+
+def _run_clone(args: argparse.Namespace) -> int:
+    try:
+        reference = parse_repository_reference(args.repository)
+        return clone_repository(reference, args.root)
+    except ExistingTargetError as error:
+        print(f"Already exists: {error}", file=sys.stderr)
+        return 1
+    except (OSError, ValueError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 2
+
+
+def _run_list(args: argparse.Namespace) -> int:
+    root = (args.root or (Path.home() / "git")).expanduser()
+    if not root.is_dir():
+        print(f"Error: directory does not exist: {root}", file=sys.stderr)
+        return 2
+
+    repositories = find_repositories(root)
+    statuses = [repository_status(repository, root) for repository in repositories]
+    if args.dirty:
+        statuses = [status for status in statuses if status.dirty]
+
+    use_color = args.color or (sys.stdout.isatty() and not args.no_color)
+    empty_label = "no dirty repositories" if args.dirty else "no repositories"
+    print("\n".join(render_tree(root, statuses, color=use_color, empty_label=empty_label)))
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.subcommand == "clone":
+        return _run_clone(args)
+    if args.subcommand == "list":
+        return _run_list(args)
+    parser.error(f"unknown subcommand: {args.subcommand}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

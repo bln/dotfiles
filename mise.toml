@@ -43,3 +43,7 @@ permissions = "0600",
 mode = "template",
 permissions = "0600",
 }
+
+[tasks.test]
+description = "Run standard-library tests"
+run = "uv run --no-project python -m unittest discover -s tests -p 'test_*.py'"

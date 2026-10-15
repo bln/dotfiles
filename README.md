@@ -64,7 +64,7 @@ The `home/` tree mirrors the target home directory:
   `home/.config/zed/`,
   `home/Library/Application Support/Code/User/`, and `home/.config/bat/` contain
   the remaining managed application configurations.
-- `home/.local/bin/git-code-stats` and `home/.local/bin/git-get` contain the
+- `home/.local/bin/git-code-stats` and `home/.local/bin/git-local` contain the
   repository helper commands.
 - `home/.agents/`, `home/.claude/`, `home/.codex/`, and `home/.pi/` contain
   repository-owned agent instructions and extensions only.
@@ -114,6 +114,7 @@ mise bootstrap status --missing
 mise dot status --missing
 mise doctor
 mise run update
+mise run test
 ```
 
 The global `mise run update` task can be run from any directory. It ensures
@@ -125,15 +126,52 @@ The coding agents `claude-code`, `codex`, and `pi`, along with eza, GitUI,
 Delta, Neovim, Zed, and VS Code, are managed through mise. Vim remains
 available as the native macOS command-line editor.
 
-The restored helper commands can be used from any Git repository:
+The local repository command can be used from any Git repository:
 
 ~~~sh
 git code-stats [today|week|month|all]
-git get github.com/user/repo
+git local clone github.com/user/repo
+git local list
+git local list --dirty
 ~~~
 
-The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
-and dry-run bootstrap checks on macOS.
+`git local clone` stores repositories as `~/git/<host>/<owner>/<repository>`.
+It uses GitHub CLI for `github.com` and `github.tools.sap` when `gh` is
+available, and otherwise falls back to `git clone`. `git local list` reads
+local Git metadata only - it does not fetch. `--dirty` limits the result to
+repositories with working-tree changes. Folder and repository names use the
+configured `LS_COLORS` palette, with `EZA_COLORS` as the fallback. Branch and
+Git status segments use the active Starship palette and mirror its compact
+prompt format:
+
+~~~text
+~/git
+├── github.com
+│   └── ltekton
+│       └── repo-bundle   main !2
+└── github.tools.sap
+    └── sustainability
+        └── S-Pod-S   main
+~~~
+
+`!2`, `?3`, `+1`, `»1`, `✘1`, and `=1` represent modified, untracked,
+staged, renamed, deleted, and conflicted files. `⇡1`, `⇣1`, and `⇕1/1`
+represent ahead, behind, and diverged branches. An empty status suffix means
+the working tree is clean and the tracked branch is current, matching
+Starship. Use `git local list --color` to force colors in a pipe or
+`git local list --no-color` for plain output.
+
+The test task is also available from the repository root:
+
+~~~sh
+mise run test
+~~~
+
+It runs the standard-library unit and integration tests, including actual
+external `git local` dispatch through the uv shebang.
+
+The GitHub Actions configuration runs the shell, Git, GitHub CLI, Mise, and
+standard-library test checks on macOS.
 
 For a deliberate dotfile deployment that overwrites conflicting files:
 
