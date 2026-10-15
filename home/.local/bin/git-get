@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: %s <repository>\n' "${BASH_SOURCE[0]}" >&2
+  printf '  %s github.com/user/repo\n' "${BASH_SOURCE[0]}" >&2
+  printf '  %s user/repo\n' "${BASH_SOURCE[0]}" >&2
+  printf '  %s git@github.com:user/repo.git\n' "${BASH_SOURCE[0]}" >&2
+}
+
+if [[ ${1:-} == '--help' || ${1:-} == '-h' ]]; then
+  usage >&2
+  exit 0
+fi
+
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 2
+fi
+
+input="${1%.git}"
+scheme='ssh'
+host=''
+path=''
+use_gh=0
+
+if [[ $input =~ ^(https?)://([^/]+)/(.+)$ ]]; then
+  scheme="${BASH_REMATCH[1]}"
+  host="${BASH_REMATCH[2]}"
+  path="${BASH_REMATCH[3]}"
+  use_gh=1
+elif [[ $input =~ ^git@([^:]+):(.+)$ ]]; then
+  host="${BASH_REMATCH[1]}"
+  path="${BASH_REMATCH[2]}"
+elif [[ $input =~ ^([^/]+)/([^/]+)/([^/]+)$ ]]; then
+  host="${BASH_REMATCH[1]}"
+  path="${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
+  use_gh=1
+elif [[ $input =~ ^([^/]+)/([^/]+)$ ]]; then
+  host='github.com'
+  path="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+  use_gh=1
+else
+  printf "Error: cannot parse '%s'\n" "$1" >&2
+  exit 2
+fi
+
+if [[ ! $host =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ || ! $path =~ ^([A-Za-z0-9][A-Za-z0-9._-]*)/([A-Za-z0-9][A-Za-z0-9._-]*)$ ]]; then
+  printf "Error: repository must contain a valid host, owner, and repository name: '%s'\n" "$1" >&2
+  exit 2
+fi
+
+owner="${BASH_REMATCH[1]}"
+repo="${BASH_REMATCH[2]}"
+target="$HOME/git/$host/$owner/$repo"
+
+if [[ -e $target ]]; then
+  printf 'Already exists: %s\n' "$target" >&2
+  exit 1
+fi
+
+mkdir -p "${target%/*}"
+if (( use_gh )) && [[ $host == github.com || $host == github.tools.sap ]] && command -v gh >/dev/null 2>&1; then
+  GH_HOST="$host" gh repo clone "$owner/$repo" "$target" --no-upstream -- --recurse-submodules
+else
+  if [[ $scheme == 'ssh' ]]; then
+    clone_url="git@$host:$owner/$repo.git"
+  else
+    clone_url="$scheme://$host/$owner/$repo.git"
+  fi
+  git clone --recurse-submodules -- "$clone_url" "$target"
+fi

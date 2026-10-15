@@ -52,15 +52,20 @@ The `home/` tree mirrors the target home directory:
   and interactive shell behavior, aliases, tool initialization, history
   bindings, and the One Dark terminal palette.
 - `home/.config/git/` contains Git behavior and the Conventional Commit template.
+- `home/.config/nvim/init.lua` contains the plugin-free Neovim configuration.
 - `home/.config/gh/config.yml` contains GitHub CLI defaults and aliases;
   authentication remains in GitHub's native machine-local state.
 - `home/.config/vim/vimrc` and `home/.config/vim/colors/` contain the native
-  Vim configuration and the shared `mini-onedark` colorscheme.
+  Vim configuration and the `mini-onedark` and `mini-gruvbox` colorschemes.
+- `home/.config/gitui/theme.ron` contains the GitUI One Dark color overrides.
 - `home/.config/npm/npmrc` contains the npm user configuration;
   `NPM_CONFIG_USERCONFIG` points npm to this XDG path.
 - `home/.config/ghostty/`, `home/.config/starship.toml`,
+  `home/.config/zed/`,
   `home/Library/Application Support/Code/User/`, and `home/.config/bat/` contain
   the remaining managed application configurations.
+- `home/.local/bin/git-code-stats` and `home/.local/bin/git-get` contain the
+  repository helper commands.
 - `home/.agents/`, `home/.claude/`, `home/.codex/`, and `home/.pi/` contain
   repository-owned agent instructions and extensions only.
 
@@ -69,11 +74,15 @@ configuration homes or track generated application state.
 
 ## Editors and keybindings
 
-Vim is the native command-line editor and VS Code is the graphical editor. The
-shell, Git, and GitHub CLI use `vim`; both editors keep a small configuration.
-VS Code uses its built-in dark theme, while the native Vim and terminal
-configurations use the shared `mini-onedark` palette. VS Code extensions are
-intentionally not declared here and remain managed by VS Code.
+Vim and Neovim are the command-line editors and Zed is the primary graphical
+editor. VS Code remains available as a secondary graphical editor. The shell,
+Git, and GitHub CLI use `nvim`; Vim and Neovim are plugin-free and use the
+shared `mini-onedark` palette by default. Vim also includes the selectable
+`mini-gruvbox` colorscheme. Zed uses Vim mode and the One Dark theme. VS Code
+extensions are intentionally not declared here and remain managed by VS Code.
+
+The Zed settings and keymap live in the native macOS location under
+`home/.config/zed/` and are deployed to `~/.config/zed/`.
 
 The VS Code user settings and keybindings live in the native macOS location under
 `home/Library/Application Support/Code/User/` and are deployed to
@@ -88,6 +97,7 @@ behavior and keep the Vim and VS Code keymaps deliberately small.
 
 ### Shell shortcuts
 
+- `l`, `ll`, `la`, `lla`, and `tree` - eza directory listings.
 - `Ctrl-T` - fzf file picker with bat previews.
 - `Alt-C` - fzf directory picker.
 - `Up` and `Down` - native prefix-aware Zsh history search.
@@ -111,8 +121,16 @@ mise-managed tools are installed, upgrades the configured tools and packages,
 applies the repository dotfiles, and updates mise itself. It uses the canonical
 `~/dotfiles` checkout when applying the repository configuration.
 
-The coding agents `claude-code`, `codex`, and `pi`, along with VS Code, are
-managed through mise. Vim remains the native macOS command-line editor.
+The coding agents `claude-code`, `codex`, and `pi`, along with eza, GitUI,
+Delta, Neovim, Zed, and VS Code, are managed through mise. Vim remains
+available as the native macOS command-line editor.
+
+The restored helper commands can be used from any Git repository:
+
+~~~sh
+git code-stats [today|week|month|all]
+git get github.com/user/repo
+~~~
 
 The GitHub Actions configuration runs the same shell, Git, GitHub CLI, Mise,
 and dry-run bootstrap checks on macOS.

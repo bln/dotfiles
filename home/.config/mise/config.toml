@@ -28,18 +28,26 @@ uv = "latest"
 
 # Command-line tools.
 "brew:jq" = "latest"
+"brew:wget" = "latest"
 "brew:bat" = "latest"
+"brew:git-delta" = "latest"
+"brew:eza" = "latest"
 "brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:gh" = "latest"
+"brew:gitui" = "latest"
 "brew:ripgrep" = "latest"
 "brew:rtk" = "latest"
 "brew:starship" = "latest"
+"brew:tokei" = "latest"
+"brew:shellcheck" = "latest"
+"brew:mole" = "latest"
 "brew:zoxide" = "latest"
 
-# Coding agents.
+# Coding agents and editors.
 "brew-cask:claude-code" = "latest"
 "brew-cask:codex" = "latest"
+"brew:neovim" = "latest"
 "brew:pi-coding-agent" = "latest"
 
 # Interactive Zsh plugins.
@@ -50,6 +58,7 @@ uv = "latest"
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 "brew-cask:font-fira-code-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
+"brew-cask:zed" = "latest"
 "brew-cask:visual-studio-code" = "latest"
 "brew-cask:typora" = "latest"
 "brew-cask:obsidian" = "latest"

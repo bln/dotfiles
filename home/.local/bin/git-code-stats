@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: %s [today|week|month|all]\n' "${BASH_SOURCE[0]}" >&2
+}
+
+if [[ $(uname -s) != Darwin ]]; then
+  printf '%s\n' 'git-code-stats requires macOS date.' >&2
+  exit 1
+fi
+
+period="${1:-all}"
+case "$period" in
+  today|week|month)
+    periods=("$period")
+    ;;
+  all)
+    periods=(today week month)
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$repo_root" ]]; then
+  printf '%s\n' 'Current directory is not a Git repository.' >&2
+  exit 1
+fi
+
+start_of_day() {
+  date -v0H -v0M -v0S '+%Y-%m-%d %H:%M:%S'
+}
+
+start_of_week() {
+  date -v-mon -v0H -v0M -v0S '+%Y-%m-%d %H:%M:%S'
+}
+
+start_of_month() {
+  date -v1d -v0H -v0M -v0S '+%Y-%m-%d %H:%M:%S'
+}
+
+stats_for() {
+  local start_time="$1"
+  local end_time="$2"
+
+  if ! git -C "$repo_root" rev-parse --verify HEAD >/dev/null 2>&1; then
+    printf '0\t0\t0\t0\n'
+    return
+  fi
+
+  git -C "$repo_root" log HEAD \
+    --since="$start_time" \
+    --until="$end_time" \
+    --numstat \
+    --format='commit %H' \
+    | awk '
+        $1 == "commit" { commits++; next }
+        NF == 3 {
+          files++
+          if ($1 != "-") insertions += $1
+          if ($2 != "-") deletions += $2
+        }
+        END { printf "%d\t%d\t%d\t%d\n", commits, files, insertions, deletions }
+      '
+}
+
+print_period() {
+  local label="$1"
+  local start_time="$2"
+  local end_time="$3"
+  local commits=0
+  local files=0
+  local insertions=0
+  local deletions=0
+  local net=0
+  local stats=""
+
+  stats="$(stats_for "$start_time" "$end_time")"
+  IFS=$'\t' read -r commits files insertions deletions <<<"$stats"
+  net=$((insertions - deletions))
+
+  printf '%s (%s -> %s)\n' "$label" "$start_time" "$end_time"
+  printf '  commits: %s\n' "$commits"
+  printf '  files: %s\n' "$files"
+  printf '  insertions: %s\n' "$insertions"
+  printf '  deletions: %s\n' "$deletions"
+  printf '  net: %s\n' "$net"
+}
+
+end_time="$(date '+%Y-%m-%d %H:%M:%S')"
+printf 'Git code stats\nRepository: %s\n\n' "$repo_root"
+
+for period in "${periods[@]}"; do
+  case "$period" in
+    today)
+      print_period today "$(start_of_day)" "$end_time"
+      ;;
+    week)
+      print_period week "$(start_of_week)" "$end_time"
+      ;;
+    month)
+      print_period month "$(start_of_month)" "$end_time"
+      ;;
+  esac
+  printf '\n'
+done
