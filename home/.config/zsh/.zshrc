@@ -15,7 +15,12 @@ export LANG=en_US.UTF-8
 # Keep native ls colorful on macOS.
 export CLICOLOR=1
 export LSCOLORS='ExGxFxDxCxBxBxCxCxExDx'
-alias ls='command ls -G'
+
+alias q='exit'
+alias c='clear'
+
+alias ec="$EDITOR $ZDOTDIR/.zshrc"
+alias sc="source $ZDOTDIR/.zshrc"
 
 # Keep a large, shared history while avoiding noisy duplicates.
 mkdir -p "$XDG_CACHE_HOME/zsh"
@@ -82,6 +87,7 @@ fi
 
 if (( $+commands[zoxide] )); then
   eval "$(zoxide init zsh)"
+  alias cc='z'
 fi
 
 # Starship renders the prompt and manages its Zsh hooks.
