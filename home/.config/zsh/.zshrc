@@ -36,6 +36,10 @@ alias cxauto='codex --approve-for-me'
 alias ec="$EDITOR $ZDOTDIR/.zshrc"
 alias sc="source $ZDOTDIR/.zshrc"
 
+alias mdot="mise dot apply --force --yes"
+alias mu="mise self-update --yes && mise bootstrap --upgrade --yes"
+
+
 # Git and workflow shortcuts.
 alias gcm='git switch "$(git main-branch)" && git pull'
 function grm() {

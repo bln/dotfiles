@@ -2,12 +2,13 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.7"
+min_version = "2026.10.11"
 
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 minimum_release_age = "2d"
+self_update.auto=true
 disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "pypi", "s3", "ubi", "vfox"]
 
 [settings.github]
@@ -45,7 +46,7 @@ uv = "latest"
 "brew:zoxide" = "latest"
 
 # Coding agents and editors.
-"brew-cask:claude-code" = "latest"
+"brew-cask:claude-code@latest" = "latest"
 "brew-cask:codex" = "latest"
 "brew:neovim" = "latest"
 "brew:pi-coding-agent" = "latest"
@@ -115,24 +116,8 @@ post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
 
 [tasks.bootstrap]
 description = "Ensure uv's default stable Python is installed"
-run = '''
-uv_bin_dir="$(uv python dir --bin)"
-default_python="$uv_bin_dir/python"
-
-if [ ! -x "$default_python" ] || ! uv python find --no-project --managed-python "$default_python" >/dev/null 2>&1; then
-  uv python install --default
-  uv python find --no-project --managed-python "$default_python" >/dev/null
-fi
-'''
+run = 'uv python find --no-project --managed-python >/dev/null 2>&1 || uv python install --default'
 
 [tasks.update]
 description = "Update mise tools, packages, plugins, and dotfiles"
-dir = "{{ env.HOME }}/dotfiles"
-run = [
-  "mise bootstrap --only tools,task --yes --prompt-secrets",
-  "mise upgrade",
-  "mise bootstrap packages apply --update --yes",
-  "mise bootstrap packages upgrade --yes",
-  "mise dot apply --force --yes --prompt-secrets",
-  "mise self-update --yes",
-]
+run = "mise self-update --yes && mise bootstrap --upgrade --yes"
