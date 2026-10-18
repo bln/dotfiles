@@ -47,7 +47,9 @@ home/.pi/**
 !home/.pi/agent/
 !home/.pi/agent/AGENTS.md
 !home/.pi/agent/extensions/
-!home/.pi/agent/extensions/friendly-footer.ts
+!home/.pi/agent/extensions/pi-lfooter.ts
+!home/.pi/agent/extensions/pi-lfooter/
+!home/.pi/agent/extensions/pi-lfooter/**
 home/.codex/**
 !home/.codex/
 !home/.codex/AGENTS.md
