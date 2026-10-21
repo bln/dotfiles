@@ -5,6 +5,7 @@
 {
   "cli_default_open_behavior": "new_window",
   "disable_ai": true,
+  "suggest_extensions": false,
   "icon_theme": {
     "mode": "dark",
     "light": "Zed (Default)",

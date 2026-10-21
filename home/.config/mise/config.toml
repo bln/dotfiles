@@ -2,14 +2,13 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.11"
+min_version = "2026.10.15"
 
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
-minimum_release_age = "2d"
 self_update.auto=true
-disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "pypi", "s3", "ubi", "vfox"]
+disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "s3", "ubi", "vfox"]
 
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
@@ -44,6 +43,7 @@ uv = "latest"
 "brew:shellcheck" = "latest"
 "brew:mole" = "latest"
 "brew:zoxide" = "latest"
+"brew:agent-browser" = "latest"
 
 # Coding agents and editors.
 "brew-cask:claude-code@latest" = "latest"
@@ -120,4 +120,4 @@ run = 'uv python find --no-project --managed-python >/dev/null 2>&1 || uv python
 
 [tasks.update]
 description = "Update mise tools, packages, plugins, and dotfiles"
-run = "mise self-update --yes && mise bootstrap --upgrade --yes"
+run = "mise self-update --yes && mise bootstrap --upgrade --prune-dotfiles --yes"
