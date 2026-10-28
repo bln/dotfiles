@@ -47,3 +47,5 @@ keybind = cmd+opt+right=goto_split:right
 keybind = cmd+opt+up=goto_split:top
 keybind = cmd+opt+down=goto_split:bottom
 keybind = unconsumed:super+,=text:\x1bqghostty +edit-config\x0d
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+

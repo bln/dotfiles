@@ -2,13 +2,23 @@
 # Canonical global machine configuration.
 # This file is deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.17"
+min_version = "2026.10.21"
 
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
-self_update.auto=true
-disable_backends = ["asdf", "conda", "dotnet", "forgejo", "gem", "gitlab", "s3", "ubi", "vfox"]
+self_update.auto = true
+disable_backends = [
+  "asdf",
+  "conda",
+  "dotnet",
+  "forgejo",
+  "gem",
+  "gitlab",
+  "s3",
+  "ubi",
+  "vfox",
+]
 
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
