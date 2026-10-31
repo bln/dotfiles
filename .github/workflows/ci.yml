@@ -52,8 +52,10 @@ jobs:
 
       - name: Check Mise configuration
         run: |
-          mise config get --file mise.toml >/dev/null
           mise config get --global >/dev/null
+          mise config explain --global dotfile_groups.home >/dev/null
+          dotfiles_root="$(mise settings dotfiles.root)"
+          test "$(cd "$dotfiles_root" && pwd -P)" = "$(cd home && pwd -P)"
           test -f home/.config/mise/mise.lock
 
       - name: Check dotfile bootstrap

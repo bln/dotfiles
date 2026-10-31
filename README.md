@@ -36,24 +36,25 @@ exist. Mise deploys the examples but does not create or manage identity contents
 
 | Source | Responsibility |
 | --- | --- |
-| `home/.config/mise/config.toml` | Global machine settings, tools, packages, and macOS bootstrap declarations |
+| `home/.config/mise/config.toml` | Global machine settings, tools, packages, macOS bootstrap declarations, and dotfile deployment |
 | `home/.config/mise/mise.lock` | Locked global tool artifacts for macOS Apple Silicon |
-| `mise.toml` | Repository dotfile declarations and deployment policy |
 | `home/` | Files deployed into their native `$HOME` locations with `symlink-each` |
 | `home/.config/git/identity-*.example` | Examples for machine-local Git identity files |
 | `install.sh` | Initial mise bootstrap |
 | `uninstall.sh` | Explicit mise-native teardown |
 
-The global mise configuration and lockfile are part of `home/`, so the existing
-whole-home dotfile declaration deploys them to:
+The global mise configuration and lockfile are part of `home/`. The `home`
+dotfile group deploys them to:
 
 ```text
 ~/.config/mise/config.toml
 ~/.config/mise/mise.lock
 ```
 
-The root `mise.toml` remains the project configuration for repository-relative
-dotfile sources. It does not declare machine-wide tools.
+The global config resolves the dotfile source root from the canonical path of
+`home/.config/mise/config.toml`. That points to `home/` during initial bootstrap
+and continues to work when the config file is deployed as a symlink under
+`$HOME`.
 
 ## Configuration layout
 
@@ -132,8 +133,8 @@ mise run update
 
 The global `mise run update` task can be run from any directory. It ensures
 mise-managed tools are installed, upgrades the configured tools and packages,
-applies the repository dotfiles, and updates mise itself. It uses the canonical
-`~/dotfiles` checkout when applying the repository configuration.
+applies the repository dotfiles, and updates mise itself. The dotfile group
+resolves its source from the deployed global config's canonical path.
 
 The coding agents `claude-code`, `codex`, and `pi`, along with eza, GitUI,
 Delta, Neovim, Zed, and VS Code, are managed through mise. Vim remains

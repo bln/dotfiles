@@ -22,7 +22,6 @@ empty_dir="$(mktemp -d)"
 trap 'rmdir "$empty_dir" 2>/dev/null || true' EXIT
 
 "$mise_bin" -C "$repo" bootstrap dotfiles unapply --force --yes
-"$mise_bin" untrust "$repo/mise.toml" || true
 "$mise_bin" -C "$empty_dir" bootstrap packages prune --manager brew --yes
 "$mise_bin" -C "$empty_dir" bootstrap packages prune --manager brew-cask --yes
 "$mise_bin" -C "$empty_dir" uninstall --all --yes

@@ -8,6 +8,8 @@ min_version = "2026.10.24"
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 self_update.auto = true
+# Resolve the deployed config symlink back to this repository's home/ tree.
+dotfiles.root = "{{ config_source | canonicalize | dirname }}/../.."
 disable_backends = [
   "asdf",
   "conda",
@@ -22,6 +24,17 @@ disable_backends = [
 
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
+
+[dotfile_groups.home]
+root = "."
+target = "~"
+mode = "symlink-each"
+manifest = "git"
+relative = true
+
+[dotfiles]
+"~/.config/git/identity-personal" = { permissions = "0600" }
+"~/.config/git/identity-work" = { permissions = "0600" }
 
 [env]
 # Keep cask applications in the user-owned Applications directory.
