@@ -42,18 +42,11 @@ jobs:
           git config --file home/.config/git/identity-personal.example --list >/dev/null
           git config --file home/.config/git/identity-work.example --list >/dev/null
 
-      - name: Check GitHub CLI configuration
-        env:
-          GH_CONFIG_DIR: ${{ github.workspace }}/home/.config/gh
-        run: |
-          test "$(gh config get git_protocol)" = https
-          test "$(gh config get editor)" = vim
-          test "$(gh alias list | awk '$1 == "co:" { print $2, $3 }')" = "pr checkout"
-
       - name: Check Mise configuration
         run: |
           mise config get --global >/dev/null
           mise config explain --global dotfile_groups.home >/dev/null
+          mise shell-alias get gcm >/dev/null
           dotfiles_root="$(mise settings dotfiles.root)"
           test "$(cd "$dotfiles_root" && pwd -P)" = "$(cd home && pwd -P)"
           test -f home/.config/mise/mise.lock

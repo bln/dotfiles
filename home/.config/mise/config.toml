@@ -37,8 +37,62 @@ relative = true
 "~/.config/git/identity-work" = { permissions = "0600" }
 
 [env]
+# Append Homebrew after Mise-managed tools and before inherited PATH.
+_.path = [
+  { path = ["/opt/homebrew/bin", "/opt/homebrew/sbin"], position = "append" },
+]
+
+# Zsh and tool defaults shared by Mise-activated shells and tasks.
+EDITOR = "nvim"
+VISUAL = "nvim"
+GIT_EDITOR = "nvim"
+NPM_CONFIG_USERCONFIG = { default = "${XDG_CONFIG_HOME:-$HOME/.config}/npm/npmrc" }
+PAGER = { default = "less -FRX" }
+LANG = "en_US.UTF-8"
+CLICOLOR = "1"
+LSCOLORS = "ExGxFxDxCxBxBxCxCxExDx"
+EZA_COLORS = 'fi=38;2;171;178;191:di=38;2;97;175;239:ln=38;2;86;182;194:ex=38;2;152;195;121:da=38;2;229;192;123:sn=38;2;92;99;112'
+FZF_DEFAULT_OPTS = '--height=40% --layout=reverse --border --info=inline --color=fg:#abb2bf,bg:#282c34,hl:#61afef,fg+:#abb2bf,bg+:#5c6370,hl+:#61afef,info:#56b6c2,prompt:#c678dd,pointer:#c678dd,marker:#98c379,spinner:#56b6c2,header:#5c6370,border:#5c6370'
+FZF_CTRL_T_COMMAND = 'fd --type f --hidden --follow --exclude .git --color=never'
+FZF_ALT_C_COMMAND = 'fd --type d --hidden --follow --exclude .git --color=never'
+FZF_CTRL_T_OPTS = "--preview 'bat --color=always --theme=OneHalfDark --style=numbers --line-range=:500 {}'"
+
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
+
+[shell_alias]
+# Listing aliases.
+ls = 'command ls -G'
+l = 'eza --long --group-directories-first --icons=auto --color=auto'
+ll = 'eza --long --all --group-directories-first --icons=auto --color=auto --git'
+la = 'eza --all --group-directories-first --icons=auto --color=auto'
+lla = 'eza --long --all --group-directories-first --icons=auto --color=auto --git'
+tree = 'eza --tree --level=2 --group-directories-first --git-ignore --icons=auto --color=auto'
+bat = 'command bat --theme=OneHalfDark --style=numbers,changes,header --paging=auto'
+
+# General and editor shortcuts.
+q = 'exit'
+c = 'clear'
+v = 'nvim'
+cc = 'z'
+dc = 'z'
+cxyolo = 'codex --dangerously-bypass-approvals-and-sandbox'
+cxauto = 'codex --approve-for-me'
+ec = '$EDITOR $ZDOTDIR/.zshrc'
+sc = 'source $ZDOTDIR/.zshrc'
+mdot = 'mise dot apply --force --yes'
+mu = 'mise self-update --yes && mise bootstrap --upgrade --yes'
+
+# Git and workflow shortcuts.
+gcm = 'git switch "$(git main-branch)" && git pull'
+gpf = 'git push --force-with-lease --force-if-includes'
+prc = 'gh pr create --web'
+prv = 'gh pr view --web'
+kc = 'kubectl config use-context'
+cbc = 'pbcopy'
+cbp = 'pbpaste'
+".." = 'cd ..'
+"..." = 'cd ../..'
 
 [tools]
 # Managed runtimes.

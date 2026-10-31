@@ -69,17 +69,14 @@ The `home/` tree mirrors the target home directory:
 - `home/.config/git/` contains Git behavior, identity examples, and the
   Conventional Commit template.
 - `home/.config/nvim/init.lua` contains the plugin-free Neovim configuration.
-- `home/.config/gh/config.yml` contains GitHub CLI defaults and aliases;
-  authentication remains in GitHub's native machine-local state.
 - `home/.config/vim/vimrc` and `home/.config/vim/colors/` contain the native
   Vim configuration and the `mini-onedark` and `mini-gruvbox` colorschemes.
 - `home/.config/gitui/theme.ron` contains the GitUI One Dark color overrides.
 - `home/.config/npm/npmrc` contains the npm user configuration;
   `NPM_CONFIG_USERCONFIG` points npm to this XDG path.
 - `home/.config/ghostty/`, `home/.config/starship.toml`,
-  `home/.config/zed/`,
-  `home/Library/Application Support/Code/User/`, and `home/.config/bat/` contain
-  the remaining managed application configurations.
+  `home/.config/zed/`, and `home/Library/Application Support/Code/User/`
+  contain the remaining managed application configurations.
 - `home/.local/bin/` intentionally contains no repository-owned helper scripts; it
   remains available for machine-local tools such as mise.
 - `home/.agents/`, `home/.claude/`, `home/.codex/`, and `home/.pi/` contain
@@ -91,11 +88,12 @@ configuration homes or track generated application state.
 ## Editors and keybindings
 
 Vim and Neovim are the command-line editors and Zed is the primary graphical
-editor. VS Code remains available as a secondary graphical editor. The shell,
-Git, and GitHub CLI use `nvim`; Vim and Neovim are plugin-free and use the
-shared `mini-onedark` palette by default. Vim also includes the selectable
-`mini-gruvbox` colorscheme. Zed uses Vim mode and the One Dark theme. VS Code
-extensions are intentionally not declared here and remain managed by VS Code.
+editor. VS Code remains available as a secondary graphical editor.
+Mise-activated shells, Git, and the GitHub CLI use `nvim`; Vim and Neovim are
+plugin-free and use the shared `mini-onedark` palette by default. Vim also
+includes the selectable `mini-gruvbox` colorscheme. Zed uses Vim mode and the
+One Dark theme. VS Code extensions are intentionally not declared here and
+remain managed by VS Code.
 
 The Zed settings and keymap live in the native macOS location under
 `home/.config/zed/` and are deployed to `~/.config/zed/`.
@@ -114,6 +112,7 @@ behavior and keep the Vim and VS Code keymaps deliberately small.
 ### Shell shortcuts
 
 - `l`, `ll`, `la`, `lla`, and `tree` - eza directory listings.
+- `bat` - OneHalfDark theme with line numbers, change markers, and header.
 - `Ctrl-T` - fzf file picker with bat previews.
 - `Alt-C` - fzf directory picker.
 - `Up` and `Down` - native prefix-aware Zsh history search.
