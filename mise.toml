@@ -7,24 +7,6 @@ min_version = "2026.10.24"
 dotfiles.default_mode = "symlink"
 dotfiles.relative_symlinks = true
 
-[bootstrap.secrets]
-git_personal_name = {
-  env = "GIT_PERSONAL_NAME",
-description = "Personal Git user name",
-}
-git_personal_email = {
-  env = "GIT_PERSONAL_EMAIL",
-description = "Personal Git email",
-}
-git_work_name = {
-  env = "GIT_WORK_NAME",
-description = "Work Git user name",
-}
-git_work_email = {
-  env = "GIT_WORK_EMAIL",
-description = "Work Git email",
-}
-
 [dotfiles]
 "~" = {
   source = "home",
@@ -32,14 +14,7 @@ mode = "symlink-each",
 manifest = "git",
 }
 
-"~/.config/git/identity-personal" = {
-  source = "templates/git/identity-personal.tmpl",
-mode = "template",
-permissions = "0600",
-}
-
-"~/.config/git/identity-work" = {
-  source = "templates/git/identity-work.tmpl",
-mode = "template",
-permissions = "0600",
-}
+# Keep user-created identity contents local while enforcing restrictive
+# permissions.
+"~/.config/git/identity-personal" = { permissions = "0600" }
+"~/.config/git/identity-work" = { permissions = "0600" }

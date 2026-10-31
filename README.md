@@ -13,10 +13,24 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-The installer installs mise, prompts for private Git identity values, installs the
-managed tools, applies macOS settings, and deploys the files under `home/`. It
-uses the repository's checked-in global mise configuration during the initial
-bootstrap, before that configuration has been linked into `$HOME`.
+The installer installs mise, installs the managed tools, applies macOS settings,
+and deploys the files under `home/`. It uses the repository's checked-in global
+mise configuration during the initial bootstrap, before that configuration has
+been linked into `$HOME`.
+
+After installation, create your local Git identity files from the examples:
+
+```sh
+cp -n ~/.config/git/identity-personal.example ~/.config/git/identity-personal
+cp -n ~/.config/git/identity-work.example ~/.config/git/identity-work
+chmod 600 ~/.config/git/identity-personal ~/.config/git/identity-work
+```
+
+Edit the `name` and `email` values in both files before committing. The examples
+are blank, and `user.useConfigOnly` makes Git refuse to guess an identity. The
+personal identity is the default; the work identity applies to repositories
+with `github.tools.sap` remotes. `cp -n` preserves identity files that already
+exist. Mise deploys the examples but does not create or manage identity contents.
 
 ## Ownership
 
@@ -24,9 +38,9 @@ bootstrap, before that configuration has been linked into `$HOME`.
 | --- | --- |
 | `home/.config/mise/config.toml` | Global machine settings, tools, packages, and macOS bootstrap declarations |
 | `home/.config/mise/mise.lock` | Locked global tool artifacts for macOS Apple Silicon |
-| `mise.toml` | Repository project configuration for dotfiles and templates |
+| `mise.toml` | Repository dotfile declarations and deployment policy |
 | `home/` | Files deployed into their native `$HOME` locations with `symlink-each` |
-| `templates/git/` | Private rendered Git identity files |
+| `home/.config/git/identity-*.example` | Examples for machine-local Git identity files |
 | `install.sh` | Initial mise bootstrap |
 | `uninstall.sh` | Explicit mise-native teardown |
 
@@ -51,7 +65,8 @@ The `home/` tree mirrors the target home directory:
 - `home/.config/zsh/.zprofile` and `home/.config/zsh/.zshrc` contain the login
   and interactive shell behavior, aliases, tool initialization, history
   bindings, and the One Dark terminal palette.
-- `home/.config/git/` contains Git behavior and the Conventional Commit template.
+- `home/.config/git/` contains Git behavior, identity examples, and the
+  Conventional Commit template.
 - `home/.config/nvim/init.lua` contains the plugin-free Neovim configuration.
 - `home/.config/gh/config.yml` contains GitHub CLI defaults and aliases;
   authentication remains in GitHub's native machine-local state.
@@ -109,7 +124,6 @@ Run these commands from the repository root:
 
 ```sh
 mise bootstrap --dry-run
-mise bootstrap --prompt-secrets
 mise bootstrap status --missing
 mise dot status --missing
 mise doctor
@@ -155,7 +169,9 @@ intended with `mise lock --global --bump`.
 
 Do not track credentials, secret values, agent sessions, caches, application
 state, databases, generated output, or temporary editor state. Keep private Git
-identity files in their native machine-local locations. Run `./uninstall.sh --yes` only
-after backing up anything that must survive. It un-applies this repository's dotfiles, prunes
-mise-owned Homebrew resources, removes mise-managed tool versions, and implodes mise
-configuration and state. It does not restore removed user files or macOS preferences.
+identity files in their native machine-local locations. Mise manages only their
+`0600` permissions; their contents are not tracked and they survive dotfile
+unapply. Run `./uninstall.sh --yes` only after backing up anything else that must
+survive. It un-applies this repository's dotfiles, prunes mise-owned Homebrew
+resources, removes mise-managed tool versions, and implodes mise configuration
+and state. It does not restore removed user files or macOS preferences.

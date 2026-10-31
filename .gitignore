@@ -35,6 +35,8 @@ build/
 # Machine-local files that may live beside managed files in the mise dotfiles tree.
 home/.zshrc.local
 home/.config/git/identity-*
+!home/.config/git/identity-personal.example
+!home/.config/git/identity-work.example
 
 # home/ mirrors $HOME. Keep agent runtime state local, but allow the
 # repository-owned instructions, extensions, and skills below.

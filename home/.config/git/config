@@ -1,5 +1,5 @@
-# Mise renders the machine-local identity files during bootstrap; useConfigOnly
-# prevents Git from guessing.
+# Copy the identity examples here and edit them; useConfigOnly prevents Git
+# from guessing when an identity has not been configured.
 [user]
 	useConfigOnly = true
 
