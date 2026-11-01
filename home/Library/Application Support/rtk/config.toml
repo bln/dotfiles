@@ -1,0 +1,2 @@
+[hooks]
+exclude_commands = ["mise", "curl", "playwright", "git rebase"]

@@ -1,15 +1,23 @@
 #:schema https://mise.jdx.dev/schema/mise.json
+
 # Canonical global machine configuration.
-# This file is deployed to ~/.config/mise/config.toml through home/.
+# Deployed to ~/.config/mise/config.toml through home/.
 
 min_version = "2026.10.24"
+
+
+# -----------------------------------------------------------------------------
+# Mise
+# -----------------------------------------------------------------------------
 
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
 self_update.auto = true
+
 # Resolve the deployed config symlink back to this repository's home/ tree.
 dotfiles.root = "{{ config_source | canonicalize | dirname }}/../.."
+
 disable_backends = [
   "asdf",
   "conda",
@@ -25,33 +33,52 @@ disable_backends = [
 [settings.github]
 credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
 
+
+# -----------------------------------------------------------------------------
+# Dotfiles
+# -----------------------------------------------------------------------------
+
 [dotfile_groups.home]
 root = "."
 target = "~"
 mode = "symlink-each"
 manifest = "git"
 relative = true
+exclude = ["Library/Application Support/rtk/config.toml"]
 
 [dotfiles]
-"~/.config/git/identity-personal" = { permissions = "0600" }
-"~/.config/git/identity-work" = { permissions = "0600" }
+"~/Library/Application Support/rtk/config.toml/excludes" = { merge = true }
+
+
+# -----------------------------------------------------------------------------
+# Environment
+# -----------------------------------------------------------------------------
 
 [env]
+
 # Append Homebrew after Mise-managed tools and before inherited PATH.
 _.path = [
-  { path = ["/opt/homebrew/bin", "/opt/homebrew/sbin"], position = "append" },
+  { path = [
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+  ], position = "append" },
 ]
 
-# Zsh and tool defaults shared by Mise-activated shells and tasks.
+# Shell and editor defaults.
 EDITOR = "nvim"
 VISUAL = "nvim"
 GIT_EDITOR = "nvim"
-NPM_CONFIG_USERCONFIG = { default = "${XDG_CONFIG_HOME:-$HOME/.config}/npm/npmrc" }
 PAGER = { default = "less -FRX" }
+
+# Locale and terminal colors.
 LANG = "en_US.UTF-8"
 CLICOLOR = "1"
 LSCOLORS = "ExGxFxDxCxBxBxCxCxExDx"
 EZA_COLORS = 'fi=38;2;171;178;191:di=38;2;97;175;239:ln=38;2;86;182;194:ex=38;2;152;195;121:da=38;2;229;192;123:sn=38;2;92;99;112'
+
+# Tool configuration.
+NPM_CONFIG_USERCONFIG = { default = "${XDG_CONFIG_HOME:-$HOME/.config}/npm/npmrc" }
+
 FZF_DEFAULT_OPTS = '--height=40% --layout=reverse --border --info=inline --color=fg:#abb2bf,bg:#282c34,hl:#61afef,fg+:#abb2bf,bg+:#5c6370,hl+:#61afef,info:#56b6c2,prompt:#c678dd,pointer:#c678dd,marker:#98c379,spinner:#56b6c2,header:#5c6370,border:#5c6370'
 FZF_CTRL_T_COMMAND = 'fd --type f --hidden --follow --exclude .git --color=never'
 FZF_ALT_C_COMMAND = 'fd --type d --hidden --follow --exclude .git --color=never'
@@ -60,8 +87,22 @@ FZF_CTRL_T_OPTS = "--preview 'bat --color=always --theme=OneHalfDark --style=num
 # Keep cask applications in the user-owned Applications directory.
 MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
 
+
+# -----------------------------------------------------------------------------
+# Shell aliases
+# -----------------------------------------------------------------------------
+
 [shell_alias]
-# Listing aliases.
+
+# Navigation.
+".." = 'cd ..'
+"..." = 'cd ../..'
+c = 'clear'
+q = 'exit'
+cc = 'z'
+dc = 'z'
+
+# Listing and file inspection.
 ls = 'command ls -G'
 l = 'eza --long --group-directories-first --icons=auto --color=auto'
 ll = 'eza --long --all --group-directories-first --icons=auto --color=auto --git'
@@ -70,76 +111,98 @@ lla = 'eza --long --all --group-directories-first --icons=auto --color=auto --gi
 tree = 'eza --tree --level=2 --group-directories-first --git-ignore --icons=auto --color=auto'
 bat = 'command bat --theme=OneHalfDark --style=numbers,changes,header --paging=auto'
 
-# General and editor shortcuts.
-q = 'exit'
-c = 'clear'
+# Editor and shell.
 v = 'nvim'
-cc = 'z'
-dc = 'z'
-cxyolo = 'codex --dangerously-bypass-approvals-and-sandbox'
-cxauto = 'codex --approve-for-me'
 ec = '$EDITOR $ZDOTDIR/.zshrc'
 sc = 'source $ZDOTDIR/.zshrc'
-mdot = 'mise dot apply --force --yes'
-mu = 'mise self-update --yes && mise bootstrap --upgrade --yes'
 
-# Git and workflow shortcuts.
+# Clipboard.
+cbc = 'pbcopy'
+cbp = 'pbpaste'
+
+# Git and GitHub.
 gcm = 'git switch "$(git main-branch)" && git pull'
 gpf = 'git push --force-with-lease --force-if-includes'
 prc = 'gh pr create --web'
 prv = 'gh pr view --web'
+
+# Kubernetes.
 kc = 'kubectl config use-context'
-cbc = 'pbcopy'
-cbp = 'pbpaste'
-".." = 'cd ..'
-"..." = 'cd ../..'
+
+# Coding agents.
+cxyolo = 'codex --dangerously-bypass-approvals-and-sandbox'
+cxauto = 'codex --approve-for-me'
+
+# Mise.
+mdot = 'mise dot apply --force --yes'
+mu = 'mise self-update --yes && mise bootstrap --upgrade --yes'
+
+
+# -----------------------------------------------------------------------------
+# Tools
+# -----------------------------------------------------------------------------
 
 [tools]
-# Managed runtimes.
 node = "lts"
 uv = "latest"
 
+
+# -----------------------------------------------------------------------------
+# Bootstrap packages
+# -----------------------------------------------------------------------------
+
 [bootstrap.packages]
-# Required host package.
+
+# Host prerequisites.
 "brew:git" = "latest"
 
-# Command-line tools.
-"brew:jq" = "latest"
-"brew:wget" = "latest"
+# CLI essentials.
 "brew:bat" = "latest"
-"brew:git-delta" = "latest"
 "brew:eza" = "latest"
 "brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:gh" = "latest"
+"brew:git-delta" = "latest"
 "brew:gitui" = "latest"
+"brew:jq" = "latest"
 "brew:ripgrep" = "latest"
+"brew:shellcheck" = "latest"
+"brew:tokei" = "latest"
+"brew:wget" = "latest"
+"brew:zoxide" = "latest"
+
+# Additional CLI tools.
+"brew:agent-browser" = "latest"
+"brew:mole" = "latest"
 "brew:rtk" = "latest"
 "brew:starship" = "latest"
-"brew:tokei" = "latest"
-"brew:shellcheck" = "latest"
-"brew:mole" = "latest"
-"brew:zoxide" = "latest"
-"brew:agent-browser" = "latest"
 
 # Coding agents and editors.
+"brew-cask:chatgpt" = "latest"
 "brew-cask:claude-code@latest" = "latest"
 "brew-cask:codex" = "latest"
-"brew:neovim" = "latest"
-"brew:pi-coding-agent" = "latest"
+"brew-cask:neovim" = "latest"
+"brew-cask:pi-coding-agent" = "latest"
 
 # Interactive Zsh plugins.
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
 
-# Mise cask identifiers use the brew-cask:<token> form.
-"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
-"brew-cask:font-fira-code-nerd-font" = "latest"
+# Terminal and desktop applications.
 "brew-cask:ghostty" = "latest"
-"brew-cask:zed" = "latest"
-"brew-cask:visual-studio-code" = "latest"
-"brew-cask:typora" = "latest"
 "brew-cask:obsidian" = "latest"
+"brew-cask:typora" = "latest"
+"brew-cask:visual-studio-code" = "latest"
+"brew-cask:zed" = "latest"
+
+# Fonts.
+"brew-cask:font-fira-code-nerd-font" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
+
+
+# -----------------------------------------------------------------------------
+# macOS
+# -----------------------------------------------------------------------------
 
 [bootstrap.macos.dock]
 tilesize = 48
@@ -166,7 +229,7 @@ tap_to_click = true
 
 [bootstrap.macos.defaults]
 "NSGlobalDomain" = {
-NSTableViewDefaultSizeMode = 3,
+  NSTableViewDefaultSizeMode = 3,
 }
 
 "com.apple.finder" = {
@@ -190,6 +253,11 @@ SortColumn = "CPUUsage",
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+
+# -----------------------------------------------------------------------------
+# Tasks
+# -----------------------------------------------------------------------------
 
 [tasks.bootstrap]
 description = "Ensure uv's default stable Python is installed"

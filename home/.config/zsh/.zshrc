@@ -5,15 +5,6 @@ command -v mise &>/dev/null && eval "$(mise activate zsh)"
 # Keep the tied Zsh path array unique after activation.
 typeset -gU path PATH
 
-# Mise owns shared shell aliases in config.toml.
-
-# Git rebase helper remains a Zsh function.
-function grm() {
-  local main_branch
-  main_branch="$(git main-branch)" || return
-  git fetch origin "$main_branch" && git rebase "origin/$main_branch"
-}
-
 # Keep a large, shared history while avoiding noisy duplicates.
 mkdir -p "$XDG_CACHE_HOME/zsh"
 HISTFILE="$XDG_CACHE_HOME/zsh/history"
