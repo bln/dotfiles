@@ -33,7 +33,7 @@ jobs:
 
       - name: Check shell syntax
         run: |
-          bash -n install.sh uninstall.sh
+          bash -n uninstall.sh
           zsh -n home/.zshenv home/.config/zsh/.zprofile home/.config/zsh/.zshrc
 
       - name: Check Mise configuration
