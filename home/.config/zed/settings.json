@@ -126,7 +126,7 @@
   "theme": {
     "mode": "dark",
     "light": "One Light",
-    "dark": "One Dark",
+    "dark": "Catppuccin Frappé",
   },
   "theme_overrides": {
     "One Dark": {

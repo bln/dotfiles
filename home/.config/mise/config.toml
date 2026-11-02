@@ -3,7 +3,7 @@
 # Canonical global machine configuration.
 # Deployed to ~/.config/mise/config.toml through home/.
 
-min_version = "2026.10.24"
+min_version = "2026.10.25"
 
 
 # -----------------------------------------------------------------------------
@@ -56,13 +56,13 @@ exclude = ["Library/Application Support/rtk/config.toml"]
 
 [env]
 
-# Append Homebrew after Mise-managed tools and before inherited PATH.
 _.path = [
+  "~/.local/bin",
   { path = [
     "/opt/homebrew/bin",
     "/opt/homebrew/sbin",
   ], position = "append" },
-]
+] # Append Homebrew after Mise-managed tools and before inherited PATH.
 
 # Shell and editor defaults.
 EDITOR = "nvim"
@@ -181,8 +181,8 @@ uv = "latest"
 "brew-cask:chatgpt" = "latest"
 "brew-cask:claude-code@latest" = "latest"
 "brew-cask:codex" = "latest"
-"brew-cask:neovim" = "latest"
-"brew-cask:pi-coding-agent" = "latest"
+"brew:neovim" = "latest"
+"brew:pi-coding-agent" = "latest"
 
 # Interactive Zsh plugins.
 "brew:zsh-autosuggestions" = "latest"

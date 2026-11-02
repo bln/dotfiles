@@ -1,6 +1,6 @@
-# Working in this repo
+s Working in this repo
 
-Personal macOS dotfiles repository. Keep changes small, explicit, and reversible.
+Personal macOS dotfiles repository. Keep changes small, explicit, and easy to revert.
 
 ## Ownership
 
@@ -8,10 +8,11 @@ Personal macOS dotfiles repository. Keep changes small, explicit, and reversible
   preferences, mise settings, and dotfile deployment.
 - `home/` mirrors `$HOME`; mise deploys it with `symlink-each`.
 - Credentials, sessions, caches, databases, generated state, and application state
-  stay in native machine-local locations and are never tracked.
+  remain machine-local and are never tracked.
 
 ## Instructions
 
 - Use Conventional Commits.
-- Ask before deleting unrelated files, changing skills, committing, pushing, or making destructive cleanup.
 - Never commit secrets or generated state.
+- Ask before deleting unrelated files, committing, pushing, or performing
+  destructive cleanup.
