@@ -4,9 +4,6 @@
   "disableRemoteControl": true,
   "disableWorkflows": true,
   "permissions": {
-    "deny": [
-      "NotebookEdit",
-      "RemoteTrigger"
-    ]
+    "deny": ["NotebookEdit", "RemoteTrigger", "WebSearch"]
   }
 }

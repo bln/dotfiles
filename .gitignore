@@ -38,27 +38,13 @@ home/.config/git/identity-*
 !home/.config/git/identity-personal.example
 !home/.config/git/identity-work.example
 
-# home/ mirrors $HOME. Keep agent runtime state local, but allow the
-# repository-owned instructions, extensions, and skills below.
+# home/ mirrors $HOME. Keep agent runtime state local; Mise copies the
+# canonical instructions in .agents/ to each app-specific location.
 home/.agents/**
 !home/.agents/
 !home/.agents/AGENTS.md
-!home/.agents/skills/
-!home/.agents/skills/**
 home/.pi/**
-!home/.pi/agent/
-!home/.pi/agent/AGENTS.md
-!home/.pi/agent/extensions/
-!home/.pi/agent/extensions/pi-lfooter.ts
-!home/.pi/agent/extensions/pi-lfooter/
-!home/.pi/agent/extensions/pi-lfooter/**
 home/.codex/**
-!home/.codex/
-!home/.codex/AGENTS.md
 home/.claude/**
-!home/.claude/
-!home/.claude/CLAUDE.md
-!home/.claude/skills/
-!home/.claude/skills/**
 
 # Local package-manager artifacts
