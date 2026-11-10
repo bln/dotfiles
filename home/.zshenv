@@ -7,11 +7,9 @@ export ZDOTDIR="${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}"
 export PATH="$HOME/.local/bin:$PATH"
 export LANG=en_US.UTF-8
 
-# Prefer Neovim, then Vim, with the system vi as a fallback.
+# Prefer Vim, with the system vi as a fallback.
 if [[ -z ${EDITOR:-} ]]; then
-  if command -v nvim >/dev/null 2>&1; then
-    EDITOR=nvim
-  elif command -v vim >/dev/null 2>&1; then
+  if command -v vim >/dev/null 2>&1; then
     EDITOR=vim
   else
     EDITOR=vi

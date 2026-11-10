@@ -30,7 +30,7 @@ email = user-email
 
 ## Editors
 
-- **Neovim**: primary terminal editor
+- **Vim/vi**: terminal editor
 - **Zed**: primary GUI editor
 - **VS Code**: secondary GUI editor
 

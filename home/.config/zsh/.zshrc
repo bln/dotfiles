@@ -45,9 +45,7 @@ else
 fi
 
 # Select an available editor for the v shortcut.
-if (( $+commands[nvim] )); then
-  alias v='nvim'
-elif (( $+commands[vim] )); then
+if (( $+commands[vim] )); then
   alias v='vim'
 else
   alias v='vi'
@@ -84,6 +82,12 @@ if (( $+commands[git] )); then
 else
   alias gcm='_dotfiles_missing_app gcm git'
   alias gpf='_dotfiles_missing_app gpf git'
+fi
+
+if (( $+commands[lazygit] )); then
+  alias lz='lazygit'
+else
+  alias lz='_dotfiles_missing_app lz lazygit'
 fi
 
 if (( $+commands[gh] )); then

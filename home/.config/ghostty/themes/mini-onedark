@@ -1,5 +1,4 @@
 # Colors from the OneDarkPro `onedark` theme:
-# https://github.com/olimorris/onedarkpro.nvim/blob/main/extras/ghostty/onedarkpro_onedark
 
 palette = 0=#282c34
 palette = 1=#e06c75

@@ -1,6 +1,5 @@
 " Minimal dark OneDark colorscheme for Vim.
-" Palette and syntax roles are derived from:
-" https://github.com/olimorris/onedarkpro.nvim/blob/main/lua/onedarkpro/themes/onedark.lua
+" Palette and syntax roles adapted from One Dark Pro.
 
 highlight clear
 if exists('syntax_on')
