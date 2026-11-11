@@ -10,11 +10,17 @@ relative = true
 "~/.codex/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
 "~/.claude/CLAUDE.md" = { source = ".agents/AGENTS.md", mode = "copy" }
 "~/.pi/agent/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
-"~/.claude/settings.json/settings" = { source = "../patches/.claude/settings.json", merge = true }
-"~/Library/Application Support/rtk/config.toml/excludes" = { source = "../patches/rtk/config.toml", merge = true }
-"~/.pi/agent/settings.json/settings" = { source = "../patches/.pi/agent/settings.json", merge = true }
 
-[tasks.bootstrap]
+[dotfile_groups.patches]
+root = "patches"
+manifest = "git"
+
+[dotfile_groups.patches.entries]
+"~/.claude/settings.json/settings" = { source = ".claude/settings.json", merge = true }
+"~/Library/Application Support/rtk/config.toml/excludes" = { source = "rtk/config.toml", merge = true }
+"~/.pi/agent/settings.json/settings" = { source = ".pi/agent/settings.json", merge = true }
+
+[tasks.boostrap]
 run = [
   "uv python find --no-project --managed-python >/dev/null 2>&1 || uv python install --default",
   "command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash",
