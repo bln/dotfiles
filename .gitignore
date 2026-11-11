@@ -1,5 +1,4 @@
 # Local repository state
-FINDINGS.md
 backup/
 research/
 
@@ -37,14 +36,3 @@ home/.zshrc.local
 home/.config/git/identity-*
 !home/.config/git/identity-personal.example
 !home/.config/git/identity-work.example
-
-# home/ mirrors $HOME. Keep agent runtime state local; Mise copies the
-# canonical instructions in .agents/ to each app-specific location.
-home/.agents/**
-!home/.agents/
-!home/.agents/AGENTS.md
-home/.pi/**
-home/.codex/**
-home/.claude/**
-
-# Local package-manager artifacts

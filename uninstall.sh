@@ -29,4 +29,7 @@ trap 'rmdir "$empty_dir" 2>/dev/null || true' EXIT
 
 "$mise_bin" implode --config --yes
 
+rm -f ~/.local/bin/claude
+rm -rf ~/.local/share/claude
+
 printf 'Mise resources removed; repository remains at: %s\n' "$repo"

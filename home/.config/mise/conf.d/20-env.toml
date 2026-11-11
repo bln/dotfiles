@@ -1,0 +1,10 @@
+[env]
+_.path = [
+  "~/.local/bin",
+  { path = [
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+  ], position = "append" },
+] # Append Homebrew after Mise-managed tools and before inherited PATH.
+
+MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
