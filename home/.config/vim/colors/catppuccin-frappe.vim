@@ -54,7 +54,7 @@ highlight MatchParen guifg=#c6d0f5 guibg=#414559 ctermfg=189 ctermbg=239 gui=bol
 
 " Editor chrome.
 highlight Cursor       guifg=#303446 guibg=#f2d5cf ctermfg=237 ctermbg=224
-highlight CursorLine   guibg=#414559 ctermbg=239
+highlight CursorLine   guibg=#414559 ctermbg=239 gui=NONE cterm=NONE
 highlight LineNr       guifg=#737994 guibg=NONE   ctermfg=244
 highlight CursorLineNr guifg=#babbf1 guibg=#414559 ctermfg=147 ctermbg=239 gui=bold cterm=bold
 highlight SignColumn   guifg=#737994 guibg=NONE   ctermfg=244
