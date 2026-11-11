@@ -1,17 +1,11 @@
-# Copy the identity examples here and edit them; useConfigOnly prevents Git
-# from guessing when an identity has not been configured.
+# Keep identities in machine-local files; useConfigOnly prevents Git from
+# guessing when no identity has been configured.
 [user]
 	useConfigOnly = true
 
 [include]
 	path = ~/.config/git/identity-personal
-
-[includeIf "hasconfig:remote.*.url:https://github.tools.sap/**"]
-	path = ~/.config/git/identity-work
-[includeIf "hasconfig:remote.*.url:ssh://*github.tools.sap/**"]
-	path = ~/.config/git/identity-work
-[includeIf "hasconfig:remote.*.url:git@github.tools.sap:*/**"]
-	path = ~/.config/git/identity-work
+	path = ~/.config/git/identity-local
 
 [core]
 	pager = delta
@@ -25,9 +19,6 @@
 
 [credential "https://github.com"]
 	helper = osxkeychain
-[credential "https://github.tools.sap"]
-	helper = osxkeychain
-
 [init]
 	defaultBranch = main
 
@@ -65,7 +56,6 @@
 
 [commit]
 	verbose = true
-	template = ~/.config/git/commit-template
 
 [branch]
 	sort = -committerdate
