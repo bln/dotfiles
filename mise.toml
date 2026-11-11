@@ -1,0 +1,39 @@
+[settings]
+dotfiles.root = "{{ config_source | dirname }}" #<repo>
+
+[dotfile_groups.home]
+root = "home"
+manifest = "git"
+relative = true
+
+[dotfile_groups.home.entries]
+"~/.codex/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.claude/CLAUDE.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.pi/agent/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.claude/settings.json/settings" = { source = "../patches/.claude/settings.json", merge = true }
+"~/Library/Application Support/rtk/config.toml/excludes" = { source = "../patches/rtk/config.toml", merge = true }
+"~/.pi/agent/settings.json/settings" = { source = "../patches/.pi/agent/settings.json", merge = true }
+
+[tasks.bootstrap]
+run = [
+  "uv python find --no-project --managed-python >/dev/null 2>&1 || uv python install --default",
+  "command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash",
+  "command -v pi >/dev/null 2>&1 || curl -fsSL https://pi.dev/install.sh | sh",
+  "command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+]
+
+[tasks.update]
+run = [
+  "mise self-update --yes",
+  "mise bootstrap --upgrade --prune-dotfiles --yes",
+  "claude update",
+  "pi update --all",
+  "codex update",
+]
+
+[tasks.cleanup]
+run = [
+  "mise prune",
+  "mise bootstrap packages prune --manager brew-cask --force --yes",
+  "mise bootstrap packages prune --yes",
+]
