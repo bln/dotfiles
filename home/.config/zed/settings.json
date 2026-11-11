@@ -4,7 +4,6 @@
   "title_bar": {
     "show_sign_in": false,
   },
-  "diff_view_style": "unified",
   "suggest_extensions": false,
   "vim_mode": true,
   "vim": {
@@ -16,25 +15,9 @@
     "metrics": false,
   },
   "base_keymap": "VSCode",
-  "preview_tabs": {
-    "enabled": false,
-  },
-  "tabs": {
-    "git_status": true,
-  },
   "markdown_preview": {
     "open_markdown_files_in_preview": true,
   },
-  "languages": {
-    "Markdown": {
-      "remove_trailing_whitespace_on_save": false,
-    },
-  },
-  "status_bar": {
-    "show_active_file": true,
-    "line_endings_button": true,
-  },
-  "line_indicator_format": "short",
   "search": {
     "button": false,
   },
