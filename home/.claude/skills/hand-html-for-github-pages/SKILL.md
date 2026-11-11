@@ -1,1 +1,0 @@
-../../../.agents/skills/hand-html-for-github-pages/SKILL.md

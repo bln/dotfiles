@@ -1,1 +1,0 @@
-../../../.agents/skills/astro-for-github-pages/SKILL.md

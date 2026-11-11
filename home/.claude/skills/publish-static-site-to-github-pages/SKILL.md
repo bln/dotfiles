@@ -1,1 +1,0 @@
-../../../.agents/skills/publish-static-site-to-github-pages/SKILL.md
