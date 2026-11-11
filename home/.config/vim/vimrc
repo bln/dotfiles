@@ -10,7 +10,7 @@ if exists('+termguicolors')
   set termguicolors
 endif
 set background=dark
-colorscheme mini-onedark
+colorscheme catppuccin-frappe
 
 filetype plugin indent on
 

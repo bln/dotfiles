@@ -1,16 +1,16 @@
 # Keep the prompt compact while preserving path, Git context, and command result.
-palette = "mini-onedark"
+palette = "catppuccin_frappe"
 format = "[╭─](prompt) $directory$git_branch$git_status\n[╰─](prompt)$character "
 add_newline = false
 
-[palettes.mini-onedark]
-prompt = "#abb2bf"
-muted = "#5c6370"
-dir = "#61afef"
-branch = "#c678dd"
-status = "#e5c07b"
-success = "#98c379"
-error = "#e06c75"
+[palettes.catppuccin_frappe]
+prompt = "#c6d0f5"
+muted = "#838ba7"
+dir = "#8caaee"
+branch = "#ca9ee6"
+status = "#e5c890"
+success = "#a6d189"
+error = "#e78284"
 
 [directory]
 format = "[$path]($style)"

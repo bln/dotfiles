@@ -7,11 +7,12 @@ command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 export PAGER="${PAGER:-less -FRX}"
 export CLICOLOR=1
 export LSCOLORS='ExGxFxDxCxBxBxCxCxExDx'
+export FZF_DEFAULT_OPTS='--color=bg:#303446,bg+:#414559,fg:#c6d0f5,fg+:#c6d0f5,hl:#e78284,hl+:#e78284,info:#ca9ee6,prompt:#ca9ee6,pointer:#f2d5cf,marker:#a6d189,spinner:#f2d5cf,header:#a6d189,border:#626880'
 
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS NO_BEEP
 
 alias l='command ls -laG'
-alias bat='command bat --theme=OneHalfDark --style=numbers,changes,header --paging=auto'
+alias bat='command bat --theme="Catppuccin Frappe" --style=numbers,changes,header --paging=auto'
 alias q='exit'
 alias c='clear'
 alias cc='z'
