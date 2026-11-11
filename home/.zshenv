@@ -5,3 +5,19 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}"
 
 export PATH="$HOME/.local/bin:$PATH"
+export LANG=en_US.UTF-8
+
+# Prefer Neovim, then Vim, with the system vi as a fallback.
+if [[ -z ${EDITOR:-} ]]; then
+  if command -v nvim >/dev/null 2>&1; then
+    EDITOR=nvim
+  elif command -v vim >/dev/null 2>&1; then
+    EDITOR=vim
+  else
+    EDITOR=vi
+  fi
+fi
+export EDITOR
+export VISUAL="${VISUAL:-$EDITOR}"
+export GIT_EDITOR="${GIT_EDITOR:-$EDITOR}"
+export NPM_CONFIG_USERCONFIG="${NPM_CONFIG_USERCONFIG:-$XDG_CONFIG_HOME/npm/npmrc}"
