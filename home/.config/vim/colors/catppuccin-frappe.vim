@@ -76,7 +76,6 @@ highlight DiffChange  guifg=#e5c890 guibg=#303446 ctermfg=186 ctermbg=237
 highlight DiffDelete  guifg=#e78284 guibg=#303446 ctermfg=174 ctermbg=237
 highlight DiffText    guifg=#81c8be guibg=#303446 ctermfg=115 ctermbg=237
 
-" Statusline: the mode segment is intentionally the strongest accent.
+" Statusline colors.
 highlight StatusLine     guifg=#c6d0f5 guibg=#414559 ctermfg=189 ctermbg=239
 highlight StatusLineNC   guifg=#737994 guibg=#303446 ctermfg=244 ctermbg=237
-highlight StatusLineMode guifg=#303446 guibg=#8caaee ctermfg=237 ctermbg=111 gui=bold cterm=bold

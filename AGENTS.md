@@ -1,12 +1,14 @@
-s Working in this repo
+# Working in this repo
 
 Personal macOS dotfiles repository. Keep changes small, explicit, and easy to revert.
 
 ## Ownership
 
-- `home/.config/mise/config.toml` owns global tools, packages, environment, macOS
-  preferences, mise settings, and dotfile deployment.
-- `home/` mirrors `$HOME`; mise deploys it with `symlink-each`.
+- `mise.toml` owns repository dotfile deployment and tasks.
+- `home/.config/mise/config.toml` owns global mise settings, tools, packages,
+  environment, and macOS preferences.
+- `home/` mirrors `$HOME`; mise deploys tracked files as relative symlinks.
+  Explicit copy and merge entries are defined in `mise.toml`.
 - Credentials, sessions, caches, databases, generated state, and application state
   remain machine-local and are never tracked.
 

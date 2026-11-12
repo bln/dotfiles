@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal macOS workstation configuration for Apple Silicon. . The `home/` directory mirrors `$HOME`.
+Personal macOS workstation configuration for Apple Silicon. The `home/` directory mirrors `$HOME`.
 
 ## Install
 
@@ -14,11 +14,41 @@ MISE_CONFIG_DIR="$PWD/home/.config/mise" "$HOME/.local/bin/mise" bootstrap --yes
 
 ## Repository layout
 
-- `home/` mirrors `$HOME`; mise deploys tracked files as relative symlinks.
-- `patches/` contains settings merged into existing Claude, Pi, and RTK configuration files.
-- `mise.toml` defines dotfile groups and the `update`, `cleanup`, and optional `boostrap` tasks.
-- `home/.config/mise/config.toml` defines tools, packages, apps, and macOS preferences.
-- `uninstall.sh` removes the mise-managed setup.
+```text
+dotfiles/
+├── .github/                                  GitHub project automation
+│   └── workflows/                            CI workflows
+├── home/                                     Files deployed into $HOME
+│   ├── .agents/                              Shared coding-agent instructions
+│   ├── .config/                              XDG application configuration
+│   │   ├── ghostty/                          Ghostty terminal settings
+│   │   │   └── themes/                       Ghostty color themes
+│   │   ├── git/                              Git defaults and ignore rules
+│   │   ├── mise/                             Global mise settings and tool lockfile
+│   │   ├── npm/                              npm install policy
+│   │   ├── uv/                               uv package policy
+│   │   ├── vim/                              Vim configuration
+│   │   │   └── colors/                       Vim color schemes
+│   │   ├── zed/                              Zed settings and keybindings
+│   │   ├── zsh/                              Zsh startup files
+│   │   └── starship.toml                     Starship prompt settings
+│   ├── Library/                              macOS user application settings
+│   │   └── Application Support/              macOS application support files
+│   │       └── Code/                         VS Code configuration
+│   │           └── User/                     VS Code user settings and keybindings
+│   └── .zshenv                               XDG paths and shell environment setup
+├── patches/                                  Settings merged into existing app configs
+│   ├── .claude/                              Claude Code settings patch
+│   ├── .pi/                                  Pi settings patches
+│   │   └── agent/                            Pi agent settings patch
+│   └── rtk/                                  RTK settings patch
+├── .gitignore                                Local and generated files to ignore
+├── AGENTS.md                                 Repository working agreement
+├── LICENSE                                   MIT license
+├── mise.toml                                 Dotfile groups and repository tasks
+├── README.md                                 Setup and repository guide
+└── uninstall.sh                              Mise-managed setup removal
+```
 
 ## Uninstall
 
