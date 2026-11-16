@@ -9,7 +9,7 @@ command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 export PAGER="${PAGER:-less -FRX}"
 export CLICOLOR=1
 export LSCOLORS='ExGxFxDxCxBxBxCxCxExDx'
-export FZF_DEFAULT_OPTS='--color=bg:#303446,bg+:#414559,fg:#c6d0f5,fg+:#c6d0f5,hl:#e78284,hl+:#e78284,info:#ca9ee6,prompt:#ca9ee6,pointer:#f2d5cf,marker:#a6d189,spinner:#f2d5cf,header:#a6d189,border:#626880'
+export FZF_DEFAULT_OPTS='--height=40% --layout=reverse --border --info=inline --color=bg:#303446,bg+:#414559,fg:#c6d0f5,fg+:#c6d0f5,hl:#e78284,hl+:#e78284,info:#ca9ee6,prompt:#ca9ee6,pointer:#f2d5cf,marker:#a6d189,spinner:#f2d5cf,header:#a6d189,border:#626880'
 
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS NO_BEEP
 
@@ -55,7 +55,32 @@ bindkey '^[OH' beginning-of-line
 bindkey '^[OF' end-of-line
 bindkey '^[[3~' delete-char
 
+# fzf: Ctrl-T files, Alt-C directories, Ctrl-R history, and **-Tab completion.
+if command -v fzf &>/dev/null; then
+  if command -v fd &>/dev/null; then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git --color=never'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git --color=never'
+
+    _fzf_compgen_path() {
+      command fd --hidden --follow --exclude .git --color=never . "$1"
+    }
+    _fzf_compgen_dir() {
+      command fd --type d --hidden --follow --exclude .git --color=never . "$1"
+    }
+  fi
+
+  export FZF_CTRL_T_OPTS='--walker=file,follow,hidden --bind=ctrl-/:toggle-preview'
+  if command -v bat &>/dev/null; then
+    FZF_CTRL_T_OPTS+=" --preview 'bat --color=always --style=numbers --line-range=:300 -- {}'"
+  fi
+  export FZF_ALT_C_OPTS="--preview 'command ls -laG -- {}' --bind=ctrl-/:toggle-preview"
+  export FZF_CTRL_R_OPTS="--bind 'ctrl-y:execute-silent(printf %s {2..} | pbcopy)+abort' --header 'Ctrl-Y: copy command to clipboard'"
+fi
+
 [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+command -v fzf &>/dev/null && source <(fzf --zsh)
 
 [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

@@ -56,6 +56,10 @@ dotfiles/
 
 ## Maintenance
 
+Shell shortcuts: Ctrl-R searches history (Ctrl-Y copies the selected command),
+Ctrl-T inserts file paths with bat previews, and Alt-C changes directories.
+Ctrl-/ toggles file/directory previews. Type `**` then Tab for fuzzy completion.
+
 ```sh
 mise run global:update
 mise run global:cleanup
