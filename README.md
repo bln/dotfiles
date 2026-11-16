@@ -67,6 +67,8 @@ mise run global:cleanup
 ./uninstall.sh --yes
 ```
 
+Independently installed Claude, Pi, and Codex CLIs remain installed.
+
 ## CI
 
 GitHub Actions runs on macOS 26.

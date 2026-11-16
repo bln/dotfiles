@@ -5,7 +5,6 @@ min_version = "2026.11.8"
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64"]
-self_update.auto = true
 disable_backends = [
   "asdf",
   "conda",
