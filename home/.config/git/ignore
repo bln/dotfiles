@@ -11,10 +11,11 @@
 *~
 Session.vim
 .netrwhist
-tags
 
 .env
 .env.*
+!.env.example
+!.env.sample
 *.pem
 *.key
 *.cert

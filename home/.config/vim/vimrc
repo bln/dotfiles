@@ -1,6 +1,5 @@
 " Minimal, plugin-free Vim configuration.
 scriptencoding utf-8
-set nocompatible
 set encoding=utf-8
 
 " Built-in filetype support.
@@ -11,7 +10,6 @@ syntax on
 if exists('+termguicolors')
   set termguicolors
 endif
-set background=dark
 colorscheme catppuccin-frappe
 
 " Editing behavior.
@@ -20,12 +18,10 @@ set number
 set relativenumber
 set cursorline
 set ruler
-set showcmd
 set showmatch
 set nowrap
 set scrolloff=8
 set sidescrolloff=8
-set backspace=indent,eol,start
 
 " Two-space indentation.
 set tabstop=2
@@ -33,7 +29,6 @@ set shiftwidth=2
 set softtabstop=2
 set expandtab
 set autoindent
-set smartindent
 
 " Search and command-line completion.
 set ignorecase

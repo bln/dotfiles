@@ -9,13 +9,9 @@ set background=dark
 
 " Core syntax.
 highlight Normal       guifg=#c6d0f5 guibg=#303446 ctermfg=189 ctermbg=NONE
-highlight NormalNC     guifg=#c6d0f5 guibg=#303446 ctermfg=189 ctermbg=NONE
 highlight Comment      guifg=#838ba7 guibg=NONE   ctermfg=103
 highlight Constant     guifg=#ef9f76 guibg=NONE   ctermfg=216
 highlight String       guifg=#a6d189 guibg=NONE   ctermfg=150
-highlight Character    guifg=#a6d189 guibg=NONE   ctermfg=150
-highlight Number       guifg=#ef9f76 guibg=NONE   ctermfg=216
-highlight Boolean      guifg=#ef9f76 guibg=NONE   ctermfg=216
 highlight Identifier   guifg=#e78284 guibg=NONE   ctermfg=174
 highlight Function     guifg=#8caaee guibg=NONE   ctermfg=111
 highlight Statement    guifg=#ca9ee6 guibg=NONE   ctermfg=182
@@ -28,6 +24,10 @@ highlight Special      guifg=#8caaee guibg=NONE   ctermfg=111
 highlight Delimiter    guifg=#c6d0f5 guibg=NONE   ctermfg=189
 highlight Underlined   guifg=#8caaee guibg=NONE   ctermfg=111 gui=underline cterm=underline
 
+highlight! link NormalNC Normal
+highlight! link Character String
+highlight! link Number Constant
+highlight! link Boolean Constant
 highlight! link Conditional Statement
 highlight! link Repeat Statement
 highlight! link Label Statement

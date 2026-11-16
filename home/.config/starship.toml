@@ -5,7 +5,6 @@ add_newline = false
 
 [palettes.catppuccin_frappe]
 prompt = "#c6d0f5"
-muted = "#838ba7"
 dir = "#8caaee"
 branch = "#ca9ee6"
 status = "#e5c890"
@@ -13,9 +12,8 @@ success = "#a6d189"
 error = "#e78284"
 
 [directory]
-format = "[$path]($style)"
+format = "[$path]($style)[$read_only]($read_only_style)"
 style = "dir"
-truncation_length = 3
 truncation_symbol = "…/"
 truncate_to_repo = false
 

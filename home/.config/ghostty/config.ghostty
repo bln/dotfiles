@@ -3,9 +3,8 @@ font-thicken = true
 
 theme = catppuccin-frappe
 background-opacity = 0.95
-background-blur-radius = 20
+background-blur = 20
 
-macos-titlebar-style = transparent
 window-padding-x = 12
 window-padding-y = 10
 
@@ -13,7 +12,6 @@ cursor-style = bar
 cursor-style-blink = true
 
 copy-on-select = clipboard
-clipboard-trim-trailing-spaces = true
 macos-option-as-alt = true
 
 confirm-close-surface = false

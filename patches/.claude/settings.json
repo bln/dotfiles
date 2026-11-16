@@ -1,5 +1,5 @@
 {
-  "disableArtifact": true,
+  "enableArtifact": false,
   "disableClaudeAiConnectors": true,
   "disableRemoteControl": true,
   "disableWorkflows": true,
