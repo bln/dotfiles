@@ -1,4 +1,6 @@
-typeset -gU path PATH
+export LANG=en_US.UTF-8
+export EDITOR=vim
+export VISUAL=vim
 
 command -v mise &>/dev/null && eval "$(mise activate zsh)"
 command -v starship &>/dev/null && eval "$(starship init zsh)"
@@ -12,22 +14,19 @@ export FZF_DEFAULT_OPTS='--color=bg:#303446,bg+:#414559,fg:#c6d0f5,fg+:#c6d0f5,h
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS NO_BEEP
 
 alias l='command ls -laG'
-alias bat='command bat --theme="Catppuccin Frappe" --style=numbers,changes,header --paging=auto'
 alias q='exit'
 alias c='clear'
 alias cc='z'
-alias ec="$EDITOR $ZDOTDIR/.zshrc"
-alias sc="source $ZDOTDIR/.zshrc"
+alias ec="$EDITOR $HOME/.zshrc"
+alias sc="source $HOME/.zshrc"
 alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
 alias ..='cd ..'
 alias ...='cd ../..'
 
-mkdir -p "$XDG_CACHE_HOME/zsh"
-HISTFILE="$XDG_CACHE_HOME/zsh/history"
+HISTFILE="$HOME/.zsh_history"
 HISTSIZE=100000
 SAVEHIST=100000
 
-setopt EXTENDED_HISTORY
 setopt SHARE_HISTORY
 setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_IGNORE_SPACE
@@ -43,13 +42,7 @@ zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
 zstyle ':completion:*:warnings' format '%F{red}No matches for: %d%f'
 
 autoload -Uz compinit
-_compdump="$XDG_CACHE_HOME/zsh/zcompdump-${ZSH_VERSION}"
-if [[ -r "$_compdump" ]]; then
-  compinit -C -d "$_compdump"
-else
-  compinit -d "$_compdump"
-fi
-unset _compdump
+compinit
 
 bindkey -e
 bindkey '^[[A' history-beginning-search-backward
@@ -62,7 +55,7 @@ bindkey '^[OH' beginning-of-line
 bindkey '^[OF' end-of-line
 bindkey '^[[3~' delete-char
 
-[[ -r "$ZDOTDIR/.zshrc.local" ]] && source "$ZDOTDIR/.zshrc.local"
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

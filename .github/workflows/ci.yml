@@ -35,7 +35,25 @@ jobs:
       - name: Check shell syntax
         run: |
           bash -n uninstall.sh
-          zsh -n home/.zshenv home/.config/zsh/.zprofile home/.config/zsh/.zshrc
+          zsh -n home/.zshenv home/.zprofile home/.zshrc
+
+      - name: Check native shell startup
+        run: |
+          test_home="$(mktemp -d)"
+          cp home/.zshenv home/.zprofile home/.zshrc "$test_home/"
+          printf '%s\n' 'NATIVE_LOCAL_LOADED=1' > "$test_home/.zshrc.local"
+          env -i HOME="$test_home" PATH=/usr/bin:/bin TERM=xterm-256color \
+            /bin/zsh -lic '
+              [[ -z ${XDG_CONFIG_HOME+x}${XDG_CACHE_HOME+x}${XDG_DATA_HOME+x}${XDG_STATE_HOME+x}${ZDOTDIR+x}${NPM_CONFIG_USERCONFIG+x} ]] || exit 1
+              [[ $HISTFILE == $HOME/.zsh_history ]] || exit 1
+              [[ $_comp_dumpfile == $HOME/.zcompdump ]] || exit 1
+              [[ $NATIVE_LOCAL_LOADED == 1 ]] || exit 1
+              (( ${path[(Ie)$HOME/.local/bin]} )) || exit 1
+            '
+          env -i HOME="$test_home" PATH=/usr/bin:/bin /bin/zsh -c '
+            [[ -z ${XDG_CONFIG_HOME+x}${XDG_CACHE_HOME+x}${XDG_DATA_HOME+x}${XDG_STATE_HOME+x}${ZDOTDIR+x}${NPM_CONFIG_USERCONFIG+x} ]] || exit 1
+            (( ${path[(Ie)$HOME/.local/bin]} )) || exit 1
+          '
 
       - name: Check Mise configuration
         run: |

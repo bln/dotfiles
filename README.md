@@ -24,22 +24,24 @@ dotfiles/
 ├── home/
 │   ├── .agents/
 │   ├── .config/
+│   │   ├── bat/
 │   │   ├── ghostty/
 │   │   │   └── themes/
 │   │   ├── git/
 │   │   ├── mise/
-│   │   ├── npm/
 │   │   ├── uv/
 │   │   ├── vim/
 │   │   │   └── colors/
 │   │   ├── zed/
-│   │   ├── zsh/
 │   │   └── starship.toml
 │   ├── Library/
 │   │   └── Application Support/
 │   │       └── Code/
 │   │           └── User/
-│   └── .zshenv
+│   ├── .npmrc
+│   ├── .zprofile
+│   ├── .zshenv
+│   └── .zshrc
 ├── patches/
 │   ├── .claude/
 │   ├── .pi/
