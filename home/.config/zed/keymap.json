@@ -7,7 +7,7 @@
     },
   },
   {
-    "context": "Editor && extension == md",
+    "context": "Editor && (extension == md || extension == markdown)",
     "use_key_equivalents": true,
     "bindings": {
       "cmd-alt-ctrl-?": "markdown::OpenPreview",

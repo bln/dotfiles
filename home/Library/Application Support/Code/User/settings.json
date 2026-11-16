@@ -11,8 +11,8 @@
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "explicit"
+    "source.fixAll": "always",
+    "source.organizeImports": "always"
   },
   "editor.rulers": [100],
   "editor.minimap.enabled": false,
@@ -32,7 +32,7 @@
   "workbench.tree.indent": 16,
   "workbench.sideBar.location": "right",
 
-  "files.autoSave": "afterDelay",
+  "files.autoSave": "onFocusChange",
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
@@ -46,12 +46,9 @@
   },
   "search.useGlobalIgnoreFiles": true,
 
-  "terminal.integrated.defaultProfile.osx": "zsh",
   "terminal.integrated.scrollback": 10000,
   "terminal.integrated.smoothScrolling": true,
   "terminal.integrated.confirmOnExit": "hasChildProcesses",
-
-  "git.pruneOnFetch": true,
 
   "telemetry.telemetryLevel": "off"
 }
