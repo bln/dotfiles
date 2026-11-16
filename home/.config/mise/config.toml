@@ -1,6 +1,6 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
-min_version = "2026.11.6"
+min_version = "2026.11.8"
 
 [settings]
 lockfile = true
@@ -18,6 +18,8 @@ disable_backends = [
   "vfox",
 ]
 
+dotfiles.root = "{{ config_source | canonicalize | dirname }}/../../.." #<repo>
+
 [env]
 _.path = [
   "~/.local/bin",
@@ -28,6 +30,25 @@ _.path = [
 ]
 
 MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
+
+[dotfile_groups.home]
+root = "home"
+manifest = "git"
+relative = true
+
+[dotfile_groups.home.entries]
+"~/.codex/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.claude/CLAUDE.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.pi/agent/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+
+[dotfile_groups.patches]
+root = "patches"
+manifest = "git"
+
+[dotfile_groups.patches.entries]
+"~/.claude/settings.json/settings" = { source = ".claude/settings.json", merge = true }
+"~/Library/Application Support/rtk/config.toml/excludes" = { source = "rtk/config.toml", merge = true }
+"~/.pi/agent/settings.json/settings" = { source = ".pi/agent/settings.json", merge = true }
 
 [tools]
 node = "lts"
@@ -43,7 +64,6 @@ uv = "latest"
 "brew:ripgrep" = "latest"
 "brew:shellcheck" = "latest"
 "brew:zoxide" = "latest"
-"brew:agent-browser" = "latest"
 "brew:mole" = "latest"
 "brew:rtk" = "latest"
 "brew:starship" = "latest"
@@ -53,26 +73,26 @@ uv = "latest"
 "brew-cask:zed" = "latest"
 "brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 
-[bootstrap.macos.dock]
+[bootstrap.settings.macos.dock]
 tilesize = 48
 autohide = true
 show_recents = false
 
-[bootstrap.macos.finder]
+[bootstrap.settings.macos.finder]
 show_pathbar = true
 show_status_bar = true
 preferred_view_style = "list"
 sort_folders_first = true
 
-[bootstrap.macos.keyboard]
+[bootstrap.settings.macos.keyboard]
 key_repeat = 2
 initial_key_repeat = 15
 press_and_hold = false
 
-[bootstrap.macos.trackpad]
+[bootstrap.settings.macos.trackpad]
 tap_to_click = true
 
-[bootstrap.macos.defaults]
+[bootstrap.settings.macos.defaults]
 "NSGlobalDomain" = { NSTableViewDefaultSizeMode = 3 }
 
 "com.apple.finder" = { FXDefaultSearchScope = "SCcf" }
@@ -82,3 +102,27 @@ tap_to_click = true
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
+
+[tasks.bootstrap]
+run = [
+  "uv python find --no-project --managed-python >/dev/null 2>&1 || uv python install --default",
+  "command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash",
+  "command -v pi >/dev/null 2>&1 || curl -fsSL https://pi.dev/install.sh | sh",
+  "command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+]
+
+[tasks."global:update"]
+run = [
+  "mise self-update --yes",
+  "mise bootstrap --upgrade --prune-dotfiles --yes",
+  "claude update",
+  "pi update --all",
+  "codex update",
+]
+
+[tasks."global:cleanup"]
+run = [
+  "mise prune --yes",
+  "mise bootstrap packages prune --manager brew-cask --force --yes",
+  "mise bootstrap packages prune --yes",
+]
