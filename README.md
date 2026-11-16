@@ -15,50 +15,15 @@ MISE_CONFIG_DIR="$PWD/home/.config/mise" "$HOME/.local/bin/mise" bootstrap --yes
 The global config at `home/.config/mise/config.toml` owns tools, Homebrew packages,
 environment, macOS preferences, and dotfile deployment.
 
-## Repository layout
+## Shell shortcuts
 
-```text
-dotfiles/
-├── .github/
-│   └── workflows/
-├── home/
-│   ├── .agents/
-│   ├── .config/
-│   │   ├── bat/
-│   │   ├── ghostty/
-│   │   │   └── themes/
-│   │   ├── git/
-│   │   ├── mise/
-│   │   ├── uv/
-│   │   ├── vim/
-│   │   │   └── colors/
-│   │   ├── zed/
-│   │   └── starship.toml
-│   ├── Library/
-│   │   └── Application Support/
-│   │       └── Code/
-│   │           └── User/
-│   ├── .npmrc
-│   ├── .zprofile
-│   ├── .zshenv
-│   └── .zshrc
-├── patches/
-│   ├── .claude/
-│   ├── .pi/
-│   │   └── agent/
-│   └── rtk/
-├── .gitignore
-├── AGENTS.md
-├── LICENSE
-├── README.md
-└── uninstall.sh
-```
+- Ctrl-R searches history (Ctrl-Y copies the selected command),
+- Ctrl-T inserts file paths with bat previews
+- Alt-C changes directories.
+- Ctrl-/ toggles file/directory previews.
+- Type `**` then Tab for fuzzy completion.
 
 ## Maintenance
-
-Shell shortcuts: Ctrl-R searches history (Ctrl-Y copies the selected command),
-Ctrl-T inserts file paths with bat previews, and Alt-C changes directories.
-Ctrl-/ toggles file/directory previews. Type `**` then Tab for fuzzy completion.
 
 ```sh
 mise run global:update
