@@ -42,7 +42,7 @@ jobs:
           mise config get --global >/dev/null
           mise config explain dotfile_groups.home >/dev/null
           dotfiles_root="$(mise settings dotfiles.root)"
-          test "$(cd "$dotfiles_root" && pwd -P)" = "$(cd home && pwd -P)"
+          test "$(cd "$dotfiles_root" && pwd -P)" = "$(pwd -P)"
           test -f home/.config/mise/mise.lock
 
       - name: Check dotfile bootstrap
