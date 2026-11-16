@@ -1,6 +1,4 @@
 {
-  "chat.disableAIFeatures": true,
-
   "editor.fontFamily": "'JetBrainsMono Nerd Font', 'JetBrains Mono', Menlo, monospace",
   "editor.fontSize": 14,
   "editor.lineHeight": 1.6,
@@ -50,5 +48,6 @@
   "terminal.integrated.smoothScrolling": true,
   "terminal.integrated.confirmOnExit": "hasChildProcesses",
 
+  "chat.disableAIFeatures": true,
   "telemetry.telemetryLevel": "off"
 }

@@ -1,37 +1,30 @@
 {
-  "cli_default_open_behavior": "new_window",
-  "disable_ai": true,
-  "title_bar": {
-    "show_sign_in": false,
+  "theme": {
+    "mode": "dark",
+    "light": "One Light",
+    "dark": "Catppuccin Frappé",
   },
-  "suggest_extensions": false,
+  "cli_default_open_behavior": "new_window",
+  "base_keymap": "VSCode",
+  "buffer_font_fallbacks": ["Menlo"],
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "buffer_font_size": 16.0,
+
   "vim_mode": true,
   "vim": {
     "toggle_relative_line_numbers": true,
     "use_smartcase_find": true,
   },
-  "telemetry": {
-    "diagnostics": false,
-    "metrics": false,
-  },
-  "base_keymap": "VSCode",
-  "markdown_preview": {
-    "open_markdown_files_in_preview": true,
-  },
-  "search": {
-    "button": false,
-  },
-  "collaboration_panel": {
-    "button": false,
-  },
-  "debugger": {
-    "button": false,
-  },
-  "preferred_line_length": 100,
-  "horizontal_scroll_margin": 8,
   "autosave": "on_focus_change",
-  "buffer_font_fallbacks": ["Menlo"],
-  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "format_on_save": "on",
+  "tab_size": 2,
+  "preferred_line_length": 100,
+  "wrap_guides": [100],
+  "horizontal_scroll_margin": 8,
+  "vertical_scroll_margin": 8,
+  "show_whitespaces": "boundary",
+  "use_smartcase_search": true,
+
   "file_scan_exclusions": [
     "**/.pytest_cache",
     "**/.ruff_cache",
@@ -40,16 +33,27 @@
     "**/node_modules",
     "...",
   ],
-  "show_whitespaces": "boundary",
-  "use_smartcase_search": true,
-  "format_on_save": "on",
-  "wrap_guides": [100],
-  "tab_size": 2,
-  "vertical_scroll_margin": 8,
-  "buffer_font_size": 16.0,
-  "theme": {
-    "mode": "dark",
-    "light": "One Light",
-    "dark": "Catppuccin Frappé",
+  "markdown_preview": {
+    "open_markdown_files_in_preview": true,
+  },
+  "search": {
+    "button": false,
+  },
+
+  "title_bar": {
+    "show_sign_in": false,
+  },
+  "collaboration_panel": {
+    "button": false,
+  },
+  "debugger": {
+    "button": false,
+  },
+  "suggest_extensions": false,
+
+  "disable_ai": true,
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
   },
 }

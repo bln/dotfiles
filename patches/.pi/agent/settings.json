@@ -1,10 +1,10 @@
 {
+  "quietStartup": true,
+  "collapseChangelog": true,
+  "showCacheMissNotices": true,
+  "enableInstallTelemetry": false,
+  "packages": ["npm:@juicesharp/rpiv-ask-user-question"],
   "terminal": {
     "showTerminalProgress": true
-  },
-  "showCacheMissNotices": true,
-  "collapseChangelog": true,
-  "quietStartup": true,
-  "enableInstallTelemetry": false,
-  "packages": ["npm:@juicesharp/rpiv-ask-user-question"]
+  }
 }

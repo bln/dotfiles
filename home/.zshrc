@@ -2,18 +2,6 @@ export LANG=en_US.UTF-8
 export EDITOR=vim
 export VISUAL=vim
 
-command -v mise &>/dev/null && eval "$(mise activate zsh)"
-command -v starship &>/dev/null && eval "$(starship init zsh)"
-command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
-command -v fzf &>/dev/null && source <(fzf --zsh)
-
-_fzf_compgen_path() {
-  command fd --hidden --follow --exclude .git --color=never . "$1"
-}
-_fzf_compgen_dir() {
-  command fd --type d --hidden --follow --exclude .git --color=never . "$1"
-}
-
 export PAGER="${PAGER:-less -FRX}"
 export CLICOLOR=1
 export LSCOLORS='ExGxFxDxCxBxBxCxCxExDx'
@@ -41,6 +29,17 @@ export FZF_CTRL_R_OPTS="
   --bind 'ctrl-y:execute-silent(printf %s {2..} | pbcopy)+abort'
   --header 'Ctrl-Y: copy command to clipboard'"
 
+command -v mise &>/dev/null && eval "$(mise activate zsh)"
+command -v starship &>/dev/null && eval "$(starship init zsh)"
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
+command -v fzf &>/dev/null && source <(fzf --zsh)
+
+_fzf_compgen_path() {
+  command fd --hidden --follow --exclude .git --color=never . "$1"
+}
+_fzf_compgen_dir() {
+  command fd --type d --hidden --follow --exclude .git --color=never . "$1"
+}
 
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS NO_BEEP
 
@@ -48,14 +47,14 @@ alias l='eza --color=auto --icons=auto --group-directories-first --long --all --
 alias ll='eza --color=auto --icons=auto --group-directories-first --long --header --git'
 alias la='eza --color=auto --icons=auto --group-directories-first --long --all --header --git'
 alias tree='eza --color=auto --icons=auto --group-directories-first --tree --level=2'
-alias q='exit'
-alias c='clear'
+alias ..='cd ..'
+alias ...='cd ../..'
 alias cc='z'
+alias c='clear'
+alias q='exit'
 alias ec="$EDITOR $HOME/.zshrc"
 alias sc="source $HOME/.zshrc"
 alias cxyolo='codex --dangerously-bypass-approvals-and-sandbox'
-alias ..='cd ..'
-alias ...='cd ../..'
 
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=100000

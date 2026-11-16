@@ -30,14 +30,18 @@ _.path = [
 
 MISE_BREW_CASK_OPT_APPDIR = "$HOME/Applications"
 
+[tools]
+node = "lts"
+uv = "latest"
+
 [dotfile_groups.home]
 root = "home"
 manifest = "git"
 relative = true
 
 [dotfile_groups.home.entries]
-"~/.codex/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
 "~/.claude/CLAUDE.md" = { source = ".agents/AGENTS.md", mode = "copy" }
+"~/.codex/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
 "~/.pi/agent/AGENTS.md" = { source = ".agents/AGENTS.md", mode = "copy" }
 
 [dotfile_groups.patches]
@@ -46,32 +50,28 @@ manifest = "git"
 
 [dotfile_groups.patches.entries]
 "~/.claude/settings.json/settings" = { source = ".claude/settings.json", merge = true }
-"~/Library/Application Support/rtk/config.toml/excludes" = { source = "rtk/config.toml", merge = true }
 "~/.pi/agent/settings.json/settings" = { source = ".pi/agent/settings.json", merge = true }
-
-[tools]
-node = "lts"
-uv = "latest"
+"~/Library/Application Support/rtk/config.toml/excludes" = { source = "rtk/config.toml", merge = true }
 
 [bootstrap.packages]
-"brew:git" = "latest"
 "brew:bat" = "latest"
+"brew:eza" = "latest"
+"brew:fd" = "latest"
 "brew:fzf" = "latest"
 "brew:gh" = "latest"
+"brew:git" = "latest"
 "brew:jq" = "latest"
-"brew:fd" = "latest"
-"brew:eza" = "latest"
-"brew:ripgrep" = "latest"
-"brew:shellcheck" = "latest"
-"brew:zoxide" = "latest"
 "brew:mole" = "latest"
+"brew:ripgrep" = "latest"
 "brew:rtk" = "latest"
+"brew:shellcheck" = "latest"
 "brew:starship" = "latest"
+"brew:zoxide" = "latest"
 "brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
+"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:zed" = "latest"
-"brew-cask:font-jetbrains-mono-nerd-font" = "latest"
 
 [bootstrap.settings.macos.dock]
 tilesize = 48
@@ -95,10 +95,10 @@ tap_to_click = true
 [bootstrap.settings.macos.defaults]
 "NSGlobalDomain" = { NSTableViewDefaultSizeMode = 3 }
 
-"com.apple.finder" = { FXDefaultSearchScope = "SCcf" }
-"com.apple.desktopservices" = { DSDontWriteNetworkStores = true, DSDontWriteUSBStores = true }
-"com.apple.spaces" = { "spans-displays" = false }
 "com.apple.ActivityMonitor" = { OpenMainWindow = true, ShowCategory = 0, SortColumn = "CPUUsage" }
+"com.apple.desktopservices" = { DSDontWriteNetworkStores = true, DSDontWriteUSBStores = true }
+"com.apple.finder" = { FXDefaultSearchScope = "SCcf" }
+"com.apple.spaces" = { "spans-displays" = false }
 
 [bootstrap.hooks]
 post-defaults = "killall Dock Finder SystemUIServer 2>/dev/null || true"
